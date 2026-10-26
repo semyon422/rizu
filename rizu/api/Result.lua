@@ -84,11 +84,18 @@ function Result:getRate()
 	return score and score.rate or self.game.replayBase.rate
 end
 
+---@param self rizu.api.Result
+---@return sea.ReplayBase?
+local function getReplayBase(self)
+	local game = self.game ---@diagnostic disable-line: invisible
+	local result_controller = game.resultController
+	return result_controller.replay and result_controller.replay_base or game.replayBase
+end
+
 ---The mutators that changed the chart, in the order they were applied.
 ---@return rizu.api.Mutator[]
 function Result:getMutators()
-	local result_controller = self.game.resultController
-	local replay_base = result_controller.replay and result_controller.replay_base or self.game.replayBase
+	local replay_base = getReplayBase(self)
 	return replay_base and replay_base.modifiers or {}
 end
 
@@ -238,7 +245,9 @@ function Result:rescore(system, value, osu_score_version)
 		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
 		value = value and math.floor(value * 10 + 0.5) / 10
 	end
-	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings)
+	local replay_base = getReplayBase(self)
+	local healths = replay_base and replay_base.healths
+	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings, healths)
 end
 
 -- Leaving

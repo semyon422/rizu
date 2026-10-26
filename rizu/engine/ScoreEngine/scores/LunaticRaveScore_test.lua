@@ -21,7 +21,7 @@ end
 ---@param t testing.T
 function test.score_uses_lr2_weights(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(5)
+	score:load({notes_count = 5})
 
 	score.judge_counter:add(1) -- PGREAT: 4
 	score.judge_counter:add(2) -- GREAT: 2
@@ -38,7 +38,7 @@ end
 ---@param t testing.T
 function test.score_maximum_is_200000(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(2)
+	score:load({notes_count = 2})
 
 	score.judge_counter:add(1)
 	score.judge_counter:add(1)
@@ -49,7 +49,7 @@ end
 ---@param t testing.T
 function test.score_is_zero_without_notes(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(0)
+	score:load({notes_count = 0})
 
 	t:eq(score:getScore(), 0)
 end
@@ -57,7 +57,7 @@ end
 ---@param t testing.T
 function test.long_note_is_judged_at_release(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0))
 	t:eq(score.judge_counter.total, 0)
@@ -72,7 +72,7 @@ end
 ---@param t testing.T
 function test.long_note_early_release_is_bad(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0))
 	score:receive(hold_event("startPassedPressed", "startMissed", -0.101))
@@ -84,7 +84,7 @@ end
 ---@param t testing.T
 function test.long_note_release_inside_good_window_keeps_head_judge(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0.03))
 	score:receive(hold_event("startPassedPressed", "endPassed", -0.1))
@@ -95,7 +95,7 @@ end
 ---@param t testing.T
 function test.long_note_held_past_tail_keeps_head_judge(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0.07))
 	score:receive(hold_event("startPassedPressed", "endMissed", 0.2))
@@ -107,7 +107,7 @@ end
 ---@param t testing.T
 function test.long_note_early_release_is_not_counted_twice(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0))
 	score:receive(hold_event("startPassedPressed", "startMissed", -0.2))
@@ -120,7 +120,7 @@ end
 ---@param t testing.T
 function test.combo_increments_for_good_or_better(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(3)
+	score:load({notes_count = 3})
 
 	score:hit({delta_time = 0})
 	score:hit({delta_time = 0.03})
@@ -134,7 +134,7 @@ end
 ---@param t testing.T
 function test.bad_and_poor_break_combo(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(4)
+	score:load({notes_count = 4})
 
 	score:hit({delta_time = 0})
 	score:hit({delta_time = 0.15})
@@ -150,7 +150,7 @@ end
 ---@param t testing.T
 function test.mash_does_not_break_combo_or_consume_note(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:hit({delta_time = 0})
 	score:mash({delta_time = -0.5})
@@ -165,7 +165,7 @@ end
 ---@param t testing.T
 function test.mash_outside_early_poor_window_is_ignored(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:mash({delta_time = -1})
 	score:mash({delta_time = -2})
@@ -177,7 +177,7 @@ end
 ---@param t testing.T
 function test.rank_4_uses_normal_windows(t)
 	local score = LunaticRaveScore(4)
-	score:setNotesCount(2)
+	score:load({notes_count = 2})
 
 	score:hit({delta_time = 0.019})
 	score:hit({delta_time = 0.101})
@@ -189,7 +189,7 @@ end
 ---@param t testing.T
 function test.long_note_combo_changes_at_release(t)
 	local score = LunaticRaveScore(2)
-	score:setNotesCount(1)
+	score:load({notes_count = 1})
 
 	score:receive(hold_event("clear", "startPassedPressed", 0))
 	t:eq(score:getCombo(), 0)
@@ -204,8 +204,7 @@ end
 ---@return rizu.LunaticRaveScore
 local function gauge_score(gauge, total)
 	local score = LunaticRaveScore(2, gauge)
-	score:setNotesCount(100)
-	score:setChartHealths(total and Healths("bmstotal", total) or nil)
+	score:load({notes_count = 100, healths = total and Healths("bmstotal", total) or nil})
 	return score
 end
 
@@ -254,7 +253,7 @@ end
 ---@param t testing.T
 function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
 	local hard = gauge_score(2, 300)
-	hard:setNotesCount(1000) -- no damage scaling from here
+	hard:load({notes_count = 1000}) -- no damage scaling from here
 	t:eq(hard:getHealths(), 100)
 	hard:changeHealth(5)
 	t:assert(near(hard:getHealths(), 90))
@@ -262,7 +261,7 @@ function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
 	t:assert(near(hard:getHealths(), 90.1))
 
 	local low = gauge_score(2, 300)
-	low:setNotesCount(1000)
+	low:load({notes_count = 1000})
 	for _ = 1, 7 do
 		low:changeHealth(5) -- 100 -> 30
 	end
@@ -298,8 +297,7 @@ function test.hard_damage_grows_for_few_notes_or_low_total(t)
 	---@return number
 	local function poor_damage(notes, total)
 		local score = LunaticRaveScore(2, 2)
-		score:setNotesCount(notes)
-		score:setChartHealths(Healths("bmstotal", total))
+		score:load({notes_count = notes, healths = Healths("bmstotal", total)})
 		score:changeHealth(5)
 		return 100 - score:getHealths()
 	end

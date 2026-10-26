@@ -160,8 +160,8 @@ end
 function EtternaAccuracy:getSlice()
 	return {
 		accuracy = self:getAccuracy(),
-		healths = self.life,
-		max_healths = 1,
+		healths = self:getHealths(),
+		max_healths = self:getMaxHealths(),
 		holds_held = self.holds_held,
 		holds_let_go = self.holds_let_go,
 		holds_missed = self.holds_missed,

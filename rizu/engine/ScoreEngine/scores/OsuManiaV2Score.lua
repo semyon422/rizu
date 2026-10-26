@@ -10,6 +10,7 @@ local JudgeAccuracy = require("rizu.engine.ScoreEngine.JudgeAccuracy")
 local JudgeCounter = require("rizu.engine.ScoreEngine.JudgeCounter")
 local JudgeWindows = require("rizu.engine.ScoreEngine.JudgeWindows")
 local OsuManiaV2Timings = require("sea.timings.osumania.OsuManiaV2Timings_v2")
+local osu_hp = require("rizu.engine.ScoreEngine.scores.osu_hp")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 
@@ -19,7 +20,10 @@ local Subtimings = require("sea.chart.Subtimings")
 ---@field combo integer
 ---@field judged integer
 ---@field combo_portion number
----@field chart_info {hp: number, multiplier: number, judges: integer, max_combo_portion: number}?
+---@field hp number HPDrainRate of the chart.
+---@field hp_multiplier number
+---@field judges integer Judgements of the whole chart, a long note has two.
+---@field max_combo_portion number
 local OsuManiaV2Score = ScoreSystem + IAccuracySource + SimpleJudgesSource + IHealthsSource + IScoreSource
 
 OsuManiaV2Score.accuracy_multiplier = 100
@@ -30,7 +34,6 @@ local weights = {305, 300, 200, 100, 50, 0}
 -- Combo score of a judge, a perfect gives 300 here.
 local combo_weights = {300, 300, 200, 100, 50, 0}
 
-local default_hp = 5
 local log4_400 = math.log(400) / math.log(4)
 
 ---@param judge integer 1..5, a miss is not here
@@ -50,21 +53,6 @@ local function healthIncrease(judge, hp, multiplier)
 	return multiplier * (0.0055 - hp * 0.0005)
 end
 
----osu!'s DifficultyRange
----@param d number
----@param min number
----@param mid number
----@param max number
----@return number
-local function range(d, min, mid, max)
-	if d > 5 then
-		return mid + (max - mid) * (d - 5) / 5
-	elseif d < 5 then
-		return mid - (mid - min) * (5 - d) / 5
-	end
-	return mid
-end
-
 ---Port of LegacyDrainingHealthProcessor.ComputeDrainRate, mania discards the drain and keeps the recovery multiplier.
 ---shortcut: breaks of the chart are not known here, osu! stops the drain in them; add them when the chart has breaks.
 ---@param objects {[1]: number, [2]: number, [3]: boolean}[] start and end in milliseconds, is long; sorted by start
@@ -75,9 +63,9 @@ local function computeHpMultiplier(objects, hp)
 		return 1
 	end
 
-	local lowest_ever = range(hp, 0.975, 0.8, 0.3)
-	local lowest_end = range(hp, 0.99, 0.9, 0.4)
-	local recovery_available = range(hp, 0.04, 0.02, 0)
+	local lowest_ever = osu_hp.range(hp, 0.975, 0.8, 0.3)
+	local lowest_end = osu_hp.range(hp, 0.99, 0.9, 0.4)
+	local recovery_available = osu_hp.range(hp, 0.04, 0.02, 0)
 
 	local multiplier = 1
 	local test_drop = 0.00025
@@ -156,69 +144,46 @@ function OsuManiaV2Score:new(od)
 
 	self.judge_windows = JudgeWindows({w.perfect, w.great, w.good, w.ok, w.meh, w.miss})
 	self.tail_judge_windows = JudgeWindows({tw.perfect, tw.great, tw.good, tw.ok, tw.meh, tw.miss})
-	self.slice_input = nil
-	self.slice_judge_index = nil
 
 	self.health = 100
 	self.combo = 0
 	self.judged = 0
 	self.combo_portion = 0
+
+	self.hp = 5
+	self.hp_multiplier = 1
+	self.judges = 0
+	self.max_combo_portion = 0
 end
 
----@param chart chart.Chart?
-function OsuManiaV2Score:setChart(chart)
-	ScoreSystem.setChart(self, chart)
-	self.chart_info = nil
-end
+---@param info rizu.ScoreSystem.ChartInfo
+function OsuManiaV2Score:load(info)
+	ScoreSystem.load(self, info)
 
----Chart-dependent constants, found when the first judge comes.
----@return {hp: number, multiplier: number, judges: integer, max_combo_portion: number}
-function OsuManiaV2Score:getChartInfo()
-	local info = self.chart_info
-	if info then
-		return info
-	end
+	self.hp = osu_hp.getDrainRate(info.healths)
 
-	local healths = self.chart_healths
-	local hp = healths and healths.name == "simple" and healths.data / 10 or default_hp
+	local objects = osu_hp.getObjects(info.chart)
+	self.hp_multiplier = computeHpMultiplier(objects, self.hp)
 
-	---@type {[1]: number, [2]: number, [3]: boolean}[]
-	local objects = {}
 	local judges = 0
-	if self.chart then
-		for _, note in ipairs(self.chart.notes:getLinkedNotes()) do
-			local t = note:getType()
-			if t == "tap" or t == "hold" then
-				local long = note:isLong()
-				table.insert(objects, {note:getStartTime() * 1000, note:getEndTime() * 1000, long})
-				judges = judges + (long and 2 or 1)
-			end
-		end
-		table.sort(objects, function(a, b) return a[1] < b[1] end)
-	else
-		judges = self.notes_count or 0
+	for _, o in ipairs(objects) do
+		judges = judges + (o[3] and 2 or 1)
 	end
+	if not info.chart then
+		judges = info.judges_count or info.notes_count
+	end
+	self.judges = judges
 
 	local max_combo_portion = 0 ---@type number
 	for c = 1, judges do
 		max_combo_portion = max_combo_portion + 300 * math.min(math.max(0.5, math.log(c) / math.log(4)), log4_400)
 	end
-
-	info = {
-		hp = hp,
-		multiplier = computeHpMultiplier(objects, hp),
-		judges = judges,
-		max_combo_portion = max_combo_portion,
-	}
-	self.chart_info = info
-	return info
+	self.max_combo_portion = max_combo_portion
 end
 
 ---@param index integer judge index, negative for a miss
 ---@param is_part boolean the head or the tail of a long note
 function OsuManiaV2Score:judge(index, is_part)
-	local info = self:getChartInfo()
-
 	-- a hit in the miss window is a miss
 	if index == 6 then
 		index = -1
@@ -227,9 +192,9 @@ function OsuManiaV2Score:judge(index, is_part)
 	if not self:isFailed() then
 		local delta ---@type number
 		if index < 0 then
-			delta = -(info.hp + 1) * (is_part and 0.00375 or 0.0075)
+			delta = -(self.hp + 1) * (is_part and 0.00375 or 0.0075)
 		else
-			delta = healthIncrease(index, info.hp, info.multiplier)
+			delta = healthIncrease(index, self.hp, self.hp_multiplier)
 		end
 		self.health = math.min(math.max(self.health + delta * 100, 0), 100)
 	end
@@ -261,10 +226,9 @@ end
 
 ---@return number
 function OsuManiaV2Score:getScore()
-	local info = self:getChartInfo()
 	local accuracy = self.judged > 0 and self:getAccuracy() or 1
-	local combo_progress = info.max_combo_portion > 0 and self.combo_portion / info.max_combo_portion or 1
-	local accuracy_progress = info.judges > 0 and self.judged / info.judges or 1
+	local combo_progress = self.max_combo_portion > 0 and self.combo_portion / self.max_combo_portion or 1
+	local accuracy_progress = self.judges > 0 and self.judged / self.judges or 1
 	return math.floor(150000 * combo_progress + 850000 * accuracy ^ (2 + 2 * accuracy) * accuracy_progress + 0.5)
 end
 
@@ -287,16 +251,19 @@ function OsuManiaV2Score:hit(event)
 
 	self.judge_counter:add(index)
 	self:judge(index, event.type == "hold")
-	self.slice_input = event.column
-	self.slice_judge_index = index
+	self:setSliceJudge(event, index)
 end
 
 ---@param event rizu.LogicNoteChange
 function OsuManiaV2Score:miss(event)
 	self.judge_counter:add(-1)
 	self:judge(-1, event.type == "hold")
-	self.slice_input = event.column
-	self.slice_judge_index = -1
+	self:setSliceJudge(event, -1)
+end
+
+---Letting go in the middle of a hold breaks combo only, the tail is judged later.
+function OsuManiaV2Score:holdBreak()
+	self.combo = 0
 end
 
 function OsuManiaV2Score:getAccuracy()
@@ -304,18 +271,16 @@ function OsuManiaV2Score:getAccuracy()
 end
 
 function OsuManiaV2Score:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		accuracy = self:getAccuracy(),
 		score = self:getScore(),
-		healths = self.health,
-		max_healths = 100,
+		healths = self:getHealths(),
+		max_healths = self:getMaxHealths(),
 		last_judge = self:getLastJudge(),
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 OsuManiaV2Score.events = {
@@ -334,14 +299,14 @@ OsuManiaV2Score.events = {
 			clear = nil,
 		},
 		startPassedPressed = {
-			startMissed = "miss",
+			startMissed = "holdBreak",
 			endMissed = "miss",
 			endPassed = "hit",
 		},
 		startMissedPressed = {
 			endMissedPassed = "hit",
 			startMissed = nil,
-			endMissed = nil,
+			endMissed = "miss",
 		},
 		startMissed = {
 			startMissedPressed = nil,

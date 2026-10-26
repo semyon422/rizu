@@ -19,8 +19,7 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 ---@field accuracySource rizu.IAccuracySource?
 ---@field comboSource rizu.IComboSource?
 ---@field healthsSource rizu.IHealthsSource?
----@field chart_healths sea.Healths? Set before load(), the chart's own HP value for the systems.
----@field chart chart.Chart? Set before load(), for the systems that need the notes.
+---@field chart_info rizu.ScoreSystem.ChartInfo
 ---@field judgesSource rizu.IJudgesSource?
 ---@field scoreSource rizu.IScoreSource?
 ---@field sequence {[string]: table}[]
@@ -44,8 +43,17 @@ function ScoreEngine:new()
 end
 
 ---@param chartdiff sea.Chartdiff
-function ScoreEngine:load(chartdiff)
-	self.chartdiff = chartdiff
+---@param chart_healths sea.Healths? The chart's own HP value.
+---@param chart chart.Chart? For the systems that need the notes.
+function ScoreEngine:load(chartdiff, chart_healths, chart)
+	self.chart_info = {
+		notes_count = chartdiff.notes_count,
+		judges_count = chartdiff.judges_count,
+		density = getDensity(chartdiff),
+		inputmode = chartdiff.inputmode,
+		healths = chart_healths,
+		chart = chart,
+	}
 
 	---@type rizu.ScoreSystem[]
 	self.scoreSystems = {}
@@ -66,11 +74,7 @@ function ScoreEngine:load(chartdiff)
 
 	for _, v in pairs(by_name) do
 		table.insert(self.scoreSystems, v)
-		v:setNotesCount(chartdiff.notes_count)
-		v:setDensity(getDensity(chartdiff))
-		v:setInputMode(chartdiff.inputmode)
-		v:setChartHealths(self.chart_healths)
-		v:setChart(self.chart)
+		v:load(self.chart_info)
 	end
 end
 
@@ -152,11 +156,7 @@ function ScoreEngine:addScoreSystem(score_system)
 	table.insert(self.scoreSystems, score_system)
 	by_name[key] = score_system
 
-	score_system:setNotesCount(self.chartdiff.notes_count)
-	score_system:setDensity(getDensity(self.chartdiff))
-	score_system:setInputMode(self.chartdiff.inputmode)
-	score_system:setChartHealths(self.chart_healths)
-	score_system:setChart(self.chart)
+	score_system:load(self.chart_info)
 
 	-- Late systems fill the slices of the events that already happened, so the sequence stays whole.
 	for i, event in ipairs(self.events) do
@@ -174,10 +174,11 @@ end
 ---Hit windows are not touched: the events already hold what was hit and when.
 ---@param t sea.Timings
 ---@param st sea.Subtimings?
+---@param healths sea.Healths? The gauge of the play, such as an LR2 gauge.
 ---@return boolean?
 ---@return string?
-function ScoreEngine:rescore(t, st)
-	local systems, err = Scoring(t, st):createScoreSystems()
+function ScoreEngine:rescore(t, st, healths)
+	local systems, err = Scoring(t, st, healths):createScoreSystems()
 	if not systems then
 		return nil, err
 	end

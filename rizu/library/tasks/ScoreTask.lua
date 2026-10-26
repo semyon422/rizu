@@ -33,7 +33,7 @@ function ScoreTask:compute(chartplays)
 		end
 		local score_engine = ret.score_engine
 		if score_engine then
-			self.hitsRepo:setHits(chartplay.id, score_engine.chartdiff, score_engine.events)
+			self.hitsRepo:setHits(chartplay.id, score_engine.chart_info, score_engine.events)
 		end
 		return chartplay.replay_hash
 	end)

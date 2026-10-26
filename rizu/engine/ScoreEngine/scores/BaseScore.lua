@@ -32,9 +32,10 @@ function BaseScore:new()
 	self.lastMean = 0
 end
 
----@param inputmode string
-function BaseScore:setInputMode(inputmode)
-	ScoreSystem.setInputMode(self, inputmode)
+---@param info rizu.ScoreSystem.ChartInfo
+function BaseScore:load(info)
+	ScoreSystem.load(self, info)
+	local inputmode = info.inputmode
 
 	---@type {[chart.Column]: "left"|"right"|"center"|"scratch"}
 	local hands = {}

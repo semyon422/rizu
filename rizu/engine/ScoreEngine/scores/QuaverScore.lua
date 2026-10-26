@@ -48,17 +48,16 @@ function QuaverScore:new()
 	self.judge_counter = JudgeCounter(6)
 	self.judge_windows = JudgeWindows(stdWindows)
 	self.judge_accuracy = JudgeAccuracy(weights)
-	self.slice_input = nil
-	self.slice_judge_index = nil
 	self.health = 100
 	self.health_weights = healthWeights
 end
 
 ---Quaver.API ScoreProcessorKeys.InitializeHealthWeighting: charts of 12 or more actions per second keep the base weights.
 ---shortcut: the density is judges per chart duration at rate 1, Quaver excludes breaks of 1s+ and applies the rate; use real actions when the engine knows them.
----@param density number?
-function QuaverScore:setDensity(density)
-	ScoreSystem.setDensity(self, density)
+---@param info rizu.ScoreSystem.ChartInfo
+function QuaverScore:load(info)
+	ScoreSystem.load(self, info)
+	local density = info.density
 	self.health_weights = healthWeights
 	if not density or density <= 0 or density >= 12 then
 		return
@@ -73,6 +72,9 @@ end
 
 ---@param index integer judge index, negative for a miss
 function QuaverScore:changeHealth(index)
+	if self:isFailed() then
+		return
+	end
 	if index < 0 then
 		index = #healthWeights
 	end
@@ -115,24 +117,21 @@ function QuaverScore:hit(event)
 	end
 	self.judge_counter:add(index)
 	self:changeHealth(index)
-	self.slice_input = event.column
-	self.slice_judge_index = index
+	self:setSliceJudge(event, index)
 end
 
 ---@param event rizu.LogicNoteChange
 function QuaverScore:releaseFail(event)
 	self.judge_counter:add(4)
 	self:changeHealth(4)
-	self.slice_input = event.column
-	self.slice_judge_index = 4
+	self:setSliceJudge(event, 4)
 end
 
 ---@param event rizu.LogicNoteChange
 function QuaverScore:miss(event)
 	self.judge_counter:add(-1)
 	self:changeHealth(-1)
-	self.slice_input = event.column
-	self.slice_judge_index = -1
+	self:setSliceJudge(event, -1)
 end
 
 ---Quaver never shows a negative accuracy.
@@ -148,15 +147,15 @@ function QuaverScore:missLongNote(event)
 end
 
 function QuaverScore:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
+		healths = self:getHealths(),
+		max_healths = self:getMaxHealths(),
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 QuaverScore.events = {

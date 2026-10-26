@@ -50,8 +50,8 @@ function test.replays_the_plays_without_hits_once(t)
 	t:eq(replays, 1)
 	local score_engine = assert(client.computeContext.score_engine)
 	t:tdeq(hitsRepo:getHits(chartplay.id), {
-		notes_count = score_engine.chartdiff.notes_count,
-		inputmode = score_engine.chartdiff.inputmode,
+		notes_count = score_engine.chart_info.notes_count,
+		inputmode = score_engine.chart_info.inputmode,
 		events = score_engine.events,
 	})
 	t:eq(hitsRepo:getHits(custom.id), nil)

@@ -8,9 +8,12 @@ local class = require("class")
 ---@field judge_names string[]?
 ---@field timings sea.Timings?
 ---@field subtimings sea.Subtimings?
+---@field notes_count integer?
+---@field judges_count integer?
+---@field density number?
 ---@field inputmode string?
 ---@field chart chart.Chart?
----@field chart_healths sea.Healths? The chart's own HP value, such as #TOTAL of a BMS chart.
+---@field chart_healths sea.Healths?
 local ScoreSystem = class()
 
 ---@alias rizu.ScoreSystemHandler string|function|rizu.ScoreSystemHandler[]
@@ -27,31 +30,24 @@ function ScoreSystem:getKey()
 	error("not implemented")
 end
 
----@param notes_count integer
-function ScoreSystem:setNotesCount(notes_count)
-	self.notes_count = notes_count
-end
+---What a score system knows of the chart before the first event.
+---@class rizu.ScoreSystem.ChartInfo
+---@field notes_count integer
+---@field judges_count integer? Long notes count twice. Nil when unknown.
+---@field density number? Judgeable objects per second of the chart at rate 1. Nil when unknown.
+---@field inputmode string?
+---@field healths sea.Healths? The chart's own HP value, such as #TOTAL of a BMS chart.
+---@field chart chart.Chart? For systems that need its notes. Nil when unknown, such as rescoring from stored hits.
 
----Judgeable objects per second of the chart at rate 1, nil when unknown.
----@param density number?
-function ScoreSystem:setDensity(density)
-	self.density = density
-end
-
----The chart of the play, for systems that need its notes. Nil when unknown.
----@param chart chart.Chart?
-function ScoreSystem:setChart(chart)
-	self.chart = chart
-end
-
----@param inputmode string
-function ScoreSystem:setInputMode(inputmode)
-	self.inputmode = inputmode
-end
-
----@param chart_healths sea.Healths?
-function ScoreSystem:setChartHealths(chart_healths)
-	self.chart_healths = chart_healths
+---Called once before the first event. Systems work out their chart-dependent constants here.
+---@param info rizu.ScoreSystem.ChartInfo
+function ScoreSystem:load(info)
+	self.notes_count = info.notes_count
+	self.judges_count = info.judges_count
+	self.density = info.density
+	self.inputmode = info.inputmode
+	self.chart_healths = info.healths
+	self.chart = info.chart
 end
 
 ---@param event table

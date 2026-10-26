@@ -29,8 +29,6 @@ function IidxScore:new()
 	self.judge_counter = JudgeCounter(5)
 	self.combo = 0
 	self.max_combo = 0
-	self.slice_input = nil
-	self.slice_judge_index = nil
 
 	---@type {[integer]: boolean}
 	self.active_charge_notes = {}
@@ -46,8 +44,7 @@ end
 function IidxScore:addJudge(index, event)
 	self.judge_counter:add(index)
 	if event then
-		self.slice_input = event.column
-		self.slice_judge_index = index
+		self:setSliceJudge(event, index)
 	end
 	if index <= 3 then
 		self.combo = self.combo + 1
@@ -118,18 +115,16 @@ function IidxScore:getMaxCombo()
 end
 
 function IidxScore:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
 		score = self:getScore(),
 		combo = self:getCombo(),
 		max_combo = self:getMaxCombo(),
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 IidxScore.events = {

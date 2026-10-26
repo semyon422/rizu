@@ -13,11 +13,13 @@ local JudgeCounter = require("rizu.engine.ScoreEngine.JudgeCounter")
 local JudgeWindows = require("rizu.engine.ScoreEngine.JudgeWindows")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
+local osu_hp = require("rizu.engine.ScoreEngine.scores.osu_hp")
 
 ---@class rizu.OsuManiaV1Score: rizu.ScoreSystem, rizu.IAccuracySource, rizu.IScoreSource, rizu.SimpleJudgesSource, rizu.IHealthsSource
 ---@operator call: rizu.OsuManiaV1Score
 ---@field health number 0..200
----@field hp_info {hp: number, multiplier: number}?
+---@field hp number HPDrainRate of the chart.
+---@field hp_multiplier number
 local OsuManiaV1Score = ScoreSystem + IAccuracySource + IScoreSource + SimpleJudgesSource + IHealthsSource
 
 OsuManiaV1Score.accuracy_multiplier = 100
@@ -30,24 +32,8 @@ local hitBonusValue = {32, 32, 16, 8, 4, 0}
 local weights = {300, 300, 200, 100, 50, 0}
 
 local hp_max = 200
-local default_hp = 5
 -- shortcut: stable's PreEmpt depends on the scroll speed, which is not known here; use a typical value.
 local pre_empt = 1000
-
----osu!'s DifficultyRange
----@param d number
----@param min number
----@param mid number
----@param max number
----@return number
-local function range(d, min, mid, max)
-	if d > 5 then
-		return mid + (max - mid) * (d - 5) / 5
-	elseif d < 5 then
-		return mid - (mid - min) * (5 - d) / 5
-	end
-	return mid
-end
 
 ---@param judge integer
 ---@param hp number
@@ -78,9 +64,9 @@ local function computeHpMultiplier(objects, hp)
 		return 1
 	end
 
-	local lowest_ever = range(hp, 195, 160, 60)
-	local lowest_end = range(hp, 198, 180, 80)
-	local recovery_available = range(hp, 8, 4, 0)
+	local lowest_ever = osu_hp.range(hp, 195, 160, 60)
+	local lowest_end = osu_hp.range(hp, 198, 180, 80)
+	local recovery_available = osu_hp.range(hp, 8, 4, 0)
 
 	local multiplier = 1 ---@type number
 	local test_drop = 0.05
@@ -171,7 +157,7 @@ function OsuManiaV1Score:new(od)
 	}
 	self.tail_judge_windows = JudgeWindows(self.tailWindows)
 
-	---@type {[integer]: integer}
+	---@type {[integer]: rizu.OsuManiaV1Score.LongNoteState}
 	self.pressedLongNotes = {}
 
 	self.baseScore = 0
@@ -182,44 +168,17 @@ function OsuManiaV1Score:new(od)
 	self.hitValue = 0
 	self.totalBonus = 0
 	self.combo = 0
-	self.slice_input = nil
-	self.slice_judge_index = nil
 
 	self.health = hp_max
+	self.hp = 5
+	self.hp_multiplier = 1
 end
 
----@param chart chart.Chart?
-function OsuManiaV1Score:setChart(chart)
-	ScoreSystem.setChart(self, chart)
-	self.hp_info = nil
-end
-
----Chart-dependent HP constants, found when the first judge comes.
----@return {hp: number, multiplier: number}
-function OsuManiaV1Score:getHpInfo()
-	local info = self.hp_info
-	if info then
-		return info
-	end
-
-	local healths = self.chart_healths
-	local hp = healths and healths.name == "simple" and healths.data / 10 or default_hp
-
-	---@type {[1]: number, [2]: number}[]
-	local objects = {}
-	if self.chart then
-		for _, note in ipairs(self.chart.notes:getLinkedNotes()) do
-			local t = note:getType()
-			if t == "tap" or t == "hold" then
-				table.insert(objects, {note:getStartTime() * 1000, note:getEndTime() * 1000})
-			end
-		end
-		table.sort(objects, function(a, b) return a[1] < b[1] end)
-	end
-
-	info = {hp = hp, multiplier = computeHpMultiplier(objects, hp)}
-	self.hp_info = info
-	return info
+---@param info rizu.ScoreSystem.ChartInfo
+function OsuManiaV1Score:load(info)
+	ScoreSystem.load(self, info)
+	self.hp = osu_hp.getDrainRate(info.healths)
+	self.hp_multiplier = computeHpMultiplier(osu_hp.getObjects(info.chart), self.hp)
 end
 
 ---@return string
@@ -232,15 +191,13 @@ end
 function OsuManiaV1Score:addCounter(index, event)
 	self.judge_counter:add(index)
 	if event then
-		self.slice_input = event.column
-		self.slice_judge_index = index
+		self:setSliceJudge(event, index)
 	end
 	self.last_judge = index
 	self.visual_judge = index
 
 	if not self:isFailed() then
-		local info = self:getHpInfo()
-		self.health = math.min(math.max(self.health + healthIncrease(index, info.hp, info.multiplier), 0), hp_max)
+		self.health = math.min(math.max(self.health + healthIncrease(index, self.hp, self.hp_multiplier), 0), hp_max)
 	end
 
 	self.hitValue = self.hitValue + hitValue[index]
@@ -289,8 +246,7 @@ function OsuManiaV1Score:before(event)
 	-- Do not let views reuse the preceding note's judgement for this event.
 	self.last_judge = nil
 	self.visual_judge = nil
-	self.slice_input = nil
-	self.slice_judge_index = nil
+	self:takeSliceJudge()
 end
 
 ---@return integer?
@@ -324,8 +280,7 @@ function OsuManiaV1Score:longNoteStartHit(event)
 	-- Its head judgement is nevertheless exposed for visual hit feedback.
 	local index = self.head_judge_windows:get(event.delta_time) or 6
 	self.visual_judge = index
-	self.slice_input = event.column
-	self.slice_judge_index = index
+	self:setSliceJudge(event, index)
 	self:setLongNoteState(event, {
 		head_delta_time = event.delta_time,
 		broken = false,
@@ -431,19 +386,17 @@ function OsuManiaV1Score:getAccuracy()
 end
 
 function OsuManiaV1Score:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(), -- scoring judgement, only assigned at an LN tail
 		visual_judge = self:getVisualJudge(), -- immediate head/tail feedback for UI
 		score = self:getScore(),
 		healths = self:getHealths(),
-		max_healths = 100,
+		max_healths = self:getMaxHealths(),
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 OsuManiaV1Score.events = {

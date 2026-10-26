@@ -90,7 +90,7 @@ function ScoreSaver:saveScore(gameplay_session)
 	local _chartplay = self.library.chartsRepo:createChartplay(chartplay)
 	computeContext.chartplay = _chartplay
 
-	self.library.chartplayHitsRepo:setHits(_chartplay.id, scoreEngine.chartdiff, scoreEngine.events)
+	self.library.chartplayHitsRepo:setHits(_chartplay.id, scoreEngine.chart_info, scoreEngine.events)
 
 	---@param event string
 	---@param fields {[string]: any}?

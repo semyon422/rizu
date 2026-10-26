@@ -94,8 +94,6 @@ function LunaticRaveScore:new(rank, gauge)
 	self.judge_counter = JudgeCounter(5)
 	self.combo = 0
 	self.max_combo = 0
-	self.slice_input = nil
-	self.slice_judge_index = nil
 
 	---@type {[integer]: integer}
 	self.long_note_judges = {}
@@ -196,8 +194,7 @@ function LunaticRaveScore:addJudge(index, event)
 	self.judge_counter:add(index)
 	self:changeHealth(index)
 	if event then
-		self.slice_input = event.column
-		self.slice_judge_index = index
+		self:setSliceJudge(event, index)
 	end
 	if index <= 3 then
 		self.combo = self.combo + 1
@@ -290,21 +287,19 @@ function LunaticRaveScore:longNoteTimeout(event)
 end
 
 function LunaticRaveScore:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		accuracy = self:getAccuracy(),
 		last_judge = self:getLastJudge(),
 		score = self:getScore(),
 		ex_score = self:getExScore(),
 		combo = self:getCombo(),
 		max_combo = self:getMaxCombo(),
-		healths = self.health,
-		max_healths = 100,
+		healths = self:getHealths(),
+		max_healths = self:getMaxHealths(),
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 LunaticRaveScore.events = {

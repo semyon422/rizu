@@ -53,7 +53,7 @@ function test.accuracies_from_hits_match_the_play(t)
 	local client = FakeClient(0.02, 100)
 	client:play(sample.name, sample.data, 1, 100, 0)
 	local score_engine = assert(client.computeContext.score_engine)
-	repo:setHits(1, score_engine.chartdiff, score_engine.events)
+	repo:setHits(1, score_engine.chart_info, score_engine.events)
 
 	for _, scoring in ipairs({
 		Scoring(Timings("osuod", 7), Subtimings("scorev", 2)),

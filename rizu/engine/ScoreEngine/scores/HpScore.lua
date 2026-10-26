@@ -1,63 +1,28 @@
 local ScoreSystem = require("rizu.engine.ScoreEngine.ScoreSystem")
 local IHealthsSource = require("rizu.engine.ScoreEngine.IHealthsSource")
 
----@class rizu.HpCounter
----@field notes integer
----@field value number
-
+---Default healths: starts half full, a hit gives 1, a miss takes a 20th of the bar, empty stays empty.
 ---@class rizu.HpScore: rizu.ScoreSystem, rizu.IHealthsSource
 ---@operator call: rizu.HpScore
----@field [integer] rizu.HpCounter
+---@field value number
 local HpScore = ScoreSystem + IHealthsSource
 
 HpScore.max = 1000
+
+-- Misses in a row that empty a full bar.
+local misses_to_fail = 20
+
+function HpScore:new()
+	self.value = self.max / 2
+end
 
 ---@return string
 function HpScore:getKey()
 	return "hp"
 end
 
----@param notes integer
-function HpScore:insertCounter(notes)
-	table.insert(self, {
-		notes = notes,
-		value = self.max / 2,
-	})
-end
-
--- TODO: return back hp configuration
-
-function HpScore:new()
-	local notes = 20
-	local shift = false
-
-	for i in ipairs(self) do
-		self[i] = nil
-	end
-
-	if not shift then
-		self:insertCounter(notes)
-		return
-	end
-
-	for i = 0, math.min(notes, 9) do
-		self:insertCounter(i)
-	end
-	for i = 10, notes, 5 do
-		self:insertCounter(i)
-	end
-end
-
 ---@return rizu.HpScore.Slice
 function HpScore:getSlice()
-	-- local slice = {}
-	-- for _, v in ipairs(self) do
-	-- 	table.insert(slice, {
-	-- 		notes = v.notes,
-	-- 		value = v.value,
-	-- 	})
-	-- end
-	-- return slice
 	---@class rizu.HpScore.Slice
 	---@field healths number
 	---@field max_healths number
@@ -69,19 +34,8 @@ function HpScore:getSlice()
 end
 
 ---@return number
----@return number
-function HpScore:getCurrent()
-	for _, h in ipairs(self) do
-		if h.value > 0 then
-			return h.value, h.notes
-		end
-	end
-	return 0, 1
-end
-
----@return number
 function HpScore:getHealths()
-	return (self:getCurrent())
+	return self.value
 end
 
 ---@return number
@@ -91,35 +45,24 @@ end
 
 ---@return boolean
 function HpScore:isFailed()
-	---@type rizu.HpCounter?
-	local _h
-	for _, h in ipairs(self) do
-		if h.value > 0 then
-			_h = h
-			break
-		end
-	end
-	return not _h
+	return self.value <= 0
 end
 
 ---@param event rizu.LogicNoteChange
 function HpScore:increase(event)
-	for _, h in ipairs(self) do
-		if h.value > 0 then
-			h.value = math.min(h.value + 1, self.max)
-		end
+	if not self:isFailed() then
+		self.value = math.min(self.value + 1, self.max)
 	end
 end
 
 ---@param event rizu.LogicNoteChange
 function HpScore:decrease(event)
-	for _, h in ipairs(self) do
-		if h.value > 0 then
-			h.value = math.min(h.value - self.max / h.notes, self.max)
-		end
-		if h.value < 1e-3 then
-			h.value = 0
-		end
+	if self:isFailed() then
+		return
+	end
+	self.value = self.value - self.max / misses_to_fail
+	if self.value < 1e-3 then
+		self.value = 0
 	end
 end
 

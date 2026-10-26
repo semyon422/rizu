@@ -61,4 +61,22 @@ function test.rescore_fills_sequence(t)
 	t:eq(se.accuracySource:getKey(), "osu_mania_v2_od8.5")
 end
 
+---@param t testing.T
+function test.default_judges_slice_has_misses(t)
+	local se = ScoreEngine()
+	se:load({notes_count = 1} --[[@as sea.Chartdiff]])
+	se:receive({
+		index = 1,
+		column = 2,
+		type = "tap",
+		time = 1,
+		delta_time = 1,
+		old_state = "clear",
+		new_state = "missed",
+	})
+	local slice = se.sequence[1][se.judgesSource:getKey()]
+	t:eq(slice.input, 2)
+	t:eq(slice.judge_index, -1)
+end
+
 return test

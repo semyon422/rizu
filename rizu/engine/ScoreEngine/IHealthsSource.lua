@@ -14,7 +14,7 @@ function IHealthsSource:getMaxHealths()
 	error("not implemented")
 end
 
----The gauge is dead, the play cannot be saved anymore.
+---The gauge is dead, the play cannot be saved anymore. Once true, it stays true and the healths stop changing.
 ---@return boolean
 function IHealthsSource:isFailed()
 	error("not implemented")

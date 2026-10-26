@@ -19,7 +19,7 @@ end
 ---@param t testing.T
 function test.health_follows_base_weights_from_12_actions_per_second(t)
 	local score = QuaverScore()
-	score:setDensity(12)
+	score:load({notes_count = 0, density = 12})
 	t:eq(score:getHealths(), 100)
 
 	score:receive(tap_event("missed"))
@@ -32,9 +32,9 @@ end
 ---@param t testing.T
 function test.density_scales_weights_and_floors_at_2(t)
 	local score = QuaverScore()
-	score:setDensity(1)
+	score:load({notes_count = 0, density = 1})
 	local floor = score.health_weights
-	score:setDensity(2)
+	score:load({notes_count = 0, density = 2})
 	t:eq(floor[1], score.health_weights[1])
 	-- marvelous: (-0.14 * 2 + 2.68) * 0.5 = 1.2
 	t:eq(score.health_weights[1], 1.2)
@@ -43,7 +43,7 @@ function test.density_scales_weights_and_floors_at_2(t)
 end
 
 ---@param t testing.T
-function test.fails_at_zero_and_stays_in_range(t)
+function test.fails_at_zero_and_stays_failed(t)
 	local score = QuaverScore()
 	for _ = 1, 17 do
 		score:receive(tap_event("missed"))
@@ -51,10 +51,16 @@ function test.fails_at_zero_and_stays_in_range(t)
 	t:assert(score:isFailed())
 	t:eq(score:getHealths(), 0)
 
-	score:setDensity(12)
-	for _ = 1, 300 do
-		score:receive(tap_event("passed", 0.01))
-	end
+	score:receive(tap_event("passed", 0.01))
+	t:eq(score:getHealths(), 0)
+	t:assert(score:isFailed())
+end
+
+---@param t testing.T
+function test.health_stays_at_most_100(t)
+	local score = QuaverScore()
+	score:load({notes_count = 0, density = 12})
+	score:receive(tap_event("passed", 0.01))
 	t:eq(score:getHealths(), 100)
 end
 
