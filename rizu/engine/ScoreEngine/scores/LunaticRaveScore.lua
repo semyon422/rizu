@@ -38,6 +38,7 @@ local windows = {
 windows[4] = windows[2] -- Invalid #RANK uses LR2's default (Normal) windows
 
 
+-- SOURCE: judge_damage of LR2_bmsload.cpp and the update in Scene04_Play.cpp of https://github.com/GOMazk/OpenLR2
 -- Gauge changes by judge index: pgreat, great, good, bad, poor, then an empty poor (mash). Percent of 0..100.
 -- groove and easy gain `total / notes` times these, the rest are flat. Hard's damage scales by the hard multiplier.
 ---@type {[integer]: {gain: number[], damage: number[], start: number, survival: boolean}}
@@ -49,7 +50,7 @@ local gauge_rules = {
 }
 
 ---Hard gauge damage multiplier: bigger for charts with few notes or a low #TOTAL.
----SOURCE: GAS::GetHealthMultiplier of https://github.com/aeventyr/LR2GAS_pub
+---SOURCE: GAS::GetHealthMultiplier of https://github.com/aeventyr/LR2GAS_pub, the same as LR2_bmsload.cpp of OpenLR2
 ---@param notes integer
 ---@param total number
 ---@return number
@@ -106,7 +107,8 @@ function LunaticRaveScore:getKey()
 end
 
 ---A chart without #TOTAL gets a value from its notes count.
----SOURCE: calculateDefaultTotal of https://github.com/seraxis/lr2oraja-endlessdream, BMSPlayerRule.java
+---SOURCE: calculateDefaultTotal of https://github.com/seraxis/lr2oraja-endlessdream, BMSPlayerRule.java,
+---which gives the same values as the `total[p] < 1` branch of LR2_bmsload.cpp of OpenLR2.
 ---@return number
 function LunaticRaveScore:getTotal()
 	local healths = self.chart_healths
@@ -142,7 +144,8 @@ function LunaticRaveScore:changeHealth(judge)
 	end
 	self.health = self.health + delta
 
-	if self.health <= 2 then
+	-- LR2 keeps a gauge of exactly 2 alive, it fails below.
+	if self.health < 2 then
 		if rules.survival then
 			self.failed = true
 		else

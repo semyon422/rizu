@@ -274,6 +274,14 @@ function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
 	end
 	t:assert(low:isFailed())
 
+	local edge = gauge_score(3)
+	edge.health = 2
+	edge:changeHealth(1) -- no change
+	t:assert(not edge:isFailed(), "exactly 2 is alive")
+	edge.health = 1.9
+	edge:changeHealth(1)
+	t:assert(edge:isFailed())
+
 	local hazard = gauge_score(3)
 	hazard:changeHealth(6)
 	hazard:changeHealth(1)
