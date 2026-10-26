@@ -110,9 +110,15 @@ end
 ---@param grade string
 ---@return gui.Color
 function ScoreSystemFormatter:getGradeColor(grade)
-	local scoring = self:getScoring()
+	return ScoreSystemFormatter.getScoringGradeColor(self:getScoring(), grade)
+end
+
+---@param scoring rizu.engine.scoring.Scoring?
+---@param grade string?
+---@return gui.Color
+function ScoreSystemFormatter.getScoringGradeColor(scoring, grade)
 	local colors = scoring and grade_colors[scoring.system.grade_scale]
-	return colors and colors[grade] or fallback_grade_color
+	return colors and grade and colors[grade] or fallback_grade_color
 end
 
 ---@param index integer

@@ -84,6 +84,8 @@ local keys = {
 		sort_function = "select.sort_function",
 		score_source = "select.score_source",
 		score_filter = "select.score_filter",
+		-- Score local scores again in the leaderboard's system, see rizu.select.stores.ScoreStore.getScoring().
+		rescore = "select.rescore",
 	},
 	-- How mania plays are judged when replay_base.auto_timings is off, see rizu.gameplay.GameplayTimings.
 	timings = {
@@ -268,6 +270,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultString(s.sort_function, "title")
 	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
+	config:setDefaultBoolean(s.rescore, true)
 
 	config:setDefaultChoice(keys.timings.system, "osuod", TimingSystems.selectable)
 	for _, name in ipairs({"osuod", "etternaj", "bmsrank"}) do

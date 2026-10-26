@@ -38,6 +38,9 @@ function ScoreSelector:new(configModel, settings, library, onlineModel, replayBa
 	self.scoreFilterSubscription = settings:subscribeChoice(Settings.keys.select.score_filter, function()
 		self:pullScore()
 	end)
+	self.rescoreSubscription = settings:subscribeBoolean(Settings.keys.select.rescore, function()
+		self:pullScore()
+	end)
 
 	self.observable = Observable()
 	self.debounceTime = 0.5

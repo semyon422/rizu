@@ -76,24 +76,6 @@ function ScoreList:unload()
 	end
 end
 
----@param score number 0..10000
----@return gui.Color
-function ScoreList.getColorFromScore(score) -- TODO: Should use Chartplay:getGrade() but idk where to get it
-	if score > 9800 then
-		return Colors.grade_x
-	elseif score > 8000 then
-		return Colors.grade_s
-	elseif score > 7000 then
-		return Colors.grade_a
-	elseif score > 6000 then
-		return Colors.grade_b
-	elseif score > 5000 then
-		return Colors.grade_c
-	end
-
-	return Colors.grade_d
-end
-
 function ScoreList:reload()
 	self.items = {}
 	self.fade_out_time = nil
@@ -131,12 +113,13 @@ function ScoreList:reload()
 
 		local username = type(v.user_name) == "string" and v.user_name ~= "" and v.user_name
 			or (is_local and local_username or fallback_username)
+		local grade, scoring = self.scores:getGrade(v)
 		table.insert(self.items, {
 			label = self.localization:get("song_select.score_username", {index = i, username = username}),
 			accuracy = self.scores:getAccuracy(v) or "-",
 			time_ago = time_util.time_ago_in_words(v.created_at or 0),
 			mods = table.concat(mods_sb, " "),
-			color = ScoreList.getColorFromScore(v.score or 0),
+			color = ScoreSystemFormatter.getScoringGradeColor(scoring, grade),
 			avatar_url = is_local and local_avatar or v.user_avatar,
 			score = v,
 		})

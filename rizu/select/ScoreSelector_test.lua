@@ -253,9 +253,9 @@ function test.score_store_rescores_local_scores_in_the_picked_system(t)
 		end,
 	}
 	local store = ScoreStore(createConfigModel("chartmetas"), settings, provider, provider)
-	local chartview = {hash = "h", index = 1}
+	local chartview = {hash = "h", index = 1, chartmeta_mode = "mania", format = "sphere"}
 
-	-- Auto timings: normalscore, nothing to rescore.
+	-- Auto timings of a Rizu chart: normalscore, nothing to rescore.
 	store:updateItemsAsync(chartview, "chartmeta", 1)
 	t:eq(#calls, 0)
 
@@ -265,10 +265,22 @@ function test.score_store_rescores_local_scores_in_the_picked_system(t)
 	t:eq(store:get(1).rescored_accuracy, nil)
 	t:eq(store:get(2).rescored_accuracy, 0.95)
 
+	-- Auto timings of an osu! chart.
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, true)
+	chartview.format = "osu"
+	store:updateItemsAsync(chartview, "chartmeta", 3)
+	t:eq(#calls, 2)
+
+	-- Turned off.
+	settings:setBoolean(Settings.keys.select.rescore, false)
+	store:updateItemsAsync(chartview, "chartmeta", 4)
+	t:eq(#calls, 2)
+	settings:setBoolean(Settings.keys.select.rescore, true)
+
 	-- The server has no hits.
 	settings:setChoice(Settings.keys.select.score_source, "online")
-	store:updateItemsAsync(chartview, "chartmeta", 3)
-	t:eq(#calls, 1)
+	store:updateItemsAsync(chartview, "chartmeta", 5)
+	t:eq(#calls, 2)
 end
 
 ---@param t testing.T

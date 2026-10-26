@@ -1,7 +1,7 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
 local Scoring = require("rizu.engine.scoring.Scoring")
-local GameplayTimings = require("rizu.gameplay.GameplayTimings")
+local ScoreStore = require("rizu.select.stores.ScoreStore")
 local Timings = require("sea.chart.Timings")
 
 --[[
@@ -94,23 +94,41 @@ function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Sc
 
 local normalscore = Scoring(Timings("sphere"))
 
----The system the leaderboard shows accuracies in: the one picked in the play config.
----@return rizu.engine.scoring.Scoring? scoring nil while auto timings are on: normalscore.
+---The system the leaderboard shows accuracies in: the one picked in the play config, or the selected
+---chart's auto timings. nil for normalscore: online scores, other gamemodes, or rescoring turned off.
+---@return rizu.engine.scoring.Scoring?
 function Scores:getAccuracySystem()
-	return GameplayTimings.getPicked(self.selector.settings)
+	return ScoreStore.getScoring(self.selector.settings, self.selector.chartview)
 end
 
----The accuracy of a score in getAccuracySystem(), as text such as "98.50%". Local scores of
----another system were scored again from their stored hits when the list was loaded.
+---Local scores of another system were scored again from their stored hits when the list was loaded.
+---@param self rizu.api.Scores
 ---@param score rizu.api.Score
----@return string? accuracy nil when it cannot be scored: online scores, and local ones without hits.
-function Scores:getAccuracy(score)
+---@return rizu.engine.scoring.Scoring scoring
+---@return number? accuracy nil for local scores without hits.
+local function getScoredAccuracy(self, score)
 	local scoring = self:getAccuracySystem() or normalscore
 	if scoring:isNormalscore() then
-		return scoring:formatAccuracy(score.accuracy)
+		return scoring, score.accuracy
 	end
-	local accuracy = score.rescored_accuracy
+	return scoring, score.rescored_accuracy
+end
+
+---The accuracy of a score in getAccuracySystem(), as text such as "98.50%".
+---@param score rizu.api.Score
+---@return string? accuracy nil when it cannot be scored: local scores without hits.
+function Scores:getAccuracy(score)
+	local scoring, accuracy = getScoredAccuracy(self, score)
 	return accuracy and scoring:formatAccuracy(accuracy)
+end
+
+---The grade of a score in getAccuracySystem(), such as "S", and the system for its color.
+---@param score rizu.api.Score
+---@return string? grade nil when it cannot be scored, see getAccuracy().
+---@return rizu.engine.scoring.Scoring scoring
+function Scores:getGrade(score)
+	local scoring, accuracy = getScoredAccuracy(self, score)
+	return accuracy and scoring:getGrade(accuracy), scoring
 end
 
 ---Replays the selected score in the background so the result screen can show it.

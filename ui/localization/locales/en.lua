@@ -128,6 +128,8 @@ return {
 	["settings.score_filter_tip"] = "Choose which scores appear in Song Select.",
 	["settings.score_filter_all"] = "All scores",
 	["settings.score_filter_unmodified"] = "Unmodified with automatic timings",
+	["settings.rescore"] = "Score in the chart's system",
+	["settings.rescore_tip"] = "Show local scores in the chart's own timing system, or the one picked in the play config. Each score is scored again from its hits. Off: normalscore, faster on slow computers.",
 	["settings.volume_scale"] = "Volume scale",
 	["settings.audio_backend"] = "Audio backend",
 	["settings.audio_backend_bass_default"] = "BASS default",

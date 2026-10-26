@@ -38,9 +38,11 @@ Universal and per-format audio offsets use the existing `gameplay.offset.audio_m
 
 ## Judging and leaderboard accuracy
 
-`replay_base.auto_timings` is on by default: each mania chart is judged with its auto timings (`TimingSystems.getAuto`): the chart's own timings, or its format's system with that system's default value (StepMania: Etterna J4), and osu!mania with score V1. The leaderboard then shows normalscore, which `chartplays.accuracy` holds.
+`replay_base.auto_timings` is on by default: each mania chart is judged with its auto timings (`TimingSystems.getAuto`): the chart's own timings, or its format's system with that system's default value (StepMania: Etterna J4), and osu!mania with score V1.
 
-Off, mania plays are judged with `timings.system` (`"osuod"` by default), with the value of that system (`timings.osuod`, `timings.etternaj`, `timings.bmsrank`) and, for osu!mania, `timings.osu_score_version`. The leaderboard shows the accuracies of local scores in that system, scored again from their hits; online scores and local ones without hits show none.
+Off, mania plays are judged with `timings.system` (`"osuod"` by default), with the value of that system (`timings.osuod`, `timings.etternaj`, `timings.bmsrank`) and, for osu!mania, `timings.osu_score_version`.
+
+The leaderboard of a mania chart shows local scores in the system plays of it are judged with, the auto timings or the picked one, scored again from their hits, with that system's grades; local scores without hits show none. `chartplays.accuracy` holds normalscore, which online scores, other gamemodes and every score while `select.rescore` is off show. Turning it off skips rescoring for slow computers. The list stays ordered by rating.
 
 Every saved score stores its hits (`chartplay_hits`): what the score engine received, enough to score it in any system without the replay. Older scores get them in the background at startup, played again from their replays. `scores.hits_version` is internal: the `ChartplayHitsRepo.hits_version` of the last update that went through every score. Such an update runs only when it differs, so a score whose chart or replay is gone is not retried at every start.
 

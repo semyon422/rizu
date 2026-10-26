@@ -94,6 +94,8 @@ return {
 	["settings.score_filter_tip"] = "Elige qué puntuaciones aparecen en la selección de canciones.",
 	["settings.score_filter_all"] = "Todas las puntuaciones",
 	["settings.score_filter_unmodified"] = "Sin modificar con tiempos automáticos",
+	["settings.rescore"] = "Puntuar con el sistema del chart",
+	["settings.rescore_tip"] = "Muestra las puntuaciones locales con el sistema de tiempos del propio chart o con el elegido en la configuración de juego. Cada puntuación se recalcula a partir de sus golpes. Desactivado: normalscore, más rápido en ordenadores lentos.",
 	["settings.volume_scale"] = "Escala de volumen",
 	["settings.audio_backend"] = "Backend de audio",
 	["settings.audio_backend_bass_default"] = "BASS predeterminado",

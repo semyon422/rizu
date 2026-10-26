@@ -4,6 +4,8 @@ local class = require("class")
 local Observable = require("Observable")
 local Settings = require("rizu.config.Settings")
 local GameplayTimings = require("rizu.gameplay.GameplayTimings")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---@class rizu.select.stores.ScoreStore
 ---@operator call: rizu.select.stores.ScoreStore
@@ -48,6 +50,23 @@ end
 ---@param event rizu.select.ScoreStoreEvent
 function ScoreStore:emitChanged(event)
 	self.observable:send(event)
+end
+
+---The system the leaderboard of a chart shows accuracies in: the one picked in the play config,
+---or the chart's auto timings. Local scores of mania charts only, the server has no hits.
+---@param settings rizu.config.Config
+---@param chartview rizu.library.LocatedChartview?
+---@return rizu.engine.scoring.Scoring? scoring nil for normalscore, which chartplays.accuracy holds.
+function ScoreStore.getScoring(settings, chartview)
+	local s = Settings.keys.select
+	if not chartview or chartview.chartmeta_mode ~= "mania"
+		or not settings:getBoolean(s.rescore)
+		or settings:getChoice(s.score_source) ~= "local"
+	then
+		return
+	end
+	return GameplayTimings.getPicked(settings)
+		or Scoring(TimingSystems.getAuto(chartview.chartmeta_timings, chartview.format))
 end
 
 ---@param i integer
@@ -139,8 +158,8 @@ function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 		error("unknown score scope: " .. tostring(score_scope))
 	end
 
-	-- Local scores in the system picked in the play config, see rizu.api.Scores:getAccuracy().
-	local scoring = score_source == "local" and GameplayTimings.getPicked(self.settings)
+	-- See rizu.api.Scores:getAccuracy().
+	local scoring = ScoreStore.getScoring(self.settings, chartview --[[@as rizu.library.LocatedChartview]])
 	if scoring and not scoring:isNormalscore() and chartplays[1] then
 		---@type integer[]
 		local ids = {}

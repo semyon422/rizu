@@ -112,6 +112,8 @@ return {
 	["settings.score_filter_tip"] = "Выберите, какие результаты показывать в выборе песен.",
 	["settings.score_filter_all"] = "Все результаты",
 	["settings.score_filter_unmodified"] = "Без модификаторов и с авто таймингами",
+	["settings.rescore"] = "Пересчитывать в системе карты",
+	["settings.rescore_tip"] = "Показывать локальные результаты в системе таймингов самой карты или в выбранной в настройках игры. Каждый результат пересчитывается по его попаданиям. Выключено: normalscore, быстрее на слабых компьютерах.",
 	["settings.volume_scale"] = "Шкала громкости",
 	["settings.audio_backend"] = "Аудиобекенд",
 	["settings.audio_backend_bass_default"] = "BASS по умолчанию",

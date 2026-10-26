@@ -132,6 +132,8 @@ return {
 	["settings.score_filter_tip"] = "选择在选曲界面显示哪些成绩。",
 	["settings.score_filter_all"] = "所有成绩",
 	["settings.score_filter_unmodified"] = "无模组且按谱面格式判定",
+	["settings.rescore"] = "按谱面判定系统显示成绩",
+	["settings.rescore_tip"] = "以谱面自身的判定系统或游玩设置中选择的系统显示本地成绩，每个成绩都会根据其击打记录重新计算。关闭时使用 normalscore，在低配电脑上更快。",
 	["settings.volume_scale"] = "音量刻度",
 	["settings.audio_backend"] = "音频后端",
 	["settings.audio_backend_bass_default"] = "BASS 默认",
