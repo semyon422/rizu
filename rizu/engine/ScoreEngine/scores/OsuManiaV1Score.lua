@@ -175,8 +175,8 @@ function OsuManiaV1Score:new(od)
 end
 
 ---@param info rizu.ScoreSystem.ChartInfo
-function OsuManiaV1Score:load(info)
-	ScoreSystem.load(self, info)
+function OsuManiaV1Score:loadChart(info)
+	ScoreSystem.loadChart(self, info)
 	self.hp = osu_hp.getDrainRate(info.healths)
 	self.hp_multiplier = computeHpMultiplier(osu_hp.getObjects(info.chart), self.hp)
 end

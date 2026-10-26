@@ -37,7 +37,9 @@ end
 ---@param t testing.T
 function test.perfect_play_is_a_million(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, chart = fake_chart(100)})
+	local info = {notes_count = 0, chart = fake_chart(100)}
+	score:load(info)
+	score:loadChart(info)
 	for _ = 1, 100 do
 		score:receive(tap_event("passed", 0.001))
 	end
@@ -48,7 +50,9 @@ end
 ---@param t testing.T
 function test.great_everywhere_loses_accuracy_not_combo(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, chart = fake_chart(100)})
+	local info = {notes_count = 0, chart = fake_chart(100)}
+	score:load(info)
+	score:loadChart(info)
 	for _ = 1, 100 do
 		score:receive(tap_event("passed", 0.03)) -- great at OD8: 40ms, perfect 16ms
 	end
@@ -59,7 +63,9 @@ end
 ---@param t testing.T
 function test.miss_breaks_combo_and_drains(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, healths = Healths("simple", 50), chart = fake_chart(100)})
+	local info = {notes_count = 0, healths = Healths("simple", 50), chart = fake_chart(100)}
+	score:load(info)
+	score:loadChart(info)
 	score:receive(tap_event("passed", 0.001))
 	local before = score:getHealths()
 	score:receive(tap_event("missed"))
@@ -71,7 +77,9 @@ end
 ---@param t testing.T
 function test.fails_at_zero_and_stays_failed(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, healths = Healths("simple", 100), chart = fake_chart(200)})
+	local info = {notes_count = 0, healths = Healths("simple", 100), chart = fake_chart(200)}
+	score:load(info)
+	score:loadChart(info)
 	for _ = 1, 200 do
 		score:receive(tap_event("missed"))
 	end
@@ -99,7 +107,9 @@ end
 ---@param t testing.T
 function test.hold_break_breaks_combo_and_judges_only_the_tail(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, chart = fake_chart(1, true)})
+	local info = {notes_count = 0, chart = fake_chart(1, true)}
+	score:load(info)
+	score:loadChart(info)
 	score:receive(hold_event("clear", "startPassedPressed", 0.001))
 	t:eq(score.combo, 1)
 	local health = score:getHealths()
@@ -119,7 +129,9 @@ end
 ---@param t testing.T
 function test.late_head_with_a_missed_release_has_two_misses(t)
 	local score = OsuManiaV2Score(8)
-	score:load({notes_count = 0, chart = fake_chart(1, true)})
+	local info = {notes_count = 0, chart = fake_chart(1, true)}
+	score:load(info)
+	score:loadChart(info)
 	score:receive(hold_event("clear", "startMissedPressed", 0.15))
 	score:receive(hold_event("startMissedPressed", "endMissed", -0.5))
 	t:eq(score.judge_counter.judges[6], 2)

@@ -1,4 +1,5 @@
 local class = require("class")
+local table_util = require("table_util")
 
 local BaseScore = require("rizu.engine.ScoreEngine.scores.BaseScore")
 local HpScore = require("rizu.engine.ScoreEngine.scores.HpScore")
@@ -19,7 +20,8 @@ local Scoring = require("rizu.engine.scoring.Scoring")
 ---@field accuracySource rizu.IAccuracySource?
 ---@field comboSource rizu.IComboSource?
 ---@field healthsSource rizu.IHealthsSource?
----@field chart_info rizu.ScoreSystem.ChartInfo
+---@field chart_info rizu.ScoreSystem.ChartInfo Totals of the play, given to load.
+---@field charts {info: rizu.ScoreSystem.ChartInfo, first_event: integer}[] The charts begun, so late systems load them in turn.
 ---@field judgesSource rizu.IJudgesSource?
 ---@field scoreSource rizu.IScoreSource?
 ---@field sequence {[string]: table}[]
@@ -40,13 +42,17 @@ function ScoreEngine:new()
 	self.scores = {}
 	self.sequence = {}
 	self.scoreSystemsByName = {}
+	self.charts = {}
+	self.index_offset = 0
+	self.max_index = -1
 end
 
 ---@param chartdiff sea.Chartdiff
----@param chart_healths sea.Healths? The chart's own HP value.
----@param chart chart.Chart? For the systems that need the notes.
-function ScoreEngine:load(chartdiff, chart_healths, chart)
-	self.chart_info = {
+---@param chart_healths sea.Healths?
+---@param chart chart.Chart?
+---@return rizu.ScoreSystem.ChartInfo
+local function getChartInfo(chartdiff, chart_healths, chart)
+	return {
 		notes_count = chartdiff.notes_count,
 		judges_count = chartdiff.judges_count,
 		density = getDensity(chartdiff),
@@ -54,6 +60,22 @@ function ScoreEngine:load(chartdiff, chart_healths, chart)
 		healths = chart_healths,
 		chart = chart,
 	}
+end
+
+---Loads a single chart.
+---@param chartdiff sea.Chartdiff
+---@param chart_healths sea.Healths? The chart's own HP value.
+---@param chart chart.Chart? For the systems that need the notes.
+function ScoreEngine:load(chartdiff, chart_healths, chart)
+	local info = getChartInfo(chartdiff, chart_healths, chart)
+	self:loadCourse(info)
+	self:beginChart(info)
+end
+
+---Loads a course: call nextChart before the events of each of its charts.
+---@param info rizu.ScoreSystem.ChartInfo Totals of all charts, such as notes_count.
+function ScoreEngine:loadCourse(info)
+	self.chart_info = info
 
 	---@type rizu.ScoreSystem[]
 	self.scoreSystems = {}
@@ -85,6 +107,24 @@ end
 function ScoreEngine:loadEvents(chartdiff, events)
 	self:load(chartdiff --[[@as sea.Chartdiff]])
 	self.events = events
+end
+
+---@param info rizu.ScoreSystem.ChartInfo
+function ScoreEngine:beginChart(info)
+	-- Note indexes start again in each chart, move them past the ones received so hold states stay apart.
+	self.index_offset = self.max_index + 1
+	table.insert(self.charts, {info = info, first_event = #self.events + 1})
+	for _, v in ipairs(self.scoreSystems) do
+		v:loadChart(info)
+	end
+end
+
+---Continues the course with its next chart.
+---@param chartdiff sea.Chartdiff
+---@param chart_healths sea.Healths? The chart's own HP value.
+---@param chart chart.Chart? For the systems that need the notes.
+function ScoreEngine:nextChart(chartdiff, chart_healths, chart)
+	self:beginChart(getChartInfo(chartdiff, chart_healths, chart))
 end
 
 function ScoreEngine:selectDefault()
@@ -159,11 +199,20 @@ function ScoreEngine:addScoreSystem(score_system)
 	score_system:load(self.chart_info)
 
 	-- Late systems fill the slices of the events that already happened, so the sequence stays whole.
-	for i, event in ipairs(self.events) do
-		score_system:receive(event)
-		local slice = self.sequence[i]
-		if slice then
-			slice[key] = score_system:getSlice()
+	local charts = self.charts
+	local c = 1
+	for i = 1, #self.events + 1 do
+		while charts[c] and charts[c].first_event == i do
+			score_system:loadChart(charts[c].info)
+			c = c + 1
+		end
+		local event = self.events[i]
+		if event then
+			score_system:receive(event)
+			local slice = self.sequence[i]
+			if slice then
+				slice[key] = score_system:getSlice()
+			end
 		end
 	end
 
@@ -203,6 +252,12 @@ end
 
 ---@param event rizu.LogicNoteChange
 function ScoreEngine:receive(event)
+	if self.index_offset ~= 0 then
+		event = table_util.copy(event)
+		event.index = event.index + self.index_offset
+	end
+	self.max_index = math.max(self.max_index, event.index)
+
 	for _, scoreSystem in ipairs(self.scoreSystems) do
 		scoreSystem:receive(event)
 	end

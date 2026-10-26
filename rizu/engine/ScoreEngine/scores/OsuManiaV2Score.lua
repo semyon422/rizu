@@ -157,14 +157,18 @@ function OsuManiaV2Score:new(od)
 end
 
 ---@param info rizu.ScoreSystem.ChartInfo
+function OsuManiaV2Score:loadChart(info)
+	ScoreSystem.loadChart(self, info)
+	self.hp = osu_hp.getDrainRate(info.healths)
+	self.hp_multiplier = computeHpMultiplier(osu_hp.getObjects(info.chart), self.hp)
+end
+
+---A course has no chart here, its judges are counted from judges_count.
+---@param info rizu.ScoreSystem.ChartInfo
 function OsuManiaV2Score:load(info)
 	ScoreSystem.load(self, info)
 
-	self.hp = osu_hp.getDrainRate(info.healths)
-
 	local objects = osu_hp.getObjects(info.chart)
-	self.hp_multiplier = computeHpMultiplier(objects, self.hp)
-
 	local judges = 0
 	for _, o in ipairs(objects) do
 		judges = judges + (o[3] and 2 or 1)

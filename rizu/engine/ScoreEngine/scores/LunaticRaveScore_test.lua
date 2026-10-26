@@ -204,7 +204,9 @@ end
 ---@return rizu.LunaticRaveScore
 local function gauge_score(gauge, total)
 	local score = LunaticRaveScore(2, gauge)
-	score:load({notes_count = 100, healths = total and Healths("bmstotal", total) or nil})
+	local info = {notes_count = 100, healths = total and Healths("bmstotal", total) or nil}
+	score:load(info)
+	score:loadChart(info)
 	return score
 end
 
@@ -253,7 +255,7 @@ end
 ---@param t testing.T
 function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
 	local hard = gauge_score(2, 300)
-	hard:load({notes_count = 1000}) -- no damage scaling from here
+	hard:loadChart({notes_count = 1000}) -- no damage scaling from here
 	t:eq(hard:getHealths(), 100)
 	hard:changeHealth(5)
 	t:assert(near(hard:getHealths(), 90))
@@ -261,7 +263,7 @@ function test.hard_fails_below_two_and_hurts_less_at_low_gauge(t)
 	t:assert(near(hard:getHealths(), 90.1))
 
 	local low = gauge_score(2, 300)
-	low:load({notes_count = 1000})
+	low:loadChart({notes_count = 1000})
 	for _ = 1, 7 do
 		low:changeHealth(5) -- 100 -> 30
 	end
@@ -297,7 +299,9 @@ function test.hard_damage_grows_for_few_notes_or_low_total(t)
 	---@return number
 	local function poor_damage(notes, total)
 		local score = LunaticRaveScore(2, 2)
-		score:load({notes_count = notes, healths = Healths("bmstotal", total)})
+		local info = {notes_count = notes, healths = Healths("bmstotal", total)}
+		score:load(info)
+		score:loadChart(info)
 		score:changeHealth(5)
 		return 100 - score:getHealths()
 	end
@@ -313,6 +317,41 @@ function test.chart_without_total_gets_the_default(t)
 	local groove = gauge_score(0)
 	groove:changeHealth(1)
 	t:assert(near(groove:getHealths(), 20 + (160 + 100 * 0.16) / 100)) -- 100 notes
+end
+
+---@param t testing.T
+function test.class_course_gauge(t)
+	local groove = LunaticRaveScore(2)
+	groove:load({notes_count = 2000, course = "class"})
+	groove:loadChart({notes_count = 100, healths = Healths("bmstotal", 300)})
+	t:eq(groove:getHealths(), 100)
+
+	groove:changeHealth(5)
+	t:assert(near(groove:getHealths(), 97))
+	groove:changeHealth(1) -- flat, #TOTAL does not count
+	t:assert(near(groove:getHealths(), 97.1))
+
+	groove.health = 30
+	groove:changeHealth(5) -- 0.6 * -3
+	t:assert(near(groove:getHealths(), 28.2))
+
+	groove.health = 3
+	groove:changeHealth(5) -- no floor at 2
+	t:assert(groove:isFailed())
+	t:assert(not groove:isPassed())
+
+	-- hard follows the chart played now, the score the course
+	local hard = LunaticRaveScore(2, 2)
+	hard:load({notes_count = 2000, course = "class"})
+	hard:loadChart({notes_count = 1000, healths = Healths("bmstotal", 300)})
+	hard:changeHealth(5)
+	t:assert(near(hard:getHealths(), 90))
+	hard:loadChart({notes_count = 100, healths = Healths("bmstotal", 300)})
+	hard:changeHealth(5)
+	t:assert(near(hard:getHealths(), 90 - 10 * (5 - 40 / 65)))
+
+	hard.judge_counter.judges[1] = 1000
+	t:eq(hard:getScore(), 100000)
 end
 
 return test

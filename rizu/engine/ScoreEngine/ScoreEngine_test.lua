@@ -79,4 +79,58 @@ function test.default_judges_slice_has_misses(t)
 	t:eq(slice.judge_index, -1)
 end
 
+---@param t testing.T
+function test.next_chart_keeps_hold_states_apart(t)
+	local se = ScoreEngine()
+	se:load({notes_count = 2})
+	se:createByTimings(Timings("osuod", 8), Subtimings("scorev", 1), true)
+
+	-- chart 1 ends with a hold still pressed
+	se:receive({index = 1, column = 1, type = "hold", time = 1, delta_time = 0,
+		old_state = "clear", new_state = "startPassedPressed"})
+
+	se:nextChart({notes_count = 1})
+	-- the first hold of chart 2 has the same index, missed at its head
+	se:receive({index = 1, column = 1, type = "hold", time = 1, delta_time = 1,
+		old_state = "clear", new_state = "startMissed"})
+	se:receive({index = 1, column = 1, type = "hold", time = 2, delta_time = 1,
+		old_state = "startMissed", new_state = "endMissed"})
+
+	t:eq(se.events[2].index, 3)
+	t:eq(se.judgesSource.judge_counter.judges[6], 1)
+	t:assert(se.accuracySource.pressedLongNotes[1])
+	t:eq(se.accuracySource.pressedLongNotes[3], nil)
+end
+
+---@param t testing.T
+function test.late_system_loads_each_chart_of_course(t)
+	local LunaticRaveScore = require("rizu.engine.ScoreEngine.scores.LunaticRaveScore")
+	local Healths = require("sea.chart.Healths")
+
+	---@param se rizu.ScoreEngine
+	local function play(se)
+		for chart = 1, 2 do
+			se:nextChart({notes_count = chart == 1 and 1000 or 100} --[[@as sea.Chartdiff]], Healths("bmstotal", 300))
+			se:receive({index = 1, column = 1, type = "tap", time = 1, delta_time = 1,
+				old_state = "clear", new_state = "missed"})
+		end
+	end
+
+	local early = ScoreEngine()
+	early:loadCourse({notes_count = 1100, course = "class"})
+	local early_hard = early:addScoreSystem(LunaticRaveScore(2, 2))
+	play(early)
+
+	local late = ScoreEngine()
+	late:loadCourse({notes_count = 1100, course = "class"})
+	play(late)
+	local late_hard = late:addScoreSystem(LunaticRaveScore(2, 2))
+
+	---@cast early_hard rizu.LunaticRaveScore
+	---@cast late_hard rizu.LunaticRaveScore
+	t:assert(math.abs(early_hard:getHealths() - (90 - 10 * (5 - 40 / 65))) < 1e-9)
+	t:eq(late_hard:getHealths(), early_hard:getHealths())
+	t:eq(late.sequence[2][late_hard:getKey()].healths, late_hard:getHealths())
+end
+
 return test

@@ -55,8 +55,8 @@ end
 ---Quaver.API ScoreProcessorKeys.InitializeHealthWeighting: charts of 12 or more actions per second keep the base weights.
 ---shortcut: the density is judges per chart duration at rate 1, Quaver excludes breaks of 1s+ and applies the rate; use real actions when the engine knows them.
 ---@param info rizu.ScoreSystem.ChartInfo
-function QuaverScore:load(info)
-	ScoreSystem.load(self, info)
+function QuaverScore:loadChart(info)
+	ScoreSystem.loadChart(self, info)
 	local density = info.density
 	self.health_weights = healthWeights
 	if not density or density <= 0 or density >= 12 then

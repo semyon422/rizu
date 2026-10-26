@@ -23,6 +23,7 @@ local Timings = require("sea.chart.Timings")
 
 ---@class rizu.LunaticRaveScore: rizu.ScoreSystem, rizu.SimpleJudgesSource, rizu.IAccuracySource, rizu.IComboSource, rizu.IScoreSource, rizu.IHealthsSource
 ---@operator call: rizu.LunaticRaveScore
+---@field chart_notes_count integer Notes of the chart played now, all of them until loadChart.
 local LunaticRaveScore = ScoreSystem + SimpleJudgesSource + IAccuracySource + IComboSource + IScoreSource + IHealthsSource
 
 LunaticRaveScore.accuracy_multiplier = 100
@@ -40,13 +41,32 @@ windows[4] = windows[2] -- Invalid #RANK uses LR2's default (Normal) windows
 
 -- SOURCE: judge_damage of LR2_bmsload.cpp and the update in Scene04_Play.cpp of https://github.com/GOMazk/OpenLR2
 -- Gauge changes by judge index: pgreat, great, good, bad, poor, then an empty poor (mash). Percent of 0..100.
--- groove and easy gain `total / notes` times these, the rest are flat. Hard's damage scales by the hard multiplier.
----@type {[integer]: {gain: number[], damage: number[], start: number, survival: boolean}}
+-- Scaled gains are `total / notes` times these, the rest are flat. Hard's damage scales by the hard multiplier.
+-- Survival gauges fail below 2 and hurt less at low gauge, the others stay at 2.
+---@alias rizu.LunaticRaveScore.Rules {gain: number[], damage: number[], start: number, survival: boolean, scaled: boolean?}
+---@type {[integer]: rizu.LunaticRaveScore.Rules}
 local gauge_rules = {
-	[0] = {gain = {1, 1, 0.5}, damage = {-4, -6, -2}, start = 20, survival = false},
-	[1] = {gain = {1.2, 1.2, 0.6}, damage = {-3.2, -4.8, -1.6}, start = 20, survival = false},
+	[0] = {gain = {1, 1, 0.5}, damage = {-4, -6, -2}, start = 20, survival = false, scaled = true},
+	[1] = {gain = {1.2, 1.2, 0.6}, damage = {-3.2, -4.8, -1.6}, start = 20, survival = false, scaled = true},
 	[2] = {gain = {0.1, 0.1, 0.05}, damage = {-6, -10, -2}, start = 100, survival = true},
 	[3] = {gain = {0, 0, 0}, damage = {-100, -100, 0}, start = 100, survival = true},
+}
+
+-- In a course every gauge starts full and is a survival one, groove and easy gain flat values.
+---@type {[string]: {[integer]: rizu.LunaticRaveScore.Rules}}
+local course_gauge_rules = {
+	class = {
+		[0] = {gain = {0.1, 0.1, 0.04}, damage = {-2, -3, -2}, start = 100, survival = true},
+		[1] = {gain = {0.1, 0.1, 0.04}, damage = {-2, -3, -2}, start = 100, survival = true},
+		[2] = {gain = {0.1, 0.1, 0.04}, damage = {-6, -10, -2}, start = 100, survival = true},
+		[3] = gauge_rules[3],
+	},
+	expert = {
+		[0] = {gain = {0.1, 0.1, 0.04}, damage = {-1.5, -2, -1.5}, start = 100, survival = true},
+		[1] = {gain = {0.12, 0.12, 0.048}, damage = {-1.2, -1.6, -1.2}, start = 100, survival = true},
+		[2] = gauge_rules[2],
+		[3] = gauge_rules[3],
+	},
 }
 
 ---Hard gauge damage multiplier: bigger for charts with few notes or a low #TOTAL.
@@ -104,6 +124,22 @@ function LunaticRaveScore:getKey()
 	return "lunatic_rank" .. self.rank .. (self.gauge ~= 0 and "_g" .. self.gauge or "")
 end
 
+---@param info rizu.ScoreSystem.ChartInfo
+function LunaticRaveScore:load(info)
+	ScoreSystem.load(self, info)
+	local course = info.course
+	self.rules = course and course_gauge_rules[course][self.gauge] or gauge_rules[self.gauge]
+	self.chart_notes_count = info.notes_count
+	self.health = self.rules.start
+end
+
+---@param info rizu.ScoreSystem.ChartInfo
+function LunaticRaveScore:loadChart(info)
+	ScoreSystem.loadChart(self, info)
+	-- the gauge of each chart of a course follows its own notes and #TOTAL
+	self.chart_notes_count = info.notes_count
+end
+
 ---A chart without #TOTAL gets a value from its notes count.
 ---SOURCE: calculateDefaultTotal of https://github.com/seraxis/lr2oraja-endlessdream, BMSPlayerRule.java,
 ---which gives the same values as the `total[p] < 1` branch of LR2_bmsload.cpp of OpenLR2.
@@ -113,7 +149,7 @@ function LunaticRaveScore:getTotal()
 	if healths and healths.name == "bmstotal" then
 		return healths.data
 	end
-	local notes = self.notes_count
+	local notes = self.chart_notes_count
 	return 160 + (notes + math.min(math.max(notes - 400, 0), 200)) * 0.16
 end
 
@@ -126,17 +162,17 @@ function LunaticRaveScore:changeHealth(judge)
 	local delta ---@type number
 	if judge <= 3 then
 		delta = rules.gain[judge]
-		if self.gauge <= 1 then
-			delta = delta * self:getTotal() / math.max(self.notes_count, 1)
+		if rules.scaled then
+			delta = delta * self:getTotal() / math.max(self.chart_notes_count, 1)
 		end
 	else
 		-- bad, poor, empty poor
 		delta = rules.damage[judge - 3]
 		if self.gauge == 2 then
-			delta = delta * getHardMultiplier(self.notes_count, self:getTotal())
+			delta = delta * getHardMultiplier(self.chart_notes_count, self:getTotal())
 		end
-		-- Hard and hazard hurt less at low gauge, LR2 compares the even-rounded integer part.
-		if self.gauge ~= 0 and self.gauge ~= 1 and math.floor(math.floor(self.health) / 2) * 2 <= 30 then
+		-- LR2 compares the even-rounded integer part.
+		if rules.survival and math.floor(math.floor(self.health) / 2) * 2 <= 30 then
 			delta = delta * 0.6
 		end
 	end
@@ -163,13 +199,13 @@ function LunaticRaveScore:getMaxHealths()
 	return 100
 end
 
----Groove and easy never die.
+---Groove and easy never die outside a course.
 ---@return boolean
 function LunaticRaveScore:isFailed()
 	return self.failed
 end
 
----Groove and easy clear with 80% at the end of the chart.
+---Groove and easy clear with 80% at the end of the chart, a course clears alive.
 ---@return boolean
 function LunaticRaveScore:isPassed()
 	if self.rules.survival then

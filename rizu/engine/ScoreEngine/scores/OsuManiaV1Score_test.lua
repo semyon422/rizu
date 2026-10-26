@@ -148,7 +148,9 @@ end
 ---@param t testing.T
 function test.hp_follows_stable_judgement_values(t)
 	local score = OsuManiaV1Score(8)
-	score:load({notes_count = 10, healths = Healths("simple", 50)})
+	local info = {notes_count = 10, healths = Healths("simple", 50)}
+	score:load(info)
+	score:loadChart(info)
 	t:eq(score:getHealths(), 100)
 
 	score:addCounter(6)
@@ -165,7 +167,9 @@ end
 ---@param t testing.T
 function test.hp_multiplier_makes_a_perfect_play_recover(t)
 	local score = OsuManiaV1Score(8)
-	score:load({notes_count = 100, healths = Healths("simple", 80), chart = fake_chart(100)})
+	local info = {notes_count = 100, healths = Healths("simple", 80), chart = fake_chart(100)}
+	score:load(info)
+	score:loadChart(info)
 	t:assert(score.hp_multiplier > 1)
 	score:addCounter(6)
 	score:addCounter(1)
@@ -175,7 +179,9 @@ end
 ---@param t testing.T
 function test.hp_fails_at_zero_and_stays_failed(t)
 	local score = OsuManiaV1Score(8)
-	score:load({notes_count = 200, healths = Healths("simple", 100)})
+	local info = {notes_count = 200, healths = Healths("simple", 100)}
+	score:load(info)
+	score:loadChart(info)
 	for _ = 1, 200 do
 		score:addCounter(6)
 	end
