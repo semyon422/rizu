@@ -5,6 +5,7 @@ local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
 local AdjustmentOverlay = require("ui.screens.gameplay.AdjustmentOverlay")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
+local HealthsDebug = require("ui.screens.gameplay.HealthsDebug")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
@@ -54,6 +55,11 @@ function Gameplay:new(ui)
 	self.summary:setVisible(false)
 
 	self.adjust_overlay = self.root:add(AdjustmentOverlay(ui.localization))
+
+	self.healths_debug = self.root:add(HealthsDebug(self.gameplay))
+	local function setHealthsDebug(value) self.healths_debug:setVisible(value) end
+	setHealthsDebug(ui.config:getBoolean(UiConfig.keys.show_healths_debug))
+	ui.config:subscribeBoolean(UiConfig.keys.show_healths_debug, setHealthsDebug)
 
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)

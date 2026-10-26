@@ -41,6 +41,15 @@ return function(game, ui)
 				ui.config:setBoolean("show_fps", not show_fps)
 			end,
 		},
+		{
+			id = "ui.global.toggle_healths_debug",
+			title = "Healths: Toggle Debug",
+			description = "Toggles the healths graph in gameplay",
+			callback = function()
+				local show = ui.config:getBoolean("show_healths_debug")
+				ui.config:setBoolean("show_healths_debug", not show)
+			end,
+		},
 	}
 	if game.aiChatModel then
 		table.insert(commands, 1, {

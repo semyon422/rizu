@@ -172,6 +172,38 @@ function Gameplay:getAccuracy()
 	end
 end
 
+---Debug. The selected healths source.
+---@return number? healths
+---@return number? max_healths
+---@return boolean? failed
+---@return string? key
+function Gameplay:getHealths()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	if source then
+		return source:getHealths(), source:getMaxHealths(), source:isFailed(), (source --[[@as rizu.ScoreSystem]]):getKey()
+	end
+end
+
+---Debug. The healths after each event, the oldest first, for as many last events as `count`.
+---@param count integer
+---@return number[]
+function Gameplay:getHealthsHistory(count)
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	---@type number[]
+	local history = {}
+	if not source then
+		return history
+	end
+	local key = (source --[[@as rizu.ScoreSystem]]):getKey()
+	local sequence = score_engine.sequence
+	for i = math.max(#sequence - count + 1, 1), #sequence do
+		history[#history + 1] = sequence[i][key].healths
+	end
+	return history
+end
+
 ---@return integer? combo
 ---@return integer? max_combo
 function Gameplay:getCombo()
