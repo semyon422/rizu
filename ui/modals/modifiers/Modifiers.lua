@@ -214,6 +214,19 @@ function Modifiers:rebuildForm()
 				end),
 			}))
 		end
+		if system.name == "etternaj" then
+			self.form:add(SegmentedControl({
+				label = self.localization:get("song_select.etterna_life"),
+				options = {1, 2, 3, 4, 5, 6, 7},
+				value = play:getEtternaLife(),
+				format = function(level)
+					return "L" .. level
+				end,
+				on_change = function(level)
+					play:setEtternaLife(level)
+				end,
+			}))
+		end
 		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
 			function(value)
 				-- Not judging(): rebuilding the form would drop the slider while it is dragged.

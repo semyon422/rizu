@@ -3,6 +3,7 @@ local class = require("class")
 ---@alias sea.HealthsName
 ---| "unknown"
 ---| "simple"
+---| "etterna"
 
 ---@class sea.Healths
 ---@operator call: sea.Healths
@@ -27,6 +28,8 @@ function Healths:validate()
 
 	if n == "simple" then
 		return v >= 0 and v <= 100 and v == math.floor(v)
+	elseif n == "etterna" then
+		return v >= 1 and v <= 7 and v == math.floor(v) -- LifeDifficulty level
 	end
 
 	return false
@@ -39,6 +42,8 @@ function Healths.decode(v)
 
 	if v >= 0 and v <= 100 then
 		return Healths("simple", v)
+	elseif v >= 201 and v <= 207 then
+		return Healths("etterna", v - 200)
 	end
 
 	return Healths("unknown", v)
@@ -51,6 +56,8 @@ function Healths.encode(t)
 
 	if t.name == "simple" then
 		return v
+	elseif t.name == "etterna" then
+		return 200 + v
 	end
 
 	return v

@@ -461,7 +461,7 @@ function GameplayInteractor:retry()
 		error(err)
 	end
 
-	game.rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
+	game.rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings, replayBase.healths)
 	self:play()
 end
 

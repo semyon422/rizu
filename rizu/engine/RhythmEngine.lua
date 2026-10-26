@@ -63,7 +63,8 @@ end
 ---Modes without configurable timings keep their own windows.
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
-function RhythmEngine:setTimings(timings, subtimings) end
+---@param healths sea.Healths?
+function RhythmEngine:setTimings(timings, subtimings, healths) end
 
 ---Scripted inputs for modes that autoplay through the replay player.
 ---@return rizu.ReplayFrame[]?

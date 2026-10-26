@@ -2,6 +2,7 @@ local class = require("class")
 local Settings = require("rizu.config.Settings")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
+local Healths = require("sea.chart.Healths")
 local Scoring = require("rizu.engine.scoring.Scoring")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
@@ -21,12 +22,16 @@ function GameplayTimings.getPicked(settings)
 	local value_key = keys.timings[name]
 	local value = value_key and settings:getNumber(value_key) or nil
 	local subtimings ---@type sea.Subtimings?
+	local healths ---@type sea.Healths?
 	if name == "osuod" then
 		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
 		value = math.floor(value * 10 + 0.5) / 10
 		subtimings = Subtimings("scorev", settings:getNumber(keys.timings.osu_score_version))
 	end
-	return Scoring(Timings(name, value), subtimings)
+	if name == "etternaj" then
+		healths = Healths("etterna", settings:getNumber(keys.timings.etterna_life))
+	end
+	return Scoring(Timings(name, value), subtimings, healths)
 end
 
 ---@param chartmeta sea.Chartmeta
@@ -42,6 +47,7 @@ function GameplayTimings:apply(replayBase, picked)
 	-- Timings of the chart itself are not repeated in the replay.
 	replayBase.timings = (picked or not chartmeta.timings) and scoring.timings or nil
 	replayBase.subtimings = scoring.subtimings
+	replayBase.healths = scoring.healths
 	replayBase.timing_values = assert(scoring:getTimingValues())
 	replayBase.nearest = scoring:isNearest()
 end

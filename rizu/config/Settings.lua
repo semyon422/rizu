@@ -94,6 +94,7 @@ local keys = {
 		etternaj = "timings.etternaj",
 		bmsrank = "timings.bmsrank",
 		osu_score_version = "timings.osu_score_version",
+		etterna_life = "timings.etterna_life",
 	},
 	replay_base = {
 		auto_timings = "replay_base.auto_timings",
@@ -283,6 +284,7 @@ function Settings.createConfig(filesystem)
 		config:setDefaultNumber(keys.timings[name], system.default_value, range.min, range.max, range.step)
 	end
 	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
+	config:setDefaultNumber(keys.timings.etterna_life, 4, 1, 7, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)

@@ -16,6 +16,7 @@ function FakePlay:new()
 	self.timing_system = "osuod"
 	self.timing_values = {osuod = 8, etternaj = 4, bmsrank = 3}
 	self.osu_score_version = 1
+	self.etterna_life = 4
 	self.mutators = {} ---@type {name: string, value: integer?}[]
 	self.mutator_position = 1
 	self.input_mode = "7key"
@@ -158,6 +159,13 @@ function FakePlay:getOsuScoreVersion() return self.osu_score_version end
 
 function FakePlay:setOsuScoreVersion(version)
 	self.osu_score_version = version
+	self:emit("mods_changed")
+end
+
+function FakePlay:getEtternaLife() return self.etterna_life end
+
+function FakePlay:setEtternaLife(level)
+	self.etterna_life = level
 	self:emit("mods_changed")
 end
 

@@ -392,6 +392,7 @@ return {
 	["song_select.osu_score_version"] = "osu!mania Score Version",
 	["song_select.overall_difficulty"] = "Overall Difficulty",
 	["song_select.etterna_judge"] = "Etterna Judge",
+	["song_select.etterna_life"] = "Etterna Life Difficulty",
 	["song_select.bms_rank"] = "LR2 Timing Rank",
 	["song_select.constant_scroll_speed"] = "Constant scroll speed",
 	["song_select.no_long_notes"] = "No Long Notes",

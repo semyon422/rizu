@@ -116,9 +116,10 @@ end
 
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
-function ManiaEngine:setTimings(timings, subtimings)
+---@param healths sea.Healths?
+function ManiaEngine:setTimings(timings, subtimings, healths)
 	timings = assert(timings or self.chartmeta.timings)
-	self.score_engine:createByTimings(timings, subtimings, true)
+	self.score_engine:createByTimings(timings, subtimings, true, healths)
 end
 
 ---@param timing_values sea.TimingValues

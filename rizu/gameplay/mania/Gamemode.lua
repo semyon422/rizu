@@ -50,7 +50,7 @@ end
 ---@param replay_base sea.ReplayBase
 ---@param settings rizu.config.Config
 function ManiaGamemode:configureEngine(engine, replay_base, settings)
-	engine:setTimings(replay_base.timings, replay_base.subtimings)
+	engine:setTimings(replay_base.timings, replay_base.subtimings, replay_base.healths)
 	engine:setTimingValues(replay_base.timing_values)
 	engine:setNearest(replay_base.nearest)
 	engine:setConst(replay_base.const)

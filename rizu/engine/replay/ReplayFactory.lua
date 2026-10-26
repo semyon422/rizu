@@ -22,8 +22,6 @@ function ReplayFactory:createReplay(replayBase, chartmetaKey, frames, created_at
 	replay:importReplayBase(replayBase)
 	replay:importChartmetaKey(chartmetaKey)
 
-	replay.healths = nil
-
 	replay.version = 2
 	replay.timing_values = replayBase.timing_values
 	replay.frames = frames

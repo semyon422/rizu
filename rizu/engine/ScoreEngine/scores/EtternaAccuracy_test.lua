@@ -74,4 +74,38 @@ function test.late_pressed_missed_hold_adds_hold_penalty(t)
 	t:eq(score.holds_missed, 1)
 end
 
+---@param t testing.T
+function test.life_follows_judgments_and_life_difficulty(t)
+	local score = EtternaAccuracy(4)
+	t:eq(score:getHealths(), 0.5)
+
+	score:receive(hold_event("clear", "startPassedPressed", 0.01)) -- marvelous
+	t:assert(math.abs(score:getHealths() - 0.508) < 1e-9)
+	score:receive(hold_event("startPassedPressed", "endMissed")) -- let go
+	t:assert(math.abs(score:getHealths() - 0.428) < 1e-9)
+
+	local easy = EtternaAccuracy(4, 1)
+	easy:receive(hold_event("clear", "startMissed"))
+	t:assert(math.abs(easy:getHealths() - (0.5 - 0.08 / 1.6)) < 1e-9)
+
+	local hard = EtternaAccuracy(4, 7)
+	hard:receive(hold_event("clear", "startPassedPressed", 0.01))
+	t:assert(math.abs(hard:getHealths() - (0.5 + 0.008 * 0.4)) < 1e-9)
+
+	t:ne(easy:getKey(), score:getKey())
+end
+
+---@param t testing.T
+function test.fails_at_zero_and_stays_failed(t)
+	local score = EtternaAccuracy(4)
+	for _ = 1, 7 do
+		score:receive(hold_event("clear", "startMissed"))
+	end
+	t:assert(score:isFailed())
+	t:eq(score:getHealths(), 0)
+
+	score:receive(hold_event("clear", "startPassedPressed", 0.01))
+	t:assert(score:isFailed())
+end
+
 return test

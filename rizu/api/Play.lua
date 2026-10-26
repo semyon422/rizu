@@ -337,6 +337,18 @@ function Play:setOsuScoreVersion(version)
 	modsChanged(self)
 end
 
+---Etterna's life difficulty. Only used by "etternaj".
+---@return integer level 1 is the easiest, 7 the hardest, 4 is Etterna's default.
+function Play:getEtternaLife()
+	return self.game.settings:getNumber(Settings.keys.timings.etterna_life)
+end
+
+---@param level integer
+function Play:setEtternaLife(level)
+	self.game.settings:setNumber(Settings.keys.timings.etterna_life, level)
+	modsChanged(self)
+end
+
 -- Starting
 
 ---True when the selected chart's gamemode has no scores and keeps its last attempt as a local replay instead.

@@ -33,7 +33,7 @@ function ChartplayComputedFactory:getChartplayComputed(fast)
 	end
 
 	local c = ChartplayComputed()
-	c.pass = not scores.hp:isFailed()
+	c.pass = not assert(score_engine.healthsSource):isFailed()
 	c.judges = judgesSource:getJudges()
 	c.accuracy = scores.normalscore.accuracyAdjusted
 	c.max_combo = scores.base.maxCombo

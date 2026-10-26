@@ -23,6 +23,7 @@ local judgeTimingWindows = {
 ---@operator call: rizu.EtternaJudges
 local EtternaJudges = ScoreSystem + SimpleJudgesSource
 
+EtternaJudges.windows = judgeTimingWindows
 EtternaJudges.judge_names = {"marvelous", "perfect", "great", "bad", "boo", "miss"}
 
 ---@param j number

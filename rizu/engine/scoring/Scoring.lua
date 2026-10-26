@@ -8,14 +8,17 @@ local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 ---@operator call: rizu.engine.scoring.Scoring
 ---@field timings sea.Timings
 ---@field subtimings sea.Subtimings?
+---@field healths sea.Healths? Nil is the default of the system.
 ---@field system rizu.engine.scoring.TimingSystem
 local Scoring = class()
 
 ---@param timings sea.Timings
 ---@param subtimings sea.Subtimings?
-function Scoring:new(timings, subtimings)
+---@param healths sea.Healths?
+function Scoring:new(timings, subtimings, healths)
 	self.system = TimingSystems.get(timings.name)
 	self.timings = timings
+	self.healths = healths
 	self.subtimings = subtimings or self.system.default_subtimings
 end
 
@@ -33,7 +36,7 @@ end
 ---@return rizu.ScoreSystem[]?
 ---@return string?
 function Scoring:createScoreSystems()
-	return self.system:createScoreSystems(self.timings, self.subtimings)
+	return self.system:createScoreSystems(self.timings, self.subtimings, self.healths)
 end
 
 ---A press hits the nearest note instead of the earliest one.

@@ -81,10 +81,11 @@ end
 ---@param t sea.Timings
 ---@param st sea.Subtimings?
 ---@param _select boolean?
+---@param healths sea.Healths?
 ---@return boolean?
 ---@return string?
-function ScoreEngine:createByTimings(t, st, _select)
-	local systems, err = Scoring(t, st):createScoreSystems()
+function ScoreEngine:createByTimings(t, st, _select, healths)
+	local systems, err = Scoring(t, st, healths):createScoreSystems()
 	if not systems then
 		if _select then
 			self:selectDefault()

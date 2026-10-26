@@ -35,8 +35,11 @@ function Etterna:newTimingValues(timings)
 end
 
 ---@param timings sea.Timings
-function Etterna:newScoreSystems(timings)
-	return {EtternaJudges(timings.data), EtternaAccuracy(timings.data)}
+---@param subtimings sea.Subtimings?
+---@param healths sea.Healths? Other kinds than etterna mean the default life difficulty.
+function Etterna:newScoreSystems(timings, subtimings, healths)
+	local life_level = healths and healths.name == "etterna" and healths.data or nil
+	return {EtternaJudges(timings.data), EtternaAccuracy(timings.data, life_level)}
 end
 
 function Etterna:getAccuracyClass()

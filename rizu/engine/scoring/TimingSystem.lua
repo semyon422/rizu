@@ -71,21 +71,23 @@ end
 ---The score systems that count a play, besides the ones every play has (see rizu.ScoreEngine).
 ---@param timings sea.Timings
 ---@param subtimings sea.Subtimings?
+---@param healths sea.Healths?
 ---@return rizu.ScoreSystem[]?
 ---@return string?
-function TimingSystem:createScoreSystems(timings, subtimings)
+function TimingSystem:createScoreSystems(timings, subtimings, healths)
 	if not self:acceptsSubtimings(subtimings) then
 		return nil, err_msg
 	end
-	return self:newScoreSystems(timings, subtimings or self.default_subtimings)
+	return self:newScoreSystems(timings, subtimings or self.default_subtimings, healths)
 end
 
 ---@protected
 ---@param timings sea.Timings
 ---@param subtimings sea.Subtimings?
+---@param healths sea.Healths?
 ---@return rizu.ScoreSystem[]?
 ---@return string?
-function TimingSystem:newScoreSystems(timings, subtimings)
+function TimingSystem:newScoreSystems(timings, subtimings, healths)
 	return nil, "not implemented"
 end
 

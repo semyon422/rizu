@@ -164,7 +164,7 @@ function ComputeContext:computeReplay(replay)
 
 	-- variable unranked
 	rhythm_engine:setWindUp(state.windUp)
-	rhythm_engine:setTimings(timings, replay.subtimings)
+	rhythm_engine:setTimings(timings, replay.subtimings, replay.healths)
 	rhythm_engine:setTimingValues(replay.timing_values)
 	rhythm_engine:setRate(replay.rate)
 	rhythm_engine:setNearest(replay.nearest)
