@@ -9,6 +9,7 @@ local class = require("class")
 ---@field timings sea.Timings?
 ---@field subtimings sea.Subtimings?
 ---@field inputmode string?
+---@field chart chart.Chart?
 ---@field chart_healths sea.Healths? The chart's own HP value, such as #TOTAL of a BMS chart.
 local ScoreSystem = class()
 
@@ -35,6 +36,12 @@ end
 ---@param density number?
 function ScoreSystem:setDensity(density)
 	self.density = density
+end
+
+---The chart of the play, for systems that need its notes. Nil when unknown.
+---@param chart chart.Chart?
+function ScoreSystem:setChart(chart)
+	self.chart = chart
 end
 
 ---@param inputmode string

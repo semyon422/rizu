@@ -40,6 +40,7 @@ function ManiaEngine:load()
 	self.logic_engine:load(chart)
 	self.visual_engine:load(chart)
 	self.score_engine.chart_healths = self.chartmeta.healths
+	self.score_engine.chart = chart
 	self.score_engine:load(self.chartdiff)
 	self.pause_counter:new()
 

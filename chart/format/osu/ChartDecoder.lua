@@ -110,6 +110,13 @@ function ChartDecoder:getChartmeta()
 		timings = Timings("osuod", odhp.round_od(od, 10))
 	end
 
+	---@type sea.Healths?
+	local healths
+	local hp = tonumber(self.osu.rawOsu.Difficulty.HPDrainRate)
+	if hp then
+		healths = Healths("simple", math.min(math.max(odhp.round_hp_int(hp, 10), 0), 100))
+	end
+
 	local chartmeta = {
 		mode = assert(({[0] = "osu", [1] = "taiko", [2] = "catch", [3] = "mania"})[tonumber(general.Mode)], "Invalid osu mode"),
 		hash = self.hash,
@@ -132,6 +139,7 @@ function ChartDecoder:getChartmeta()
 		osu_beatmap_id = tonumber(self.osu.rawOsu.Metadata.BeatmapID),
 		osu_beatmapset_id = tonumber(self.osu.rawOsu.Metadata.BeatmapSetID),
 		timings = timings,
+		healths = healths,
 	}
 	setmetatable(chartmeta, Chartmeta)
 	---@cast chartmeta sea.Chartmeta
