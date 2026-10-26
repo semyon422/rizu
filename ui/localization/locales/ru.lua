@@ -186,7 +186,9 @@ return {
 	["settings.time_seconds"] = "{value} с",
 	["settings.scroll_speed_tip"] = "Скорость движения нот.",
 	["settings.auto_keysound"] = "Автокейсаунд",
+	["settings.continue_on_fail"] = "Продолжать после провала",
 	["settings.auto_keysound_tip"] = "Автоматически играет кейсаунды.",
+	["settings.continue_on_fail_tip"] = "Играть дальше, когда шкала здоровья опустела, и сохранять проваленный результат локально. Проваленные результаты не отправляются на сервер.",
 	["settings.background_animations"] = "Фоновые анимации",
 	["settings.background_animations_tip"] = "Показывать BGA-картинки и видео.",
 	["settings.input_offset"] = "Оффсет ввода",
@@ -417,5 +419,6 @@ return {
 	["gameplay.pause.restart"] = "Начать заново",
 	["gameplay.pause.leave"] = "Выйти",
 	["gameplay.pause.hold"] = "Продолжайте удерживать для паузы...",
+	["gameplay.fail.title"] = "ПРОВАЛ",
 	["gameplay.retry.hold"] = "Продолжайте удерживать, чтобы начать заново...",
 }

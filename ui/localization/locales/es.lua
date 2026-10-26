@@ -122,6 +122,7 @@ return {
 	["settings.scroll_speed_type"] = "Tipo de velocidad de desplazamiento",
 	["settings.scroll_speed"] = "Velocidad de desplazamiento",
 	["settings.auto_keysound"] = "Sonido automático de teclas",
+	["settings.continue_on_fail"] = "Continuar al fallar",
 	["settings.background_animations"] = "Animaciones de fondo",
 	["settings.input_offset"] = "Desfase de entrada",
 	["settings.input_offset_tip"] = "Desplaza el tiempo de tus pulsaciones y liberaciones en mania. Los replays guardan los tiempos ya desplazados.",
@@ -163,6 +164,7 @@ return {
 	["settings.scroll_speed_type_tip"] = "Elige la escala que usa el control de velocidad de desplazamiento.",
 	["settings.scroll_speed_tip"] = "Ajusta la rapidez con la que se mueven las notas por el área de juego.",
 	["settings.auto_keysound_tip"] = "Reproduce los sonidos de teclas automáticamente, sin depender de las pulsaciones. Se aplica al cargar el siguiente Chart.",
+	["settings.continue_on_fail_tip"] = "Sigue jugando cuando la barra de vida se vacía y guarda la puntuación fallida localmente. Las puntuaciones fallidas nunca se envían.",
 	["settings.background_animations_tip"] = "Muestra imágenes y vídeos BGA en el fondo de la partida.",
 	["settings.universal_offset_tip"] = "Aplica el mismo desfase de audio a todos los modos de reproducción.",
 	["settings.format_offset_tip"] = "Ajusta el desfase de audio de los Charts de {format}.",
@@ -370,5 +372,6 @@ return {
 	["gameplay.pause.restart"] = "Reiniciar",
 	["gameplay.pause.leave"] = "Salir",
 	["gameplay.pause.hold"] = "Mantén pulsado para pausar...",
+	["gameplay.fail.title"] = "HAS FALLADO",
 	["gameplay.retry.hold"] = "Mantén pulsado para reiniciar...",
 }

@@ -160,6 +160,7 @@ return {
 	["settings.scroll_speed_type"] = "滚动速度类型",
 	["settings.scroll_speed"] = "滚动速度",
 	["settings.auto_keysound"] = "自动按键音",
+	["settings.continue_on_fail"] = "失败后继续",
 	["settings.background_animations"] = "背景动画",
 	["settings.input_offset"] = "输入偏移",
 	["settings.input_offset_tip"] = "调整 mania 中按下和松开的时间。回放会存储调整后的时间。",
@@ -230,6 +231,7 @@ return {
 	["settings.time_seconds"] = "{value} 秒",
 	["settings.scroll_speed_tip"] = "调整音符穿过游戏区域的速度。",
 	["settings.auto_keysound_tip"] = "自动播放按键音，与按键无关。下次加载谱面时生效。",
+	["settings.continue_on_fail_tip"] = "血条耗尽后继续游玩，并在本地保存失败的成绩。失败的成绩永远不会提交。",
 	["settings.background_animations_tip"] = "在游戏背景中显示 BGA 图片和视频。",
 	["settings.universal_offset_tip"] = "对所有播放模式应用相同的音频偏移。",
 	["settings.format_offset_tip"] = "调整 {format} 谱面的音频偏移。",
@@ -447,5 +449,6 @@ return {
 	["gameplay.pause.restart"] = "重新开始",
 	["gameplay.pause.leave"] = "离开",
 	["gameplay.pause.hold"] = "继续长按以暂停...",
+	["gameplay.fail.title"] = "失败",
 	["gameplay.retry.hold"] = "继续长按以重新开始...",
 }

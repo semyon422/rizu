@@ -19,6 +19,7 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@field replay_chart {hash: string, index: integer}? Chart a local replay was loaded for.
 ---@field replay_stores {[sea.Gamemode]: rizu.gameplay.ReplayStore} For gamemodes that do not save scores.
 ---@field complete boolean? The attempt ended and waits on its summary.
+---@field fail_stopped boolean? The gauge died and the play stopped, it waits on retry or quit.
 ---@field gamemode rizu.gameplay.Gamemode Of the loaded chart.
 ---@field input rizu.gameplay.GamemodeInput
 ---@operator call: rizu.GameplayInteractor
@@ -235,6 +236,7 @@ function GameplayInteractor:load(autoplay)
 	self.replay_saved = false
 	self.replay_status = nil
 	self.complete = false
+	self.fail_stopped = false
 
 	local play_type = "manual"
 	if self.replaying then
@@ -317,6 +319,7 @@ function GameplayInteractor:unloadGameplay()
 	-- Check this before skipping to the end: skip() advances the engine to
 	-- infinity so checking after it would make every partial play eligible.
 	local should_save_score = was_loaded and self:hasResult() and self:hasReachedScoreSaveTime()
+		and (not self:isFailed() or self.game.settings:getBoolean(Settings.keys.gameplay.continue_on_fail))
 	-- Invalidate loading and disable updates before teardown hooks can yield.
 	self.load_generation = self.load_generation + 1
 	self.loaded = false
@@ -379,6 +382,13 @@ function GameplayInteractor:update(dt, after_inputs)
 		game.pauseModel:update()
 		if game.pauseModel.needRetry then
 			self:retry()
+		elseif not self.fail_stopped and self:isFailed()
+			and not game.settings:getBoolean(Settings.keys.gameplay.continue_on_fail)
+			and not game.multiplayerModel.client:isInRoom()
+		then
+			self.fail_stopped = true
+			game.pauseModel:startProgress()
+			game.pauseModel:pause()
 		end
 	end
 
@@ -407,6 +417,14 @@ end
 ---@return boolean
 function GameplayInteractor:hasResult()
 	return self.gameplay_session and self.gameplay_session:hasResult() or false
+end
+
+---The gauge of a manual play is dead. Replays and autoplay play on.
+---@return boolean
+function GameplayInteractor:isFailed()
+	local session = self.gameplay_session
+	local score_engine = session and session.play_type == "manual" and session.rhythm_engine.score_engine
+	return score_engine and assert(score_engine.healthsSource):isFailed() or false
 end
 
 ---@return boolean
@@ -478,7 +496,7 @@ end
 ---@param state "play"|"pause"|"retry"
 function GameplayInteractor:changePlayState(state)
 	local game = self.game
-	if game.multiplayerModel.client:isInRoom() then
+	if game.multiplayerModel.client:isInRoom() or self.fail_stopped and state ~= "retry" then
 		return
 	end
 
@@ -493,7 +511,7 @@ end
 
 ---@param event table
 function GameplayInteractor:receive(event)
-	if self.complete then return end
+	if self.complete or self.fail_stopped then return end
 	local virtual_event = self.input:transform(event)
 	if virtual_event then
 		local time = self.gamemode.deferred_input and event.time or self.game.global_timer:getTime()

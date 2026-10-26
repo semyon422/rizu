@@ -113,6 +113,10 @@ function Gameplay:resume() self.game.gameplayInteractor:changePlayState("play") 
 ---Starts restarting the chart. Takes the hold time from the settings.
 function Gameplay:retry() self.game.gameplayInteractor:changePlayState("retry") end
 
+---The gauge died and the play stopped: only retry and quit work. Off with "continue on fail" and in multiplayer.
+---@return boolean
+function Gameplay:isFailStopped() return self.game.gameplayInteractor.fail_stopped or false end
+
 function Gameplay:skipIntro() self.game.gameplayInteractor:skipIntro() end
 
 -- Adjustments, saved right away
@@ -170,40 +174,6 @@ function Gameplay:getAccuracy()
 		local accuracy = source:getAccuracy()
 		return accuracy, source:getAccuracyString(), accuracy * source.accuracy_multiplier
 	end
-end
-
----Debug. The selected healths source.
----@return number? healths
----@return number? max_healths
----@return boolean? failed
----@return string? key
----@return boolean? passed Whether the play would pass if it ended now.
-function Gameplay:getHealths()
-	local score_engine = self.game.rhythm_engine.score_engine
-	local source = score_engine and score_engine.healthsSource
-	if source then
-		return source:getHealths(), source:getMaxHealths(), source:isFailed(), (source --[[@as rizu.ScoreSystem]]):getKey(),
-			source:isPassed()
-	end
-end
-
----Debug. The healths after each event, the oldest first, for as many last events as `count`.
----@param count integer
----@return number[]
-function Gameplay:getHealthsHistory(count)
-	local score_engine = self.game.rhythm_engine.score_engine
-	local source = score_engine and score_engine.healthsSource
-	---@type number[]
-	local history = {}
-	if not source then
-		return history
-	end
-	local key = (source --[[@as rizu.ScoreSystem]]):getKey()
-	local sequence = score_engine.sequence
-	for i = math.max(#sequence - count + 1, 1), #sequence do
-		history[#history + 1] = sequence[i][key].healths
-	end
-	return history
 end
 
 ---@return integer? combo

@@ -9,11 +9,9 @@ local PauseButton = require("ui.screens.gameplay.PauseButton")
 ---@operator call: ui.screens.gameplay.PauseOverlay
 local PauseOverlay = View + {}
 
----@param localization ui.localization.Localization
----@param on_continue fun()
----@param on_restart fun()
----@param on_leave fun()
-function PauseOverlay:new(localization, on_continue, on_restart, on_leave)
+---@param title string
+---@param buttons {[1]: string, [2]: fun(), [3]: ui.screens.gameplay.PauseButtonVariant}[] Text, action and look.
+function PauseOverlay:new(title, buttons)
 	View.new(self)
 	self:anchorFill(0, 0, 0, 0)
 	self:setVisible(false)
@@ -23,15 +21,15 @@ function PauseOverlay:new(localization, on_continue, on_restart, on_leave)
 	local title = self:add(Label({
 		font_name = "bold",
 		font_size = 96,
-		text = localization:get("gameplay.pause.title"),
+		text = title,
 		align = "center",
 	}))
 	title:setAlignment(0.5, 0):addPosition(0, 72)
 
 	local actions = self:add(FlowContainer({direction = "column", gap = 16, align = 0.5}))
-	actions:add(PauseButton(localization:get("gameplay.pause.continue"), on_continue, "continue"))
-	actions:add(PauseButton(localization:get("gameplay.pause.restart"), on_restart, "restart"))
-	actions:add(PauseButton(localization:get("gameplay.pause.leave"), on_leave, "leave"))
+	for _, button in ipairs(buttons) do
+		actions:add(PauseButton(button[1], button[2], button[3]))
+	end
 	actions:fitContent():setAlignment(0.5, 0.5):addPosition(0, 58)
 end
 

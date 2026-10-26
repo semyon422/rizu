@@ -159,6 +159,11 @@ function ScoreSaver:saveScore(gameplay_session)
 	end
 
 	local function submit()
+		if assert(scoreEngine.healthsSource):isFailed() then
+			log("skipped", {reason = "failed"})
+			return
+		end
+
 		if not self.seaClient.connected then
 			log("skipped", {reason = "not_connected"})
 			return

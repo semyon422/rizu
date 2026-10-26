@@ -64,6 +64,11 @@ function Gameplay:new(settings, ui_config, localization, form, popup_container)
 					keywords = {"gameplay", "audio", "auto", "keysound"},
 					tip = localization:get("settings.auto_keysound_tip"),
 				}),
+				ControlFactory.boolean(settings, keys.continue_on_fail, {
+					name = localization:get("settings.continue_on_fail"),
+					keywords = {"gameplay", "fail", "failed", "hp", "health", "gauge", "life", "no fail", "save"},
+					tip = localization:get("settings.continue_on_fail_tip"),
+				}),
 				ControlFactory.boolean(settings, keys.skin_resources_top_priority, {
 					name = localization:get("settings.skin_sounds"),
 					keywords = {"gameplay", "audio", "skin", "hit", "sound", "hitsound", "keysound"},

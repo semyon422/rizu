@@ -156,6 +156,7 @@ return {
 	["settings.scroll_speed_type"] = "Scroll speed type",
 	["settings.scroll_speed"] = "Scroll speed",
 	["settings.auto_keysound"] = "Auto keysound",
+	["settings.continue_on_fail"] = "Continue on fail",
 	["settings.background_animations"] = "Background animations",
 	["settings.input_offset"] = "Input offset",
 	["settings.input_offset_tip"] = "Shifts the time of your presses and releases in mania. Replays store the shifted times.",
@@ -226,6 +227,7 @@ return {
 	["settings.time_seconds"] = "{value} s",
 	["settings.scroll_speed_tip"] = "Adjust how quickly notes move through the playfield.",
 	["settings.auto_keysound_tip"] = "Play keysounds automatically, independently of key presses. Applies on the next chart load.",
+	["settings.continue_on_fail_tip"] = "Keep playing after the gauge empties and save the failed score locally. Failed scores are never submitted.",
 	["settings.background_animations_tip"] = "Display BGA images and videos in the gameplay background.",
 	["settings.universal_offset_tip"] = "Apply the same audio offset to all playback modes.",
 	["settings.format_offset_tip"] = "Adjust the audio offset for {format} Charts.",
@@ -452,5 +454,6 @@ return {
 	["gameplay.pause.restart"] = "Restart",
 	["gameplay.pause.leave"] = "Leave",
 	["gameplay.pause.hold"] = "Continue holding to pause...",
+	["gameplay.fail.title"] = "YOU FAILED",
 	["gameplay.retry.hold"] = "Continue holding to restart...",
 }

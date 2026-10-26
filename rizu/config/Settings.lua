@@ -20,7 +20,7 @@ local keys = {
 	gameplay = {
 		speed = "gameplay.speed",
 		speed_type = "gameplay.speed_type",
-		action_on_fail = "gameplay.action_on_fail",
+		continue_on_fail = "gameplay.continue_on_fail",
 		scale_speed = "gameplay.scale_speed",
 		long_note_shortening = "gameplay.long_note_shortening",
 		tempo_factor = "gameplay.tempo_factor",
@@ -223,7 +223,7 @@ function Settings.createConfig(filesystem)
 		ScrollSpeed.ranges.default[3]
 	)
 	config:setDefaultChoice(g.speed_type, "osu", ScrollSpeed.types)
-	config:setDefaultChoice(g.action_on_fail, "none", {"none", "pause", "quit"}) -- Should go to UI
+	config:setDefaultBoolean(g.continue_on_fail, false)
 	config:setDefaultBoolean(g.scale_speed, false) -- Nobody uses it
 	config:setDefaultNumber(g.long_note_shortening, 0, -0.3, 0, 0.01)
 	config:setDefaultChoice(g.tempo_factor, "average", {"average", "primary", "minimum", "maximum"})

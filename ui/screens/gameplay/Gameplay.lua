@@ -5,7 +5,6 @@ local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
 local AdjustmentOverlay = require("ui.screens.gameplay.AdjustmentOverlay")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
-local HealthsDebug = require("ui.screens.gameplay.HealthsDebug")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
@@ -56,24 +55,25 @@ function Gameplay:new(ui)
 
 	self.adjust_overlay = self.root:add(AdjustmentOverlay(ui.localization))
 
-	self.healths_debug = self.root:add(HealthsDebug(self.gameplay))
-	local function setHealthsDebug(value) self.healths_debug:setVisible(value) end
-	setHealthsDebug(ui.config:getBoolean(UiConfig.keys.show_healths_debug))
-	ui.config:subscribeBoolean(UiConfig.keys.show_healths_debug, setHealthsDebug)
-
 	self.clear_status = self.root:add(ClearStatus())
 	self.clear_status:setAlignment(0.5, 0.5)
 	self.clear_status:setPivot(0.5, 0.5)
 
-	self.pause_overlay = self.root:add(PauseOverlay(
-		ui.localization,
-		function() self.gameplay:resume() end,
-		function() self.gameplay:retry() end,
-		function()
-			self.ui:setScreen(self.ui.song_select, true)
-			self.is_playing = false
-		end
-	))
+	local l = ui.localization
+	local function retry() self.gameplay:retry() end
+	local function leave()
+		self.ui:setScreen(self.ui.song_select, true)
+		self.is_playing = false
+	end
+	self.pause_overlay = self.root:add(PauseOverlay(l:get("gameplay.pause.title"), {
+		{l:get("gameplay.pause.continue"), function() self.gameplay:resume() end, "continue"},
+		{l:get("gameplay.pause.restart"), retry, "restart"},
+		{l:get("gameplay.pause.leave"), leave, "leave"},
+	}))
+	self.fail_overlay = self.root:add(PauseOverlay(l:get("gameplay.fail.title"), {
+		{l:get("gameplay.pause.restart"), retry, "restart"},
+		{l:get("gameplay.pause.leave"), leave, "leave"},
+	}))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
 	self.restart_overlay = self.root:add(RestartOverlay())
 	self.skin_editor = self.root:add(SkinEditor(ui))
@@ -103,6 +103,7 @@ function Gameplay:enter()
 	end
 	self.clear_status:hide()
 	self.pause_overlay:hide()
+	self.fail_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
@@ -179,6 +180,7 @@ function Gameplay:exit()
 	self.skin_editor:close()
 	self.ui.skin_editor = false
 	self.pause_overlay:hide()
+	self.fail_overlay:hide()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
@@ -303,6 +305,13 @@ function Gameplay:update(dt)
 		self.pause_overlay:setReveal(1)
 	else
 		self.pause_hold_overlay:setProgress(0)
+		self.pause_overlay:setReveal(0)
+	end
+
+	-- The fail overlay stands in for the pause one, also while a retry is held from it.
+	local fail_stopped = gameplay:isFailStopped()
+	self.fail_overlay:setReveal(fail_stopped and 1 or 0)
+	if fail_stopped then
 		self.pause_overlay:setReveal(0)
 	end
 

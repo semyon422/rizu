@@ -430,4 +430,77 @@ function test.partial_play_is_not_saved_until_chart_end(t)
 	t:eq(complete_saves(), 1)
 end
 
+---@param t testing.T
+function test.dead_gauge_stops_a_manual_play_and_is_not_saved(t)
+	---@param play_type string
+	---@param continue_on_fail boolean
+	---@param in_room boolean?
+	local function make_interactor(play_type, continue_on_fail, in_room)
+		local settings = Settings.createConfig(FakeFilesystem())
+		settings:setBoolean(Settings.keys.gameplay.continue_on_fail, continue_on_fail)
+		local healths = {isFailed = function() return true end}
+		local rhythm_engine = {
+			score_engine = {healthsSource = healths},
+			pause = function() end,
+			getTime = function() return 10 end,
+			chartdiff = {start_time = 2, duration = 6},
+			setTime = function() end,
+			unloadAudio = function() end,
+		}
+		local pause_model = PauseModel(settings, rhythm_engine)
+		pause_model:load()
+		local saves = 0
+		local interactor = setmetatable({load_state = "ready", loaded = true, replay_stores = {},
+			load_generation = 0, gamemode = Gamemodes.mania,
+			gameplay_session = {
+				play_type = play_type,
+				rhythm_engine = rhythm_engine,
+				update = function() end,
+				hasResult = function() return play_type == "manual" end,
+			},
+			game = {
+				settings = settings,
+				pauseModel = pause_model,
+				rhythm_engine = rhythm_engine,
+				global_timer = {getTime = function() return 10 end},
+				windowModel = {setVsyncOnSelect = function() end},
+				discordModel = {setPresence = function() end},
+				chartSelector = {updateLamps = function() end},
+				multiplayerModel = {client = {
+					setPlaying = function() end,
+					isInRoom = function() return in_room or false end,
+				}},
+			},
+			score_saver = {saveScore = function() saves = saves + 1 end},
+		}, {__index = GameplayInteractor})
+		interactor.playfield = {unload = function() end, clearSkin = function() end}
+		interactor:update(0, true)
+		return interactor, function() return saves end
+	end
+
+	local stopped, stopped_saves = make_interactor("manual", false)
+	t:eq(stopped.fail_stopped, true)
+	t:eq(stopped.game.pauseModel.state, "pause")
+	stopped:changePlayState("play")
+	t:eq(stopped.game.pauseModel.state, "pause")
+	stopped:changePlayState("retry")
+	t:eq(stopped.game.pauseModel.state, "pause-retry")
+	stopped:unloadGameplay()
+	t:eq(stopped_saves(), 0)
+
+	local continued, continued_saves = make_interactor("manual", true)
+	t:eq(continued.fail_stopped, nil)
+	continued:unloadGameplay()
+	t:eq(continued_saves(), 1)
+
+	local multiplayer, multiplayer_saves = make_interactor("manual", false, true)
+	t:eq(multiplayer.fail_stopped, nil)
+	multiplayer:unloadGameplay()
+	t:eq(multiplayer_saves(), 0)
+
+	local replay = make_interactor("replay", false)
+	t:eq(replay.fail_stopped, nil)
+	t:eq(replay:isFailed(), false)
+end
+
 return test
