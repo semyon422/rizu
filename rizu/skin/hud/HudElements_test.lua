@@ -312,8 +312,8 @@ function test.textures_are_acquired_on_load_and_dropped_on_unload(t)
 end
 
 ---@param t testing.T
-function test.arcade_gauge_flickers_under_the_top_segment(t)
-	local is_lit = HudElements.get("arcade_gauge").is_lit
+function test.iidx_gauge_flickers_under_the_top_segment(t)
+	local is_lit = HudElements.get("iidx_gauge").is_lit
 	local function lit(count, off)
 		local s = ""
 		for i = 1, 6 do s = s .. (is_lit(count, off, i) and "#" or ".") end
