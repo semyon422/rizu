@@ -176,6 +176,14 @@ function Gameplay:getAccuracy()
 	end
 end
 
+---Gauges count 0..1 or 0..100, so this divides by the maximum.
+---@return number? health 0..1
+function Gameplay:getHealths()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	if source then return math.max(0, math.min(1, source:getHealths() / source:getMaxHealths())) end
+end
+
 ---@return integer? combo
 ---@return integer? max_combo
 function Gameplay:getCombo()
