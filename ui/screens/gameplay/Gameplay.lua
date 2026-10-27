@@ -5,6 +5,7 @@ local Screen = require("gui.Screen")
 local Colors = require("ui.Colors")
 local AdjustmentOverlay = require("ui.screens.gameplay.AdjustmentOverlay")
 local ClearStatus = require("ui.screens.gameplay.ClearStatus")
+local DeathOverlay = require("ui.screens.gameplay.DeathOverlay")
 local PauseOverlay = require("ui.screens.gameplay.PauseOverlay")
 local PauseHoldOverlay = require("ui.screens.gameplay.PauseHoldOverlay")
 local RestartOverlay = require("ui.screens.gameplay.RestartOverlay")
@@ -70,10 +71,11 @@ function Gameplay:new(ui)
 		{l:get("gameplay.pause.restart"), retry, "restart"},
 		{l:get("gameplay.pause.leave"), leave, "leave"},
 	}))
+	self.death_overlay = self.root:add(DeathOverlay())
 	self.fail_overlay = self.root:add(PauseOverlay(l:get("gameplay.fail.title"), {
 		{l:get("gameplay.pause.restart"), retry, "restart"},
 		{l:get("gameplay.pause.leave"), leave, "leave"},
-	}))
+	}, {0.6, 0, 0, 0.35}))
 	self.pause_hold_overlay = self.root:add(PauseHoldOverlay(ui.localization))
 	self.restart_overlay = self.root:add(RestartOverlay())
 	self.skin_editor = self.root:add(SkinEditor(ui))
@@ -104,6 +106,7 @@ function Gameplay:enter()
 	self.clear_status:hide()
 	self.pause_overlay:hide()
 	self.fail_overlay:hide()
+	self.death_overlay:reset()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
@@ -181,6 +184,7 @@ function Gameplay:exit()
 	self.ui.skin_editor = false
 	self.pause_overlay:hide()
 	self.fail_overlay:hide()
+	self.death_overlay:reset()
 	self.pause_hold_overlay:setProgress(0)
 	self.was_retrying = false
 	self.restart_overlay:reset()
@@ -308,9 +312,15 @@ function Gameplay:update(dt)
 		self.pause_overlay:setReveal(0)
 	end
 
-	-- The fail overlay stands in for the pause one, also while a retry is held from it.
+	-- The death animation plays first, then the fail overlay stands in for the pause one,
+	-- also while a retry is held from it.
 	local fail_stopped = gameplay:isFailStopped()
-	self.fail_overlay:setReveal(fail_stopped and 1 or 0)
+	if fail_stopped then
+		self.death_overlay:start()
+	else
+		self.death_overlay:reset()
+	end
+	self.fail_overlay:setReveal(self.death_overlay:getRevealProgress())
 	if fail_stopped then
 		self.pause_overlay:setReveal(0)
 	end

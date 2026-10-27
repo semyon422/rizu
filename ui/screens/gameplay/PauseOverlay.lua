@@ -11,8 +11,10 @@ local PauseOverlay = View + {}
 
 ---@param title string
 ---@param buttons {[1]: string, [2]: fun(), [3]: ui.screens.gameplay.PauseButtonVariant}[] Text, action and look.
-function PauseOverlay:new(title, buttons)
+---@param tint gui.Color? Color over the backdrop, blue by default.
+function PauseOverlay:new(title, buttons, tint)
 	View.new(self)
+	self.tint = tint or {0.04, 0.18, 0.42, 0.35}
 	self:anchorFill(0, 0, 0, 0)
 	self:setVisible(false)
 	self:setOpacity(0)
@@ -72,7 +74,7 @@ function PauseOverlay:draw()
 	Painter.setColorTable({0.025, 0.09, 0.20, 0.88})
 	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 
-	Painter.setColorTable({0.04, 0.18, 0.42, 0.35})
+	Painter.setColorTable(self.tint)
 	Resources.sprites.pixel:draw(0, 0, 0, self.width, self.height)
 end
 
