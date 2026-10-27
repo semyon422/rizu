@@ -263,7 +263,12 @@ function Gameplay:observeCompletion()
 		return
 	end
 	local _, misses = gameplay:getHitCounts()
-	if misses == 0 then
+	local failed, passed = gameplay:getGaugeStatus()
+	if failed then
+		self.clear_status:bind("FAILED", Colors.danger)
+	elseif passed == false then
+		self.clear_status:bind("NOT PASSING", Colors.danger)
+	elseif misses == 0 then
 		self.clear_status:bind("FULL COMBO", Colors.grade_s)
 	else
 		self.clear_status:bind("STAGE COMPLETED", Colors.text)

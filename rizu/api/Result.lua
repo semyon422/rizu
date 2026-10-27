@@ -123,6 +123,12 @@ function Result:getAccuracy()
 	return source:getAccuracy(), source:getAccuracyString()
 end
 
+---The gauge ended alive and high enough to count as a clear.
+---@return boolean
+function Result:isPassed()
+	return assert(self.game.rhythm_engine.score_engine.healthsSource):isPassed()
+end
+
 ---The judging system's own score, osu!mania's 1,000,000 for example.
 ---@return number score
 ---@return string text The way the judging system writes it.

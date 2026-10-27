@@ -184,6 +184,14 @@ function Gameplay:getHealths()
 	if source then return math.max(0, math.min(1, source:getHealths() / source:getMaxHealths())) end
 end
 
+---@return boolean? failed The gauge is dead. nil without a gauge.
+---@return boolean? passed The play counts as a clear if it ended now. nil without a gauge.
+function Gameplay:getGaugeStatus()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	if source then return source:isFailed(), source:isPassed() end
+end
+
 ---@return integer? combo
 ---@return integer? max_combo
 function Gameplay:getCombo()

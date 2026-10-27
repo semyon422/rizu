@@ -315,7 +315,7 @@ function ResultV2:updateInfo()
 	assert(judging.timings)
 	local score_system_formatter = ScoreSystemFormatter(judging --[[@as rizu.ScoreSystem]])
 	local accuracy, accuracy_text = result:getAccuracy()
-	self.accuracy:bind(accuracy, accuracy_text, score_system_formatter)
+	self.accuracy:bind(accuracy, accuracy_text, score_system_formatter, result:isPassed())
 	self.judges:bind(result:getJudgeCounts(), score_system_formatter)
 
 	local max_combo, possible_combo = result:getMaxCombo()

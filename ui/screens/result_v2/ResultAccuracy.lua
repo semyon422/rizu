@@ -9,6 +9,7 @@ local Colors = require("ui.Colors")
 ---@field accuracy ui.views.Label
 ---@field percent ui.views.Label
 ---@field grade ui.views.Label
+---@field fail ui.views.Label
 ---@field header gui.layout.FlowContainer
 ---@field hero gui.layout.FlowContainer
 ---@field number gui.layout.FlowContainer
@@ -53,6 +54,12 @@ function ResultAccuracy:new()
 		color = Colors.grade_s,
 		text = "D",
 	}))
+	self.fail = self.hero:add(Label({
+		font_name = "bold",
+		font_size = 76,
+		color = Colors.danger,
+		text = "",
+	}))
 	self.hero:fitContent()
 	self:fitContent()
 end
@@ -60,13 +67,15 @@ end
 ---@param accuracy number 0..1
 ---@param text string
 ---@param ssf ui.formatters.ScoreSystemFormatter
-function ResultAccuracy:bind(accuracy, text, ssf)
+---@param passed boolean
+function ResultAccuracy:bind(accuracy, text, ssf, passed)
 	local grade = ssf:getGrade(accuracy)
 	local color = ssf:getGradeColor(grade)
 
 	-- The percent sign is a separate, smaller label.
 	self.accuracy:setText((text:gsub("%%$", "")))
 	self.grade:setText(grade)
+	self.fail:setText(passed and "" or "FAIL")
 	self.score_system:setText(ssf:getName())
 	self.accuracy.color = color
 	self.percent.color = color
