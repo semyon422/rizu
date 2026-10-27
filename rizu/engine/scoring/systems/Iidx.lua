@@ -17,8 +17,12 @@ function Iidx:newTimingValues()
 	return IidxTimings:getTimingValues()
 end
 
-function Iidx:newScoreSystems()
-	return {IidxScore()}
+---@param timings sea.Timings
+---@param subtimings sea.Subtimings?
+---@param healths sea.Healths? Other kinds than iidx mean the normal gauge.
+function Iidx:newScoreSystems(timings, subtimings, healths)
+	local gauge = healths and healths.name == "iidx" and healths.data or nil
+	return {IidxScore(gauge)}
 end
 
 function Iidx:getAccuracyClass()
