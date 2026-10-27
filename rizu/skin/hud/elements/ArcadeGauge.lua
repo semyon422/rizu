@@ -85,6 +85,9 @@ end
 
 ---@param context rizu.api.GameApi?
 function ArcadeGauge:unload(context)
+	for _, strip in pairs({on = self.on, off = self.off_strip}) do
+		for _, quad in ipairs(strip.quads) do quad:release() end
+	end
 	self.on, self.off_strip, self.count, self.off = nil, nil, 0, 0
 	HudElement.unload(self, context)
 end
