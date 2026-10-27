@@ -21,7 +21,7 @@ local View = require("rizu.skin.View")
 
 ---A HUD element a skin layout can place: it declares its editable fields and the textures it needs,
 ---reads the play through the game api and draws in local coordinates. Every element has
----`x`, `y`, `anchor`, `origin` and `scale`, then the fields of its type.
+---`x`, `y`, `anchor`, `origin`, `scale` and `rotation` (degrees, around the origin), then the fields of its type.
 ---@class rizu.skin.hud.HudElement : rizu.skin.View
 ---@operator call: rizu.skin.hud.HudElement
 ---@field type string Registry name, set by `rizu.skin.hud.HudElements.register`.
@@ -54,6 +54,8 @@ HudElement.common_fields = {
 	{key = "anchor", label = "Anchor", type = "dropdown", options = anchors, default = "center"},
 	{key = "origin", label = "Origin", type = "dropdown", options = anchors, default = "center"},
 	{key = "scale", label = "Scale", min = 0.05, max = 4, step = 0.05, default = 1, value_format = HudElement.percent},
+	{key = "rotation", label = "Rotation", min = -180, max = 180, step = 1, default = 0,
+		value_format = function(value) return ("%d°"):format(value) end},
 }
 
 ---Common fields with this type's defaults, then the type's own fields.
@@ -139,7 +141,7 @@ function HudElement:applyValues()
 	self.x, self.y = values.x --[[@as number]], values.y --[[@as number]]
 	self.anchor, self.origin = values.anchor --[[@as rizu.skin.ViewAnchor]], values.origin --[[@as rizu.skin.ViewAnchor]]
 	local scale = values.scale --[[@as number]]
-	self.transform:setTransformation(0, 0, 0, scale, scale)
+	self.transform:setTransformation(0, 0, math.rad(values.rotation --[[@as number]]), scale, scale)
 end
 
 ---@param key string

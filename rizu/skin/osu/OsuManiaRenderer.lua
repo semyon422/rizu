@@ -496,6 +496,9 @@ function OsuManiaRenderer:getDefaultHudLayout()
 		conveyor[#conveyor + 1] = {type = "osu_hit_error", anchor = "bottom", origin = "bottom", y = hit_meter_y,
 			mode = hit_meter_mode == 1 and "timing" or "judgements", arrow = "editor-rate-arrow"}
 	end
+	-- Stable turns the bar upright from the bottom right corner of the lanes.
+	conveyor[#conveyor + 1] = {type = "osu_hp_bar", anchor = "bottom_right", origin = "top_left", x = 1,
+		rotation = -90, scale = 0.7, mania = true}
 	-- Positions under the score assume the default score glyphs, 46 units tall.
 	return {
 		screen = {

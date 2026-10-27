@@ -83,6 +83,10 @@ function test.set_validates_and_reports_texture_changes(t)
 	judgement:set("scale", 2)
 	local x = judgement.transform:transformPoint(1, 0)
 	t:eq(x, 2)
+	judgement:set("rotation", -90)
+	local rx, ry = judgement.transform:transformPoint(1, 0)
+	t:eq(math.floor(rx * 2 + 0.5), 0)
+	t:eq(math.floor(ry * 2 + 0.5), -4) -- scale 2, turned up
 end
 
 ---@param t testing.T
