@@ -321,7 +321,6 @@ function GameplayInteractor:unloadGameplay()
 	-- Check this before skipping to the end: skip() advances the engine to
 	-- infinity so checking after it would make every partial play eligible.
 	local should_save_score = was_loaded and self:hasResult() and self:hasReachedScoreSaveTime()
-		and (not self:isFailed() or self.game.settings:getBoolean(Settings.keys.gameplay.continue_on_fail))
 	-- Invalidate loading and disable updates before teardown hooks can yield.
 	self.load_generation = self.load_generation + 1
 	self.loaded = false

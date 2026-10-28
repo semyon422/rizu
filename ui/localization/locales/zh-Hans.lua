@@ -231,7 +231,7 @@ return {
 	["settings.time_seconds"] = "{value} 秒",
 	["settings.scroll_speed_tip"] = "调整音符穿过游戏区域的速度。",
 	["settings.auto_keysound_tip"] = "自动播放按键音，与按键无关。下次加载谱面时生效。",
-	["settings.continue_on_fail_tip"] = "血条耗尽后继续游玩，并在本地保存失败的成绩。失败的成绩永远不会提交。",
+	["settings.continue_on_fail_tip"] = "血条耗尽后继续游玩。",
 	["settings.background_animations_tip"] = "在游戏背景中显示 BGA 图片和视频。",
 	["settings.universal_offset_tip"] = "对所有播放模式应用相同的音频偏移。",
 	["settings.format_offset_tip"] = "调整 {format} 谱面的音频偏移。",

@@ -227,7 +227,7 @@ return {
 	["settings.time_seconds"] = "{value} s",
 	["settings.scroll_speed_tip"] = "Adjust how quickly notes move through the playfield.",
 	["settings.auto_keysound_tip"] = "Play keysounds automatically, independently of key presses. Applies on the next chart load.",
-	["settings.continue_on_fail_tip"] = "Keep playing after the gauge empties and save the failed score locally. Failed scores are never submitted.",
+	["settings.continue_on_fail_tip"] = "Keep playing after the gauge empties.",
 	["settings.background_animations_tip"] = "Display BGA images and videos in the gameplay background.",
 	["settings.universal_offset_tip"] = "Apply the same audio offset to all playback modes.",
 	["settings.format_offset_tip"] = "Adjust the audio offset for {format} Charts.",

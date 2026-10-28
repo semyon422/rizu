@@ -188,7 +188,7 @@ return {
 	["settings.auto_keysound"] = "Автокейсаунд",
 	["settings.continue_on_fail"] = "Продолжать после провала",
 	["settings.auto_keysound_tip"] = "Автоматически играет кейсаунды.",
-	["settings.continue_on_fail_tip"] = "Играть дальше, когда шкала здоровья опустела, и сохранять проваленный результат локально. Проваленные результаты не отправляются на сервер.",
+	["settings.continue_on_fail_tip"] = "Играть дальше, когда шкала здоровья опустела.",
 	["settings.background_animations"] = "Фоновые анимации",
 	["settings.background_animations_tip"] = "Показывать BGA-картинки и видео.",
 	["settings.input_offset"] = "Оффсет ввода",

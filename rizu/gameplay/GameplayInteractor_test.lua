@@ -430,7 +430,7 @@ function test.partial_play_is_not_saved_until_chart_end(t)
 end
 
 ---@param t testing.T
-function test.dead_gauge_stops_a_manual_play_and_is_not_saved(t)
+function test.dead_gauge_stops_a_manual_play_and_is_saved_at_the_end(t)
 	---@param play_type string
 	---@param continue_on_fail boolean
 	---@param in_room boolean?
@@ -486,7 +486,7 @@ function test.dead_gauge_stops_a_manual_play_and_is_not_saved(t)
 	stopped:changePlayState("retry")
 	t:eq(stopped.game.pauseModel.state, "pause-retry")
 	stopped:unloadGameplay()
-	t:eq(stopped_saves(), 0)
+	t:eq(stopped_saves(), 1)
 
 	local continued, continued_saves = make_interactor("manual", true)
 	t:eq(continued.fail_stopped, nil)
@@ -496,7 +496,7 @@ function test.dead_gauge_stops_a_manual_play_and_is_not_saved(t)
 	local multiplayer, multiplayer_saves = make_interactor("manual", false, true)
 	t:eq(multiplayer.fail_stopped, nil)
 	multiplayer:unloadGameplay()
-	t:eq(multiplayer_saves(), 0)
+	t:eq(multiplayer_saves(), 1)
 
 	local replay = make_interactor("replay", false)
 	t:eq(replay.fail_stopped, nil)
