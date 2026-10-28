@@ -194,7 +194,7 @@ local _chartplay_values = {
 	miss_count = 3,
 	not_perfect_count = 4,
 	rating = 0.0037594122723929000729,
-	rating_msd = 0.20617003738880157471,
+	rating_msd = 0.03977810591459274292,
 	rating_pp = 0,
 	pass = true,
 }
