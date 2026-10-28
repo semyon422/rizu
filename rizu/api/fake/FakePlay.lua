@@ -15,6 +15,7 @@ function FakePlay:new()
 	self.toggles = {
 		constant_scroll = false, taps_only = false,
 		auto_timings = true, auto_healths = true, auto_accuracy = true, random_columns = false,
+		random_sides = false, mirror_all = false, mirror_left = false, mirror_right = false,
 	}
 	self.timing_system = "osuod"
 	self.timing_values = {osuod = 8, etternaj = 4, bmsrank = 3}

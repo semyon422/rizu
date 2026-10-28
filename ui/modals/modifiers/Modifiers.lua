@@ -151,13 +151,15 @@ function Modifiers:rebuildForm()
 			play:setToggle("taps_only", value)
 		end,
 	}))
-	self.form:add(Checkbox({
-		text = self.localization:get("song_select.random_columns"),
-		checked = play:getToggle("random_columns"),
-		on_change = function(value)
-			play:setToggle("random_columns", value)
-		end,
-	}))
+	for _, toggle in ipairs({"random_columns", "random_sides", "mirror_all", "mirror_left", "mirror_right"}) do
+		self.form:add(Checkbox({
+			text = self.localization:get("song_select." .. toggle),
+			checked = play:getToggle(toggle),
+			on_change = function(value)
+				play:setToggle(toggle, value)
+			end,
+		}))
+	end
 	if #play:getColumnOrder() > 0 then
 		local row ---@type ui.views.form.ButtonRow
 		local function summary()

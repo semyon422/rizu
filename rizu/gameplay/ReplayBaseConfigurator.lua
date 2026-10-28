@@ -49,14 +49,32 @@ function ReplayBaseConfigurator:exportReplayBase(base)
 end
 
 ---A replay base for a new play, with the default timings until applyChart().
----@param input_mode chart.InputMode|string? The chart's, to shuffle its columns when random columns is on.
+---@param input_mode chart.InputMode|string? The chart's, to shuffle or mirror its columns when those toggles are on.
 ---@return sea.ReplayBase
 function ReplayBaseConfigurator:createReplayBase(input_mode)
 	local base = ReplayBase()
 	self:exportReplayBase(base)
-	if input_mode and self.settings:getBoolean(Settings.keys.replay_base.random_columns) then
-		base.columns_order = ColumnsOrder(input_mode):random():export()
+	if not input_mode then
+		return base
 	end
+	local settings = self.settings
+	local k = Settings.keys.replay_base
+	local order = ColumnsOrder(input_mode, base.columns_order)
+	if settings:getBoolean(k.random_columns) then
+		order = ColumnsOrder(input_mode):random()
+	elseif settings:getBoolean(k.random_sides) then
+		order = ColumnsOrder(input_mode):random("left"):random("right")
+	end
+	if settings:getBoolean(k.mirror_all) then
+		order:mirror()
+	end
+	if settings:getBoolean(k.mirror_left) then
+		order:mirror("left")
+	end
+	if settings:getBoolean(k.mirror_right) then
+		order:mirror("right")
+	end
+	base.columns_order = order:export()
 	return base
 end
 

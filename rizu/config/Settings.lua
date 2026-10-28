@@ -118,6 +118,12 @@ local keys = {
 		auto_accuracy = "replay_base.auto_accuracy",
 		-- Each play shuffles the columns anew, see rizu.gameplay.ReplayBaseConfigurator:createReplayBase().
 		random_columns = "replay_base.random_columns",
+		-- Like random_columns, but each half of the keys is shuffled within itself.
+		random_sides = "replay_base.random_sides",
+		-- Each play mirrors the columns, after any shuffle.
+		mirror_all = "replay_base.mirror_all",
+		mirror_left = "replay_base.mirror_left",
+		mirror_right = "replay_base.mirror_right",
 	},
 	scores = {
 		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
@@ -315,6 +321,10 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(keys.replay_base.auto_healths, true)
 	config:setDefaultBoolean(keys.replay_base.auto_accuracy, true)
 	config:setDefaultBoolean(keys.replay_base.random_columns, false)
+	config:setDefaultBoolean(keys.replay_base.random_sides, false)
+	config:setDefaultBoolean(keys.replay_base.mirror_all, false)
+	config:setDefaultBoolean(keys.replay_base.mirror_left, false)
+	config:setDefaultBoolean(keys.replay_base.mirror_right, false)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.recompute_since, 0, 0, math.huge, 1)

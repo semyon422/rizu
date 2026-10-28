@@ -146,4 +146,28 @@ function test.each_play_gets_its_own_replay_base(t)
 	t:eq(configurator:createReplayBase().columns_order, nil)
 end
 
+---@param t testing.T
+function test.random_sides_and_mirrors(t)
+	local configurator, settings = newConfigurator()
+	local k = Settings.keys.replay_base
+
+	settings:setBoolean(k.random_sides, true)
+	for _ = 1, 20 do
+		local order = configurator:createReplayBase("8key").columns_order or {1, 2, 3, 4, 5, 6, 7, 8}
+		for i = 1, 8 do
+			t:eq(order[i] <= 4, i <= 4)
+		end
+	end
+	settings:setBoolean(k.random_sides, false)
+
+	settings:setBoolean(k.mirror_all, true)
+	t:tdeq(configurator:createReplayBase("4key").columns_order, {4, 3, 2, 1})
+	settings:setBoolean(k.mirror_all, false)
+
+	settings:setBoolean(k.mirror_left, true)
+	t:tdeq(configurator:createReplayBase("4key").columns_order, {2, 1, 3, 4})
+	settings:setBoolean(k.mirror_right, true)
+	t:tdeq(configurator:createReplayBase("4key").columns_order, {2, 1, 4, 3})
+end
+
 return test

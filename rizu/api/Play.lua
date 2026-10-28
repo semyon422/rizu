@@ -31,6 +31,10 @@ How the next play will go: the music speed, the mods, the mutators, how hits are
 ---| "auto_healths" # The gauge is the one of the hit windows in use, with the chart's HP. Off: see setGauge().
 ---| "auto_accuracy" # The accuracy, judges and score are counted by the system of the hit windows. Off: see setAccuracySystem().
 ---| "random_columns" # Each play shuffles the columns anew. Does not count as a mod.
+---| "random_sides" # Each play shuffles the left and the right half of the keys apart. Does not count as a mod.
+---| "mirror_all" # Each play mirrors every column, after any shuffle. Does not count as a mod.
+---| "mirror_left" # Each play mirrors the left half of the keys. Does not count as a mod.
+---| "mirror_right" # Each play mirrors the right half of the keys. Does not count as a mod.
 
 ---A scoring system. Under "auto_timings" off it gives mania plays their hit windows, under "auto_accuracy" off
 ---it counts their accuracy, judges and score. The leaderboard rescores to the one that counts the accuracy.
