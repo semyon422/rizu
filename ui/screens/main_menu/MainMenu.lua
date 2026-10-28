@@ -221,22 +221,22 @@ end
 
 ---The player's total ratings over their local scores, see rizu.api.Scores:getTotalRatings().
 function MainMenu:createStats()
-	self.stats = self.root:add(FlowContainer({direction = "column", gap = 20, align = 1}))
+	self.stats = self.root:add(FlowContainer({direction = "column", gap = 20, align = 0}))
 	self.stat_columns = {}
 	---@param caption string
 	---@return ui.views.Label
 	local function addStat(caption)
-		local column = self.stats:add(FlowContainer({direction = "column", align = 1}))
+		local column = self.stats:add(FlowContainer({direction = "column", align = 0}))
 		table.insert(self.stat_columns, column)
 		local value = column:add(Label({font_name = "bold", font_size = 48, text = "-"}))
 		column:add(Label({font_name = "medium", font_size = 16, text = caption, color = Colors.muted}))
 		column:fitContent()
 		return value
 	end
-	self.pp_label = addStat("PP")
-	self.msd_label = addStat("MSD")
+	self.pp_label = addStat("Local PP")
+	self.msd_label = addStat("Local MSD")
 	self.stats:fitContent()
-	self.stats:setAlignment(1, 0.45):addPosition(-64, 0)
+	self.stats:setAlignment(0, 0):addPosition(24, 52)
 end
 
 function MainMenu:createLogo()
