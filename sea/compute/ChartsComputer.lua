@@ -86,6 +86,11 @@ function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 	end
 
 	local compute_chartplay = setmetatable(table_util.sub(chartplay, table_util.keys(Chartplay.struct)), Chartplay)
+	if not chartplay.judges then
+		-- Never computed: scores migrated from the old scores table have only placeholders of the base, the replay has it.
+		compute_chartplay:importChartplayBase(replay_and_data.replay)
+		compute_chartplay.judges = {}
+	end
 	---@type sea.ComputeRequest
 	local request = {
 		version = self.compute_version,

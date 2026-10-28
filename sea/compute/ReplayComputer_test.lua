@@ -3,6 +3,10 @@ local Chartplay = require("sea.chart.Chartplay")
 local Chartdiff = require("sea.chart.Chartdiff")
 local FakeClient = require("sea.compute.FakeClient")
 local ReplayComputer = require("sea.compute.ReplayComputer")
+local Timings = require("sea.chart.Timings")
+local Subtimings = require("sea.chart.Subtimings")
+local OsuManiaV2Timings_v1 = require("sea.timings.osumania.OsuManiaV2Timings_v1")
+local OsuManiaV2Timings_v2 = require("sea.timings.osumania.OsuManiaV2Timings_v2")
 local chart_samples = require("sea.chart.samples.Samples")
 
 local test = {}
@@ -45,6 +49,16 @@ function test.rejects_hash_mismatch(t)
 	t:eq(failure.kind, "permanent")
 	t:eq(failure.code, "chart_hash_mismatch")
 	t:eq(failure.message, "chart hash mismatch")
+end
+
+---@param t testing.T
+function test.accepts_older_preset_of_same_timings(t)
+	local tvs = OsuManiaV2Timings_v1:getTimingValues(9)
+	t:assert(not OsuManiaV2Timings_v2:getTimingValues(9):equals(tvs))
+	local computer = ReplayComputer()
+	t:assert(computer:isOlderPreset(tvs, Timings("osuod", 9), Subtimings("scorev", 2)))
+	t:assert(not computer:isOlderPreset(tvs, Timings("osuod", 8), Subtimings("scorev", 2)))
+	t:assert(not computer:isOlderPreset(tvs, Timings("osuod", 9), Subtimings("scorev", 1)))
 end
 
 return test

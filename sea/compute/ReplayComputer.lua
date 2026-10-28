@@ -2,6 +2,7 @@ local class = require("class")
 local digest = require("digest")
 local valid = require("valid")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local TimingsDefiner = require("sea.timings.TimingsDefiner")
 local ComputeContext = require("sea.compute.ComputeContext")
 local ComputeRequest = require("sea.compute.ComputeRequest")
 local ComputeResult = require("sea.compute.ComputeResult")
@@ -12,6 +13,16 @@ local ReplayLoader = require("sea.replays.ReplayLoader")
 ---@class sea.ReplayComputer
 ---@operator call: sea.ReplayComputer
 local ReplayComputer = class()
+
+---Replays of older versions keep the windows their version computed for the same timings, and are judged with them.
+---@param timing_values sea.TimingValues
+---@param timings sea.Timings
+---@param subtimings sea.Subtimings?
+---@return boolean
+function ReplayComputer:isOlderPreset(timing_values, timings, subtimings)
+	local t, st = TimingsDefiner:match(timing_values)
+	return t ~= nil and t == timings and st == subtimings
+end
 
 ---@param request sea.ComputeRequest
 ---@param clock (fun(): number)?
@@ -68,7 +79,7 @@ function ReplayComputer:computeNoCatch(request, clock)
 		local timing_values = TimingValuesFactory:get(timings, chartplay.subtimings)
 		if not timing_values then
 			return nil, ComputeFailure.permanent("invalid_timings", "invalid timings-subtimings pair")
-		elseif not timing_values:equals(replay.timing_values) then
+		elseif not timing_values:equals(replay.timing_values) and not self:isOlderPreset(replay.timing_values, timings, chartplay.subtimings) then
 			return nil, ComputeFailure.permanent("timing_values_mismatch", "timing values differs")
 		end
 	end
