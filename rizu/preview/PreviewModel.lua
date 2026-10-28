@@ -9,6 +9,16 @@ local Settings = require("rizu.config.Settings")
 
 ---@alias rizu.preview.PreviewMode "absolute"|"relative"
 
+---Where the audio of a newly selected chart starts.
+---@alias rizu.preview.StartMode
+---| "chart" # The chart's preview time, or a random position with the random preview position setting.
+---| "start" # The start of the audio.
+
+---What happens when the audio reaches its end.
+---@alias rizu.preview.EndAction
+---| "loop" # It starts again from the start.
+---| "random_chart" # A random set gets selected. Its chart is skipped too when it has no audio.
+
 ---@class rizu.preview.PreviewChartview
 ---@field chartmeta_mode string?
 ---@field chartdiff_inputmode string?
@@ -49,6 +59,10 @@ local Settings = require("rizu.config.Settings")
 ---@field loaded_audio_hash string?
 ---@field remote boolean The audio is the preview of a chart of a remote location, not a generated one.
 ---@field remote_audio rizu.preview.RemoteAudioPreviewPlayer?
+---@field start_mode rizu.preview.StartMode
+---@field end_action rizu.preview.EndAction
+---@field waiting_next boolean The audio ended and the media of a random chart is awaited.
+---@field skipped_generation integer? The media generation already skipped for having no audio.
 ---@operator call: rizu.preview.PreviewModel
 local PreviewModel = class()
 
@@ -56,6 +70,9 @@ PreviewModel.preview_time = 0
 PreviewModel.position = 0
 PreviewModel.mode = "absolute"
 PreviewModel.manual_time = 0
+PreviewModel.start_mode = "chart"
+PreviewModel.end_action = "loop"
+PreviewModel.waiting_next = false
 
 ---@param settings rizu.config.Config
 ---@param configurator rizu.gameplay.ReplayBaseConfigurator
@@ -87,6 +104,15 @@ function PreviewModel:load()
 	self.target_rate = 1
 	self.loader:load()
 	self.skinCache:load()
+end
+
+---Takes effect from the next chart, the playing audio keeps its position.
+---@param start_mode rizu.preview.StartMode
+---@param end_action rizu.preview.EndAction
+function PreviewModel:setModes(start_mode, end_action)
+	self.start_mode = start_mode
+	self.end_action = end_action
+	self.waiting_next = self.waiting_next and end_action == "random_chart"
 end
 
 ---The player of the audio that is selected now.
@@ -123,6 +149,7 @@ function PreviewModel:applyRemoteAudio(data, path, chartview)
 	end
 	self.position, self.manual_time = 0, 0
 	self.initial_seek_done = true
+	self.waiting_next = false
 	-- The new player takes the volume on the next update.
 	self.volume = -1
 	self.remote_audio:setRate(self.rate)
@@ -175,26 +202,28 @@ function PreviewModel:update(dt)
 		if duration > 0 then
 			self.manual_time = player:getPosition()
 
-			-- Default start position to min_time if preview_time is missing
 			if not self.initial_seek_done then
-				if self.preview_time then
-					self.initial_seek_done = true
-				elseif self.manual_time < min_time then
-					self.manual_time = min_time
-					player:seek(self.manual_time)
-					self.bgaPreviewPlayer:seek(self.manual_time)
-					self.initial_seek_done = true
+				self.initial_seek_done = true
+				local time = self.manual_time
+				if self.start_mode == "start" or not self.preview_time then
+					time = min_time
+				elseif self.settings:getBoolean(keys.select.random_preview_position) then
+					time = min_time + duration * (0.2 + math.random() * 0.6)
+				end
+				if time ~= self.manual_time then
+					self:seekPlayers(time)
 				end
 			end
 
-			-- Looping: Restart from audio start time (min_time)
 			-- A remote preview ends a moment before its decoder's duration.
-			if self.manual_time >= max_time - (self.remote and 0.05 or 0) then
-				self.manual_time = min_time
-				player:seek(self.manual_time)
-				self.bgaPreviewPlayer:seek(self.manual_time)
+			if not self.waiting_next and self.manual_time >= max_time - (self.remote and 0.05 or 0) then
+				if self.end_action == "random_chart" and self.game.chartSelector:scrollRandom() then
+					self.waiting_next = true
+				else
+					self:seekPlayers(min_time)
+				end
 			end
-			if self.paused then
+			if self.paused or self.waiting_next then
 				player:pause()
 			else
 				player:resume()
@@ -205,6 +234,8 @@ function PreviewModel:update(dt)
 	else
 		player:pause()
 	end
+
+	self:skipSilentChart()
 
 	player:update()
 	self.bgaPreviewPlayer:update(self:getTime())
@@ -225,6 +256,41 @@ function PreviewModel:update(dt)
 	end
 end
 
+---@private
+---@param time number
+function PreviewModel:seekPlayers(time)
+	self.manual_time = time
+	self:getAudioPlayer():seek(time)
+	self.bgaPreviewPlayer:seek(time)
+end
+
+---Selects another random chart when the selected one turned out to have nothing to play.
+---@private
+function PreviewModel:skipSilentChart()
+	local loader = self.loader
+	if self.end_action ~= "random_chart" or loader.media_state ~= "failed"
+		or loader.media_generation == self.skipped_generation then
+		return
+	end
+	-- Failed media can still have audio, e.g. when only the video preview is missing.
+	if self.waiting_next or not (self.remote or self.loaded_audio_hash) then
+		self.skipped_generation = loader.media_generation
+		self.waiting_next = self.game.chartSelector:scrollRandom()
+	end
+end
+
+---Stops the players, but not the preview: it plays the next chart that is selected.
+function PreviewModel:clearMedia()
+	self:stopRemoteAudio()
+	self.audioPreviewPlayer:stop()
+	self.bgaPreviewPlayer:stop()
+	self.loaded_audio_path = nil
+	self.loaded_hash = nil
+	self.loaded_audio_hash = nil
+	self.initial_seek_done = false
+	self.waiting_next = false
+end
+
 ---@param media rizu.preview.PreviewLoader.Media?
 ---@param path string
 ---@param preview_time number?
@@ -233,15 +299,12 @@ end
 function PreviewModel:applyPreparedMedia(media, path, preview_time, mode, chartview)
 	local audio_needs_reload = self.loaded_audio_path ~= path or path == ""
 	if audio_needs_reload then
-		self:stopRemoteAudio()
-		self.audioPreviewPlayer:stop()
-		self.bgaPreviewPlayer:stop()
+		self:clearMedia()
 		if not self.active or path ~= self.audio_path or chartview ~= self.chartview then return end
 		self.loaded_audio_path = path
-		self.loaded_hash = nil
-		self.loaded_audio_hash = nil
-		self.initial_seek_done = false
 	end
+	-- A random chart with the same audio loops it.
+	self.waiting_next = false
 	local volume = self.settings:getNumber(Settings.keys.audio.volume_master)
 		* self.settings:getNumber(Settings.keys.audio.volume_music)
 	local position = preview_time or 0
@@ -298,10 +361,9 @@ end
 function PreviewModel:setPosition(time)
 	time = math.max(time or 0, 0)
 	self.position = time
-	self.manual_time = time
 	self.initial_seek_done = true
-	self:getAudioPlayer():seek(time)
-	self.bgaPreviewPlayer:seek(time)
+	self.waiting_next = false
+	self:seekPlayers(time)
 end
 
 ---@param progress number
@@ -365,17 +427,11 @@ function PreviewModel:getMediaError() return self.loader.media_error end
 
 function PreviewModel:stop()
 	self.active = false
-	self:stopRemoteAudio()
+	self:clearMedia()
 	self.loader:stop()
 	self.skinCache:stop()
-	self.audioPreviewPlayer:stop()
-	self.bgaPreviewPlayer:stop()
 	self.chartPreview:setChartview(nil)
 	self.manual_time = 0
-	self.loaded_audio_path = nil
-	self.loaded_hash = nil
-	self.loaded_audio_hash = nil
-	self.initial_seek_done = false
 	self.audio_path = nil
 	self.chartview = nil
 	self.preview_time = nil

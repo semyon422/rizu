@@ -64,9 +64,10 @@ The preview system provides players with an immediate sensory snapshot of a song
 - **Native video metadata**: video and image dimensions must be positive and fit a tightly packed RGBA byte count. Unknown, non-positive, non-finite, or implausible frame rates and durations are exposed as absent metadata rather than passed into queue timing or allocation logic.
 
 ### Looping Algorithm
-- **Start Position**: Defined by `preview_time` metadata. If missing, it defaults to the absolute start time of the audio events (which may be non-zero).
+- **Start Position**: `PreviewModel:setModes(start_mode, end_action)` (`api.media:setPreviewModes`) picks it. `"chart"` (song select) uses the `preview_time` metadata, or a random position between 20% and 80% of the range with the random preview position setting. `"start"` (music player) uses the audio start time. A missing `preview_time` also means the audio start time, which may be non-zero.
 - **Looping Range**: The loop is determined by the **Audio Start Time** and **Audio End Time**. This range is distinct from the chart's `duration` field, which only tracks note data.
-- **End Behavior**: When the master clock reaches the audio end time, it restarts exactly from the audio start time.
+- **End Behavior**: With `"loop"` the master clock restarts exactly from the audio start time when it reaches the audio end time. With `"random_chart"` the selector jumps to a random set and the ended audio stays paused until that set's media arrives; it loops when the jump lands on the same set. A chart whose media failed without audio is skipped the same way.
+- **No selection**: while no playable chart is selected, e.g. while the library loads, the players stop but the preview stays active and plays the next selected chart. Only `stop()` deactivates it.
 - **Audio Constraints**: If the audio preview is missing or its total duration is 0, the preview playback is automatically paused to prevent invalid state.
 
 ### Specialized Notes Preview

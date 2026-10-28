@@ -111,8 +111,9 @@ function PreviewLoader:loadPreview()
 	local mode = model.mode
 
 	if not path then
-		model:stop()
-		return
+		-- Nothing is selected yet, e.g. the library is loading: stay active for the chart that comes next.
+		model:clearMedia()
+		return "empty"
 	end
 
 	if model.chartview and self.repaired_notes[get_notes_key(model.chartview)] then
