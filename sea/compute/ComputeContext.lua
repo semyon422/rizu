@@ -173,7 +173,7 @@ function ComputeContext:computeReplay(replay)
 	self:computePlay(rhythm_engine, replay.frames)
 	self.score_engine = rhythm_engine.score_engine
 
-	local cc_factory = ChartplayComputedFactory(chartdiff, diffcalc_context, rhythm_engine.score_engine)
+	local cc_factory = ChartplayComputedFactory(chartdiff, diffcalc_context, rhythm_engine.score_engine, chartmeta.timings)
 	local chartplay_computed = cc_factory:getChartplayComputed()
 
 	return chartplay_computed

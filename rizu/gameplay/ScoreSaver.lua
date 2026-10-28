@@ -63,7 +63,7 @@ function ScoreSaver:saveScore(gameplay_session, replayBase)
 
 	local chartplay = Chartplay()
 
-	local cc_factory = ChartplayComputedFactory(chartdiff, computeContext.diffcalc_context, scoreEngine)
+	local cc_factory = ChartplayComputedFactory(chartdiff, computeContext.diffcalc_context, scoreEngine, chartmeta.timings)
 	local chartplay_computed = cc_factory:getChartplayComputed()
 
 	chartplay:importChartplayBase(replay)

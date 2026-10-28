@@ -6,7 +6,7 @@ local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local ScoreTask = class()
 
 ---Bump it to compute every local score again at the next start after an update, see Library:updateScores().
-ScoreTask.version = 1
+ScoreTask.version = 2
 
 ---@param chartsRepo sea.ChartsRepo
 ---@param chartsComputer sea.ChartsComputer
