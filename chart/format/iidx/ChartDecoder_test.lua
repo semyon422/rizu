@@ -238,6 +238,36 @@ function test.positive_note_duration_creates_hold(t)
 end
 
 ---@param t testing.T
+function test.multi_spin_scratch_segments_are_chained_holds(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 150},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1500, type = 12, lane = 0, value = 0},
+			{tick = 300, type = 2, lane = 7, value = 42},
+			{tick = 750, type = 0, lane = 107, value = 375},
+			{tick = 1125, type = 0, lane = 107, value = 375},
+		},
+	}), nil, {song_id = 1234}))
+
+	---@type chart.LinkedNote[]
+	local holds = {}
+	for _, note in ipairs(charts[1].chart.notes:getLinkedNotes()) do
+		if note:isLong() then
+			holds[#holds + 1] = note
+		end
+	end
+	t:eq(#holds, 2)
+	t:eq(holds[1].startNote.column, "scratch1")
+	t:eq(holds[2].startNote.column, "scratch1")
+	t:aeq(holds[1].startNote:getTime(), 0.8, 0.0001)
+	t:aeq(holds[1].endNote:getTime(), 1.2, 0.0001)
+	t:aeq(holds[2].startNote:getTime(), 1.2, 0.0001)
+	t:aeq(holds[2].endNote:getTime(), 1.6, 0.0001)
+	t:eq(assert(holds[2].startNote.data.sounds)[1][1], "42")
+end
+
+---@param t testing.T
 function test.note_duration_is_not_a_keysound_id(t)
 	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
 		SPN = {
