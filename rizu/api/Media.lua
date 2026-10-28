@@ -120,7 +120,7 @@ function Media:createNotesPreview(chartview)
 	local preview = self.preview
 	local player, err = NotesPlayer.fromChartview(
 		chartview,
-		preview.replayBase.columns_order,
+		preview.configurator.columns_order,
 		NotesPlayer.getRate(preview.settings, preview.rate)
 	)
 	if player then

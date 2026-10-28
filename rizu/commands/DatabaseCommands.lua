@@ -101,6 +101,14 @@ return function(game)
 			end,
 		},
 		{
+			id = "database.recompute_chartplays",
+			title = "Database: Recompute All Chartplays",
+			description = "Computes every score again, also old ones: rating, accuracy and hits",
+			callback = function()
+				library:recomputeChartplays()
+			end,
+		},
+		{
 			id = "database.reset_diffcalc_field",
 			title = "Database: Reset Diffcalc Field",
 			description = "Resets one difficulty calculation field",

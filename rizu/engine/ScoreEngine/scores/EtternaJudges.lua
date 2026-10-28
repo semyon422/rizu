@@ -23,6 +23,7 @@ local judgeTimingWindows = {
 ---@operator call: rizu.EtternaJudges
 local EtternaJudges = ScoreSystem + SimpleJudgesSource
 
+EtternaJudges.windows = judgeTimingWindows
 EtternaJudges.judge_names = {"marvelous", "perfect", "great", "bad", "boo", "miss"}
 
 ---@param j number
@@ -45,8 +46,6 @@ function EtternaJudges:new(j)
 	self.holds_held = 0
 	self.holds_let_go = 0
 	self.holds_missed = 0
-	self.slice_input = nil
-	self.slice_judge_index = nil
 end
 
 ---@return string
@@ -58,15 +57,13 @@ end
 function EtternaJudges:hit(event)
 	local index = self.judge_windows:get(event.delta_time) or -1
 	self.judge_counter:add(index)
-	self.slice_input = event.column
-	self.slice_judge_index = index
+	self:setSliceJudge(event, index)
 end
 
 ---@param event rizu.LogicNoteChange
 function EtternaJudges:miss(event)
 	self.judge_counter:add(-1)
-	self.slice_input = event.column
-	self.slice_judge_index = index
+	self:setSliceJudge(event, -1)
 end
 
 function EtternaJudges:holdHeld()
@@ -82,17 +79,15 @@ function EtternaJudges:holdMissed()
 end
 
 function EtternaJudges:getSlice()
-	local slice = {
-		input = self.slice_input,
-		judge_index = self.slice_judge_index,
+	local input, judge_index = self:takeSliceJudge()
+	return {
+		input = input,
+		judge_index = judge_index,
 		last_judge = self:getLastJudge(),
 		holds_held = self.holds_held,
 		holds_let_go = self.holds_let_go,
 		holds_missed = self.holds_missed,
 	}
-	self.slice_input = nil
-	self.slice_judge_index = nil
-	return slice
 end
 
 EtternaJudges.events = {

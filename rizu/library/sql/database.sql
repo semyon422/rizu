@@ -69,3 +69,14 @@ CREATE TABLE IF NOT EXISTS `chartmeta_user_datas` (
 
 CREATE UNIQUE INDEX IF NOT EXISTS chartmeta_user_datas_hi_idx ON chartmeta_user_datas (`hash`, `index`);
 CREATE UNIQUE INDEX IF NOT EXISTS chartmeta_user_datas_hiu_idx ON chartmeta_user_datas (`hash`, `index`, `user_id`);
+
+-- What every note of a chartplay did, as the score engine received it, to score it in other systems
+-- without playing the replay again.
+CREATE TABLE IF NOT EXISTS `chartplay_hits` (
+	`chartplay_id` INTEGER PRIMARY KEY,
+	`version` INTEGER NOT NULL,
+	`notes_count` INTEGER NOT NULL,
+	`inputmode` TEXT NOT NULL,
+	`events` BLOB NOT NULL,
+	FOREIGN KEY (chartplay_id) REFERENCES chartplays(id) ON DELETE CASCADE
+);

@@ -1,5 +1,8 @@
 local thread = require("thread")
 local Events = require("rizu.api.Events")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local ScoreStore = require("rizu.select.stores.ScoreStore")
+local Timings = require("sea.chart.Timings")
 
 --[[
 The scores of the selected chart: the leaderboard on song select and on the result screen.
@@ -29,6 +32,7 @@ The list follows the selected chart by itself.
 ---@field created_at integer Unix time.
 ---@field user_name string? Online scores only.
 ---@field user_avatar string? Online scores only. A url for `ui.api.online:getAvatar()`.
+---@field rescored_accuracy number? Internal, use `rizu.api.Scores:getAccuracy()`.
 
 ---@alias rizu.api.Scores.Source
 ---| "local" # Scores set on this computer.
@@ -85,6 +89,61 @@ function Scores:select(index) self.selector:scrollScore(nil, index) end
 
 ---@return rizu.api.Score? score
 function Scores:getSelected() return self.selector.chartplay --[[@as rizu.api.Score?]] end
+
+-- Accuracy
+
+local normalscore = Scoring(Timings("sphere"))
+
+---The system the leaderboard shows accuracies in: the one picked in the play config, or the selected
+---chart's auto timings. nil for normalscore: online scores, other gamemodes, or rescoring turned off.
+---@return rizu.engine.scoring.Scoring?
+function Scores:getAccuracySystem()
+	return ScoreStore.getScoring(self.selector.settings, self.selector.chartview)
+end
+
+---Local scores of another system were scored again from their stored hits when the list was loaded.
+---@param self rizu.api.Scores
+---@param score rizu.api.Score
+---@return rizu.engine.scoring.Scoring scoring
+---@return number? accuracy nil for local scores without hits.
+local function getScoredAccuracy(self, score)
+	local scoring = self:getAccuracySystem() or normalscore
+	if scoring:isNormalscore() then
+		return scoring, score.accuracy
+	end
+	return scoring, score.rescored_accuracy
+end
+
+---The accuracy of a score in getAccuracySystem(), as text such as "98.50%".
+---@param score rizu.api.Score
+---@return string? accuracy nil when it cannot be scored: local scores without hits.
+function Scores:getAccuracy(score)
+	local scoring, accuracy = getScoredAccuracy(self, score)
+	return accuracy and scoring:formatAccuracy(accuracy)
+end
+
+---The grade of a score in getAccuracySystem(), such as "S", and the system for its color.
+---@param score rizu.api.Score
+---@return string? grade nil when it cannot be scored, see getAccuracy().
+---@return rizu.engine.scoring.Scoring scoring
+function Scores:getGrade(score)
+	local scoring, accuracy = getScoredAccuracy(self, score)
+	return accuracy and scoring:getGrade(accuracy), scoring
+end
+
+---The player's totals over their local scores: osu! PP, the weighted sum of the best play of each chart,
+---and Etterna MSD, the mean of the best 20. Worked out anew at each call, in the background: f gets nil
+---before the library is loaded.
+---@param f fun(totals: {pp: number, msd: number}?)
+function Scores:getTotalRatings(f)
+	thread.coro(function()
+		local ok, totals = pcall(self.selector.library.getTotalRatingsAsync, self.selector.library)
+		if not ok then
+			print("failed to get total ratings:", totals)
+		end
+		f(ok and totals or nil)
+	end)()
+end
 
 ---Replays the selected score in the background so the result screen can show it.
 ---f gets false when there is no selected score or its replay could not be loaded.

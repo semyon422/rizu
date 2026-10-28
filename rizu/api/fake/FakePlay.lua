@@ -12,10 +12,21 @@ function FakePlay:new()
 	Events.new(self)
 	self.rate = 1
 	self.rate_type = "linear"
-	self.toggles = {constant_scroll = false, taps_only = false, nearest_input = false, auto_timings = true}
-	self.timing_system = "sphere"
+	self.toggles = {
+		constant_scroll = false, taps_only = false,
+		auto_timings = true, auto_healths = true, auto_accuracy = true, random_columns = false,
+	}
+	self.timing_system = "osuod"
 	self.timing_values = {osuod = 8, etternaj = 4, bmsrank = 3}
 	self.osu_score_version = 1
+	self.accuracy_system = "osuod"
+	self.accuracy_values = {osuod = 8, etternaj = 4, bmsrank = 3}
+	self.accuracy_osu_score_version = 1
+	self.gauge = "simple"
+	self.osu_hp = 5
+	self.etterna_life = 4
+	self.lr2_gauge = 0
+	self.iidx_gauge = 2
 	self.mutators = {} ---@type {name: string, value: integer?}[]
 	self.mutator_position = 1
 	self.input_mode = "7key"
@@ -158,6 +169,63 @@ function FakePlay:getOsuScoreVersion() return self.osu_score_version end
 
 function FakePlay:setOsuScoreVersion(version)
 	self.osu_score_version = version
+	self:emit("mods_changed")
+end
+
+function FakePlay:getAccuracySystem() return self.accuracy_system end
+
+function FakePlay:setAccuracySystem(system)
+	self.accuracy_system = system
+	self:emit("mods_changed")
+end
+
+function FakePlay:getAccuracyValue() return self.accuracy_values[self.accuracy_system] or 0 end
+
+function FakePlay:setAccuracyValue(value)
+	self.accuracy_values[self.accuracy_system] = value
+	self:emit("mods_changed")
+end
+
+function FakePlay:getAccuracyOsuScoreVersion() return self.accuracy_osu_score_version end
+
+function FakePlay:setAccuracyOsuScoreVersion(version)
+	self.accuracy_osu_score_version = version
+	self:emit("mods_changed")
+end
+
+function FakePlay:getGauges() return {"simple", "etterna", "lr2", "iidx"} end
+function FakePlay:getGauge() return self.gauge end
+
+function FakePlay:setGauge(gauge)
+	self.gauge = gauge
+	self:emit("mods_changed")
+end
+
+function FakePlay:getOsuHp() return self.osu_hp end
+
+function FakePlay:setOsuHp(hp)
+	self.osu_hp = hp
+	self:emit("mods_changed")
+end
+
+function FakePlay:getEtternaLife() return self.etterna_life end
+
+function FakePlay:setEtternaLife(level)
+	self.etterna_life = level
+	self:emit("mods_changed")
+end
+
+function FakePlay:getLr2Gauge() return self.lr2_gauge end
+
+function FakePlay:setLr2Gauge(gauge)
+	self.lr2_gauge = gauge
+	self:emit("mods_changed")
+end
+
+function FakePlay:getIidxGauge() return self.iidx_gauge end
+
+function FakePlay:setIidxGauge(gauge)
+	self.iidx_gauge = gauge
 	self:emit("mods_changed")
 end
 

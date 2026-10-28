@@ -1,5 +1,6 @@
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
+local Healths = require("sea.chart.Healths")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 local test = {}
@@ -73,6 +74,16 @@ function test.values(t)
 	t:assert(not factory:get(Timings("quaver"), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("bmsrank"), Subtimings("scorev", 1)))
 	t:assert(not factory:get(Timings("iidx"), Subtimings("scorev", 1)))
+end
+
+---@param t testing.T
+function test.healths(t)
+	for _, i in ipairs({0, 20, 100, 201, 204, 207, 300, 303, 10000, 10160, 100000}) do
+		t:eq(Healths.encode(Healths.decode(i)), i)
+	end
+	t:eq(Healths.decode(204), Healths("etterna", 4))
+	t:eq(Healths.decode(302), Healths("lr2", 2))
+	t:eq(Healths.decode(10160), Healths("bmstotal", 160))
 end
 
 return test

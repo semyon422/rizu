@@ -1,5 +1,4 @@
 local class = require("class")
-local ReplayBase = require("sea.replays.ReplayBase")
 local Settings = require("rizu.config.Settings")
 
 ---@class rizu.select.ISelectionReplayBaseApplier
@@ -12,10 +11,10 @@ local Settings = require("rizu.config.Settings")
 local SelectionReplayBaseApplier = class()
 
 ---@param settings rizu.config.Config
----@param replayBase sea.ReplayBase
-function SelectionReplayBaseApplier:new(settings, replayBase)
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
+function SelectionReplayBaseApplier:new(settings, configurator)
 	self.settings = settings
-	self.replayBase = replayBase
+	self.configurator = configurator
 end
 
 ---@param chartview rizu.library.LocatedChartview
@@ -29,17 +28,13 @@ function SelectionReplayBaseApplier:copySelectionFields(chartview, targetReplayB
 
 	targetReplayBase.modifiers = chartview.modifiers or {}
 	targetReplayBase.rate = chartview.rate or 1
-	targetReplayBase.mode = chartview.mode or "mania"
 
 	if secondary_mode == "chartdiffs" then
 		return true
 	end
 
-	targetReplayBase.nearest = chartview.nearest or false
+	-- Timings and gauge are not taken: the play config's settings decide them for each play.
 	targetReplayBase.tap_only = chartview.tap_only or false
-	targetReplayBase.timings = chartview.timings
-	targetReplayBase.subtimings = chartview.subtimings
-	targetReplayBase.healths = chartview.healths
 	targetReplayBase.columns_order = chartview.columns_order
 	targetReplayBase.custom = chartview.custom or false
 	targetReplayBase.const = chartview.const or false
@@ -52,8 +47,7 @@ end
 ---@return sea.ReplayBase replayBase
 ---@return boolean applied
 function SelectionReplayBaseApplier:buildSelectionReplayBase(chartview)
-	local replayBase = ReplayBase()
-	replayBase:importReplayBase(self.replayBase)
+	local replayBase = self.configurator:createReplayBase()
 
 	return replayBase, self:copySelectionFields(chartview, replayBase)
 end
@@ -63,7 +57,7 @@ end
 function SelectionReplayBaseApplier:apply(chartview)
 	local replayBase, applied = self:buildSelectionReplayBase(chartview)
 	if applied then
-		self.replayBase:importReplayBase(replayBase)
+		self.configurator:importReplayBase(replayBase)
 	end
 	return applied
 end

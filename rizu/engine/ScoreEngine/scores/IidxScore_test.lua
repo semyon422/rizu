@@ -97,4 +97,29 @@ function test.ex_score_accuracy_and_combo(t)
 	t:eq(score:getMaxCombo(), 3)
 end
 
+---@param t testing.T
+function test.gauges(t)
+	local hard = IidxScore(3)
+	hard:load({notes_count = 100})
+	hard:addJudge(5)
+	t:eq(hard:getHealths(), 91)
+	hard.health = 28
+	hard:addJudge(5)
+	t:eq(hard:getHealths(), 23.5)
+	hard.health = 5
+	hard:addJudge(4)
+	t:eq(hard:getHealths(), 2.5)
+	t:assert(not hard:isFailed())
+	hard:addJudge(4)
+	t:assert(hard:isFailed())
+
+	local normal = IidxScore()
+	normal:load({notes_count = 100})
+	normal:addJudge(1)
+	t:assert(normal:getHealths() > 22)
+	t:assert(not normal:isPassed())
+	normal.health = 80
+	t:assert(normal:isPassed())
+end
+
 return test

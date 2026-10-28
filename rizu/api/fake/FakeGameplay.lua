@@ -15,6 +15,7 @@ function FakeGameplay:getStateProgress() return 0 end
 function FakeGameplay:pause() end
 function FakeGameplay:resume() end
 function FakeGameplay:retry() end
+function FakeGameplay:isFailStopped() return false end
 function FakeGameplay:skipIntro() end
 function FakeGameplay:changeScrollSpeed(steps) end
 function FakeGameplay:changeLocalOffset(seconds) end
@@ -26,6 +27,7 @@ function FakeGameplay:getTime() return 0 end
 function FakeGameplay:getScore() end
 function FakeGameplay:getAccuracy() end
 function FakeGameplay:getCombo() end
+function FakeGameplay:getHealths() end
 function FakeGameplay:getHitCounts() return 0, 0 end
 function FakeGameplay:getJudgeNames() return empty end
 function FakeGameplay:getJudgeWindows() end

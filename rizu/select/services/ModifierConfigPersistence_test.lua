@@ -19,13 +19,13 @@ end
 ---@param t testing.T
 function test.load_replay_base_writes_and_imports_play_config(t)
 	local calls = {}
-	local replayBase = {
+	local configurator = {
 		importReplayBase = function(_, play_config)
 			table.insert(calls, "import:" .. tostring(play_config.rate))
 		end,
 	}
 
-	ModifierConfigPersistence(createConfigModel(calls)):loadReplayBase(replayBase)
+	ModifierConfigPersistence(createConfigModel(calls)):loadReplayBase(configurator)
 
 	t:tdeq(calls, {
 		"write",
@@ -36,7 +36,7 @@ end
 ---@param t testing.T
 function test.save_replay_base_exports_and_writes_play_config(t)
 	local calls = {}
-	local replayBase = {
+	local configurator = {
 		exportReplayBase = function(_, play_config)
 			table.insert(calls, "export")
 			play_config.rate = 2
@@ -44,7 +44,7 @@ function test.save_replay_base_exports_and_writes_play_config(t)
 	}
 	local configModel = createConfigModel(calls)
 
-	ModifierConfigPersistence(configModel):saveReplayBase(replayBase)
+	ModifierConfigPersistence(configModel):saveReplayBase(configurator)
 
 	t:tdeq(calls, {
 		"export",

@@ -3,6 +3,8 @@ local Processor = require("rizu.library.Processor")
 local Database = require("rizu.library.Database")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local TotalRating = require("sea.leaderboards.TotalRating")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 
 ---@class rizu.library.Worker
@@ -81,6 +83,17 @@ function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end
 
+---@param since integer?
+---@return boolean completed
+function Worker:recomputeChartplays(since)
+	return self.processor:recomputeChartplays(since)
+end
+
+---@return boolean completed
+function Worker:computeMissingHits()
+	return self.processor:computeMissingHits()
+end
+
 ---@param path string
 ---@param base_url string
 ---@return integer? location_id
@@ -138,6 +151,26 @@ end
 function Worker:getChartplaysForChartmeta(chartmeta_key)
 	local repo = ChartsRepo(self.db.models)
 	return repo:getChartplaysForChartmeta(chartmeta_key)
+end
+
+---The local player's total PP and MSD, each over the best play of each chart by that rating.
+---shortcut: plays the last recompute could not play again (chart or replay gone) keep the ratings
+---of their time, add a per-play compute version if they must be left out.
+---@return {pp: number, msd: number}
+function Worker:getTotalRatings()
+	local repo = ChartsRepo(self.db.models)
+	local pp, msd = TotalRating(), TotalRating()
+	pp:calc(repo:getBestChartplaysByRating(1, "rating_pp", 100) --[[@as sea.Chartplayview[] ]])
+	msd:calc(repo:getBestChartplaysByRating(1, "rating_msd", 100) --[[@as sea.Chartplayview[] ]])
+	return {pp = pp.rating_pp, msd = msd.rating_msd}
+end
+
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer
+---@return {[integer]: number}
+function Worker:getAccuracies(ids, timings, subtimings)
+	return ChartplayHitsRepo(self.db.models):getAccuracies(ids, timings, subtimings)
 end
 
 return Worker

@@ -16,7 +16,6 @@ local MultiplayerModel = require("rizu.online.MultiplayerModel")
 local EditorInput = require("rizu.editor.EditorInput")
 local EditorModel = require("rizu.editor.EditorModel")
 local TimeRateModel = require("sphere.models.TimeRateModel")
-local TimingsModel = require("sphere.models.TimingsModel")
 local PauseModel = require("sphere.models.PauseModel")
 local JoystickModel = require("sphere.models.JoystickModel")
 local OffsetController = require("sphere.controllers.gameplay.OffsetController")
@@ -68,7 +67,7 @@ local ClientRemote = require("sea.app.remotes.ClientRemote")
 local ClientRemoteValidation = require("sea.app.remotes.ClientRemoteValidation")
 
 local ComputeContext = require("sea.compute.ComputeContext")
-local ReplayBase = require("sea.replays.ReplayBase")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
 
 local LoveFilesystem = require("fs.LoveFilesystem")
 local LoveTimer = require("time.LoveTimer")
@@ -147,14 +146,13 @@ function GameController:new()
 		input = self.editorInput,
 	})
 	self.computeContext = ComputeContext()
-	self.replayBase = ReplayBase()
+	self.replayBaseConfigurator = ReplayBaseConfigurator(self.settings)
 
-	self.multiplayer_client.replay_base = self.replayBase
+	self.multiplayer_client.configurator = self.replayBaseConfigurator
 
-	self.timeRateModel = TimeRateModel(self.replayBase)
-	self.modifierSelectModel = ModifierSelectModel(self.replayBase)
+	self.timeRateModel = TimeRateModel(self.replayBaseConfigurator)
+	self.modifierSelectModel = ModifierSelectModel(self.replayBaseConfigurator)
 	self.timeRateModel:onChanged(function() self.modifierSelectModel:change() end)
-	self.timingsModel = TimingsModel(self.replayBase, self.settings, self.modifierSelectModel)
 	self.collectionSelector = CollectionSelector(
 		self.persistence.configModel,
 		self.settings,
@@ -173,7 +171,7 @@ function GameController:new()
 		self.settings,
 		self.persistence.library,
 		self.onlineModel,
-		self.replayBase,
+		self.replayBaseConfigurator,
 		self.chartSelector.state
 	)
 
@@ -186,7 +184,6 @@ function GameController:new()
 		self.chartSelector,
 		self.onlineModel,
 		self.dlcManager,
-		self.replayBase,
 		self.multiplayer_client
 	)
 	self.joystickModel = JoystickModel(self.settings)
@@ -206,7 +203,7 @@ function GameController:new()
 	self.backgroundModel = BackgroundModel(self.network, nil, self.remoteAssetCache)
 	self.previewModel = PreviewModel(
 		self.settings,
-		self.replayBase,
+		self.replayBaseConfigurator,
 		self
 	)
 
@@ -224,7 +221,7 @@ function GameController:new()
 		self.modifierSelectModel,
 		ModifierConfigPersistence(self.configModel),
 		self.multiplayerModel,
-		self.replayBase,
+		self.replayBaseConfigurator,
 		self.previewModel
 	)
 	self.libraryDropManager = LibraryDropManager(self.library, self.skinRegistry)
@@ -240,8 +237,7 @@ function GameController:new()
 	self.multiplayerController = MultiplayerController(
 		self.multiplayerModel,
 		self.configModel,
-		self.chartSelector,
-		self.replayBase
+		self.chartSelector
 	)
 	self.resource_finder = ResourceFinder(self.fs)
 	self.resource_loader = ResourceLoader(self.fs, self.resource_finder)
@@ -254,7 +250,6 @@ function GameController:new()
 		library = self.library,
 		fileFinder = self.fileFinder,
 		previewModel = self.previewModel,
-		replayBase = self.replayBase,
 		resource_finder = self.resource_finder,
 		resource_loader = self.resource_loader,
 		fs = self.fs,
@@ -274,6 +269,10 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+	-- After an update every score is computed again in the background, and it stores the hits too.
+	self.library:updateScores(self.settings)
+	-- Scores saved before their hits were stored get them in the background.
+	self.library:updateHits(self.settings)
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai
@@ -353,7 +352,7 @@ function GameController:load()
 
 	local configModel = self.configModel
 
-	self.replayBase:importReplayBase(configModel.configs.play)
+	self.replayBaseConfigurator:importReplayBase(configModel.configs.play)
 	self.modifierSelectModel:updateAdded()
 
 	local server_url = self.onlineModel:getServerUrl()

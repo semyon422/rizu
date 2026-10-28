@@ -47,4 +47,23 @@ function test.computes_outside_batched_transactions(t)
 	t:eq(writes, 21)
 end
 
+---@param t testing.T
+function test.process_holds_no_transaction(t)
+	local context = {
+		startStage = function() end,
+		shouldStop = function() return false end,
+		addError = function(_, err) error(err) end,
+		advance = function() end,
+		report = function() end,
+		finish = function() end,
+		dbBegin = function() error("a transaction would lock out a score saved meanwhile") end,
+		dbCommit = function() error("no transaction to commit") end,
+	}
+	local processed = 0
+	local result = BatchProcessor(context, FunctionTimer(function() return 0 end)):process({1, 2, 3}, "scores", nil,
+		function() processed = processed + 1 end)
+	t:eq(processed, 3)
+	t:eq(result.processed, 3)
+end
+
 return test

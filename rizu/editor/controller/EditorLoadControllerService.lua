@@ -14,7 +14,6 @@ local Settings = require("rizu.config.Settings")
 ---@field windowModel rizu.WindowModel
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel
----@field replayBase sea.ReplayBase
 ---@field resource_finder rizu.ResourceFinder
 ---@field resource_loader rizu.ResourceLoader
 ---@field fs fs.IFilesystem

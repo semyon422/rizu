@@ -37,7 +37,7 @@ function ChartsComputer:getChartplaysComputedCount(computed_at, state)
 end
 
 ---@param chartplay sea.Chartplay
----@return {chartplay_computed: sea.ChartplayComputed, chartdiff: sea.Chartdiff, chartmeta: sea.Chartmeta}?
+---@return {chartplay_computed: sea.ChartplayComputed, chartdiff: sea.Chartdiff, chartmeta: sea.Chartmeta, score_engine: rizu.ScoreEngine?}?
 ---@return string?
 function ChartsComputer:computeChartplay(chartplay)
 	local charts_repo = self.charts_repo
@@ -68,7 +68,7 @@ end
 
 ---@param chartplay sea.Chartplay
 ---@param time integer
----@return {chartplay_computed: sea.ChartplayComputed, chartdiff: sea.Chartdiff, chartmeta: sea.Chartmeta}?
+---@return {chartplay_computed: sea.ChartplayComputed, chartdiff: sea.Chartdiff, chartmeta: sea.Chartmeta, score_engine: rizu.ScoreEngine?}?
 ---@return string?
 ---@return sea.ComputeFailure?
 function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
@@ -86,6 +86,11 @@ function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 	end
 
 	local compute_chartplay = setmetatable(table_util.sub(chartplay, table_util.keys(Chartplay.struct)), Chartplay)
+	if not chartplay.judges then
+		-- Never computed: scores migrated from the old scores table have only placeholders of the base, the replay has it.
+		compute_chartplay:importChartplayBase(replay_and_data.replay)
+		compute_chartplay.judges = {}
+	end
 	---@type sea.ComputeRequest
 	local request = {
 		version = self.compute_version,
@@ -97,7 +102,8 @@ function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 	}
 	local result
 	local failure
-	result, failure = self.replay_computer:compute(request)
+	local score_engine
+	result, failure, score_engine = self.replay_computer:compute(request)
 	if not result then
 		failure = failure or ComputeFailure.transient("compute_failed", "compute failed without a classified error")
 		return nil, ComputeFailure.format(failure), failure
@@ -115,6 +121,7 @@ function ChartsComputer:computeChartplayNoUpdate(chartplay, time)
 		chartplay_computed = chartplay_computed,
 		chartdiff = chartdiff,
 		chartmeta = chartmeta,
+		score_engine = score_engine,
 	}
 end
 

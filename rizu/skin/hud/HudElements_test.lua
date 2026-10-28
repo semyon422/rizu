@@ -83,6 +83,10 @@ function test.set_validates_and_reports_texture_changes(t)
 	judgement:set("scale", 2)
 	local x = judgement.transform:transformPoint(1, 0)
 	t:eq(x, 2)
+	judgement:set("rotation", -90)
+	local rx, ry = judgement.transform:transformPoint(1, 0)
+	t:eq(math.floor(rx * 2 + 0.5), 0)
+	t:eq(math.floor(ry * 2 + 0.5), -4) -- scale 2, turned up
 end
 
 ---@param t testing.T
@@ -305,6 +309,20 @@ function test.textures_are_acquired_on_load_and_dropped_on_unload(t)
 	local box = create("box", {width = 30, height = 5})
 	t:eq(box.width, 30)
 	t:eq(#box:getAssets(), 0)
+end
+
+---@param t testing.T
+function test.iidx_gauge_flickers_under_the_top_segment(t)
+	local is_lit = HudElements.get("iidx_gauge").is_lit
+	local function lit(count, off)
+		local s = ""
+		for i = 1, 6 do s = s .. (is_lit(count, off, i) and "#" or ".") end
+		return s
+	end
+	t:eq(lit(0, 0), "......")
+	t:eq(lit(4, 0), "####..")
+	t:eq(lit(4, 2), "#..#..")
+	t:eq(lit(6, 1), "####.#")
 end
 
 return test

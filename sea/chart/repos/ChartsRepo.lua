@@ -347,6 +347,23 @@ function ChartsRepo:getChartplaysMissingChartdiffs()
 	})
 end
 
+---The best passed chartplay of each chart by a rating, highest first, for sea.TotalRating.
+---@param user_id integer
+---@param rating_column "rating"|"rating_pp"|"rating_msd"
+---@param limit integer
+---@return sea.Chartplay[]
+function ChartsRepo:getBestChartplaysByRating(user_id, rating_column, limit)
+	return self.models.chartplays:select({
+		user_id = assert(user_id),
+		pass = true,
+	}, {
+		group = {"hash", "`index`"},
+		order = {rating_column .. " DESC"},
+		columns = {"*", ("MAX(%s) AS _rating"):format(rating_column)},
+		limit = limit,
+	})
+end
+
 ---@param user_id integer
 ---@param limit integer
 ---@return sea.Chartplay[]

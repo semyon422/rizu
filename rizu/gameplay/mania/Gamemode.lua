@@ -50,7 +50,9 @@ end
 ---@param replay_base sea.ReplayBase
 ---@param settings rizu.config.Config
 function ManiaGamemode:configureEngine(engine, replay_base, settings)
-	engine:setTimings(replay_base.timings, replay_base.subtimings)
+	-- The accuracy source is the player's, not the replay's: watched replays are counted with it too.
+	local accuracy = require("rizu.gameplay.ReplayBaseConfigurator").getPickedAccuracy(settings)
+	engine:setTimings(replay_base.timings, replay_base.subtimings, replay_base.healths, accuracy)
 	engine:setTimingValues(replay_base.timing_values)
 	engine:setNearest(replay_base.nearest)
 	engine:setConst(replay_base.const)

@@ -1,5 +1,6 @@
 local Config = require("rizu.config.Config")
 local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---@class rizu.config.Settings.Keys
 local keys = {
@@ -19,7 +20,7 @@ local keys = {
 	gameplay = {
 		speed = "gameplay.speed",
 		speed_type = "gameplay.speed_type",
-		action_on_fail = "gameplay.action_on_fail",
+		continue_on_fail = "gameplay.continue_on_fail",
 		scale_speed = "gameplay.scale_speed",
 		long_note_shortening = "gameplay.long_note_shortening",
 		tempo_factor = "gameplay.tempo_factor",
@@ -83,20 +84,48 @@ local keys = {
 		sort_function = "select.sort_function",
 		score_source = "select.score_source",
 		score_filter = "select.score_filter",
+		-- Score local scores again in the leaderboard's system, see rizu.select.stores.ScoreStore.getScoring().
+		rescore = "select.rescore",
 	},
+	-- The hit windows of mania plays when replay_base.auto_timings is off, see rizu.gameplay.ReplayBaseConfigurator.
 	timings = {
-		arbitrary = "timings.arbitrary",
-		sphere = "timings.sphere",
-		simple = "timings.simple",
+		system = "timings.system",
 		osuod = "timings.osuod",
 		etternaj = "timings.etternaj",
-		quaver = "timings.quaver",
 		bmsrank = "timings.bmsrank",
-		iidx = "timings.iidx",
 		osu_score_version = "timings.osu_score_version",
+	},
+	-- The gauge of mania plays when replay_base.auto_healths is off, whatever the timings.
+	healths = {
+		system = "healths.system",
+		osu_hp = "healths.osu_hp",
+		etterna_life = "healths.etterna_life",
+		lr2_gauge = "healths.lr2_gauge",
+		iidx_gauge = "healths.iidx_gauge",
+	},
+	-- What counts the accuracy, judges and score of mania plays when replay_base.auto_accuracy is off.
+	-- Client only: it is not in the replay, the hits are scored again with it.
+	accuracy = {
+		system = "accuracy.system",
+		osuod = "accuracy.osuod",
+		etternaj = "accuracy.etternaj",
+		bmsrank = "accuracy.bmsrank",
+		osu_score_version = "accuracy.osu_score_version",
 	},
 	replay_base = {
 		auto_timings = "replay_base.auto_timings",
+		auto_healths = "replay_base.auto_healths",
+		auto_accuracy = "replay_base.auto_accuracy",
+		-- Each play shuffles the columns anew, see rizu.gameplay.ReplayBaseConfigurator:createReplayBase().
+		random_columns = "replay_base.random_columns",
+	},
+	scores = {
+		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
+		hits_version = "scores.hits_version",
+		-- Internal: ScoreTask.version of the last finished recompute, see Library:updateScores().
+		compute_version = "scores.compute_version",
+		-- Internal: when the unfinished recompute began, 0 for none.
+		recompute_since = "scores.recompute_since",
 	},
 	graphics = {
 		fps = "graphics.fps",
@@ -213,7 +242,7 @@ function Settings.createConfig(filesystem)
 		ScrollSpeed.ranges.default[3]
 	)
 	config:setDefaultChoice(g.speed_type, "osu", ScrollSpeed.types)
-	config:setDefaultChoice(g.action_on_fail, "none", {"none", "pause", "quit"}) -- Should go to UI
+	config:setDefaultBoolean(g.continue_on_fail, false)
 	config:setDefaultBoolean(g.scale_speed, false) -- Nobody uses it
 	config:setDefaultNumber(g.long_note_shortening, 0, -0.3, 0, 0.01)
 	config:setDefaultChoice(g.tempo_factor, "average", {"average", "primary", "minimum", "maximum"})
@@ -266,22 +295,29 @@ function Settings.createConfig(filesystem)
 	config:setDefaultString(s.sort_function, "title")
 	config:setDefaultChoice(s.score_source, "local", {"local", "online"})
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
+	config:setDefaultBoolean(s.rescore, true)
 
-	local timing_defaults = {
-		arbitrary = 0,
-		sphere = 0,
-		simple = 0.160,
-		osuod = 10,
-		etternaj = 4,
-		quaver = 0,
-		bmsrank = 3,
-		iidx = 0,
-	}
-	for name, default in pairs(timing_defaults) do
-		config:setDefaultNumber(keys.timings[name], default, 0, 10, 0.01)
+	for _, k in ipairs({keys.timings, keys.accuracy}) do
+		config:setDefaultChoice(k.system, "osuod", TimingSystems.selectable)
+		for _, name in ipairs({"osuod", "etternaj", "bmsrank"}) do
+			local system = TimingSystems.get(name)
+			local range = system.range or {min = 0, max = 10, step = 1}
+			config:setDefaultNumber(k[name], system.default_value, range.min, range.max, range.step)
+		end
+		config:setDefaultNumber(k.osu_score_version, 1, 1, 2, 1)
 	end
-	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
+	config:setDefaultChoice(keys.healths.system, "simple", {"simple", "etterna", "lr2", "iidx"})
+	config:setDefaultNumber(keys.healths.osu_hp, 5, 0, 10, 0.1)
+	config:setDefaultNumber(keys.healths.etterna_life, 4, 1, 7, 1)
+	config:setDefaultNumber(keys.healths.lr2_gauge, 0, 0, 3, 1)
+	config:setDefaultNumber(keys.healths.iidx_gauge, 2, 0, 4, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
+	config:setDefaultBoolean(keys.replay_base.auto_healths, true)
+	config:setDefaultBoolean(keys.replay_base.auto_accuracy, true)
+	config:setDefaultBoolean(keys.replay_base.random_columns, false)
+	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
+	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)
+	config:setDefaultNumber(keys.scores.recompute_since, 0, 0, math.huge, 1)
 
 	config:setDefaultNumber(gr.fps, 240, 30, 1024, 2)
 	config:setDefaultBoolean(gr.unlimited_fps, false)

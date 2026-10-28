@@ -113,6 +113,10 @@ function Gameplay:resume() self.game.gameplayInteractor:changePlayState("play") 
 ---Starts restarting the chart. Takes the hold time from the settings.
 function Gameplay:retry() self.game.gameplayInteractor:changePlayState("retry") end
 
+---The gauge died and the play stopped: only retry and quit work. Off with "continue on fail" and in multiplayer.
+---@return boolean
+function Gameplay:isFailStopped() return self.game.gameplayInteractor.fail_stopped or false end
+
 function Gameplay:skipIntro() self.game.gameplayInteractor:skipIntro() end
 
 -- Adjustments, saved right away
@@ -172,6 +176,22 @@ function Gameplay:getAccuracy()
 	end
 end
 
+---Gauges count 0..1 or 0..100, so this divides by the maximum.
+---@return number? health 0..1
+function Gameplay:getHealths()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	if source then return math.max(0, math.min(1, source:getHealths() / source:getMaxHealths())) end
+end
+
+---@return boolean? failed The gauge is dead. nil without a gauge.
+---@return boolean? passed The play counts as a clear if it ended now. nil without a gauge.
+function Gameplay:getGaugeStatus()
+	local score_engine = self.game.rhythm_engine.score_engine
+	local source = score_engine and score_engine.healthsSource
+	if source then return source:isFailed(), source:isPassed() end
+end
+
 ---@return integer? combo
 ---@return integer? max_combo
 function Gameplay:getCombo()
@@ -227,7 +247,7 @@ function Gameplay:getJudgement(i)
 	local source = score_engine.judgesSource
 	local judges = source and slice[source:getKey()]
 	local kind = base.isMiss and "miss" or base.isEarlyHit and "early" or "hit"
-	return kind, kind == "hit" and slice.misc.deltaTime or 0, judges and (judges.visual_judge or judges.judge_index or judges.last_judge)
+	return kind, kind == "hit" and base.deltaTime or 0, judges and (judges.visual_judge or judges.judge_index or judges.last_judge)
 end
 
 -- Notes, for skins. Mania only: other gamemodes have no notes or columns here.

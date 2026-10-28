@@ -1,9 +1,5 @@
 local Settings = require("rizu.config.Settings")
 local ColumnsOrder = require("sea.chart.ColumnsOrder")
-local Subtimings = require("sea.chart.Subtimings")
-local Timings = require("sea.chart.Timings")
-local Subtimings = require("sea.chart.Subtimings")
-local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 
 ---@return rizu.command.Fuzzy.Candidate[] choices
 local function getBooleanChoices()
@@ -16,33 +12,6 @@ end
 ---@param game sphere.GameController
 local function updateReplayBase(game)
 	game.multiplayerModel.client:updateReplayBase()
-end
-
----@param game sphere.GameController
----@param timings sea.Timings
----@param subtimings sea.Subtimings?
-local function applyTimingValues(game, timings, subtimings)
-	game.replayBase.timings = timings
-	game.replayBase.subtimings = subtimings
-
-	if timings.name ~= "arbitrary" then
-		game.replayBase.timing_values = assert(TimingValuesFactory:get(timings, subtimings))
-	end
-
-	updateReplayBase(game)
-end
-
----@return rizu.command.Fuzzy.Candidate[] choices
-local function getTimingChoices()
-	---@type rizu.command.Fuzzy.Candidate[]
-	local choices = {}
-	for _, name in ipairs(Timings.names) do
-		table.insert(choices, {
-			title = name,
-			value = name,
-		})
-	end
-	return choices
 end
 
 ---@param timeRateModel sphere.TimeRateModel
@@ -62,15 +31,15 @@ end
 ---@param game sphere.GameController
 ---@return sea.ColumnsOrder columns_order
 local function getColumnsOrder(game)
-	local replayBase = game.replayBase
+	local configurator = game.replayBaseConfigurator
 	local inputMode = game.modifierCoordinator.state.inputMode
-	return ColumnsOrder(inputMode, replayBase.columns_order)
+	return ColumnsOrder(inputMode, configurator.columns_order)
 end
 
 ---@param game sphere.GameController
 ---@param columns_order sea.ColumnsOrder
 local function setColumnsOrder(game, columns_order)
-	game.replayBase.columns_order = columns_order:export()
+	game.replayBaseConfigurator.columns_order = columns_order:export()
 	updateReplayBase(game)
 end
 
@@ -93,7 +62,7 @@ return function(game)
 							return false, "Must be a valid number"
 						end
 
-						local range = game.timeRateModel.range[game.replayBase.rate_type]
+						local range = game.timeRateModel.range[game.replayBaseConfigurator.rate_type]
 						if range and (num < range[1] or num > range[2]) then
 							return false, ("Rate must be between %s and %s"):format(range[1], range[2])
 						end
@@ -142,23 +111,6 @@ return function(game)
 			end,
 		},
 		{
-			id = "play_config.set_nearest",
-			title = "Play Config: Set Nearest",
-			description = "Enables or disables nearest-note input behavior",
-			arguments = {
-				{
-					name = "enabled",
-					type = "boolean",
-					prompt = "Nearest:",
-					choices = getBooleanChoices(),
-				},
-			},
-			callback = function(args)
-				game.replayBase.nearest = args.enabled
-				updateReplayBase(game)
-			end,
-		},
-		{
 			id = "play_config.set_tap_only",
 			title = "Play Config: Set Tap Only",
 			description = "Enables or disables tap-only behavior",
@@ -171,7 +123,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.tap_only = args.enabled
+				game.replayBaseConfigurator.tap_only = args.enabled
 				updateReplayBase(game)
 			end,
 		},
@@ -188,7 +140,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.const = args.enabled
+				game.replayBaseConfigurator.const = args.enabled
 				updateReplayBase(game)
 			end,
 		},
@@ -205,70 +157,8 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.custom = args.enabled
+				game.replayBaseConfigurator.custom = args.enabled
 				updateReplayBase(game)
-			end,
-		},
-		{
-			id = "play_config.set_timings",
-			title = "Timings: Set",
-			description = "Selects scoring timings",
-			arguments = {
-				{
-					name = "timings",
-					type = "string",
-					prompt = "Select timings:",
-					choices = getTimingChoices(),
-				},
-				{
-					name = "data",
-					type = "number",
-					prompt = "Enter timing data:",
-					default = 0,
-				},
-			},
-			---@param args {timings: string, data: number}
-			callback = function(args)
-				local timings = Timings(args.timings, args.data)
-				local subtimings ---@type sea.Subtimings?
-				local timing_key = Settings.keys.timings[args.timings]
-				if timing_key then
-					game.settings:setNumber(timing_key, args.data)
-				end
-
-				-- TODO: I don't like that we do it here.
-				if args.timings == "osuod" then
-					subtimings = Subtimings("scorev", 1)
-				end
-
-				if subtimings then
-					game.settings:setNumber(Settings.keys.timings.osu_score_version, subtimings.data)
-				end
-
-				applyTimingValues(game, timings, subtimings)
-			end,
-		},
-		{
-			id = "play_config.set_osu_scorev",
-			title = "Timings: Set osu! Score Version",
-			description = "Sets osu!mania subtiming score version",
-			arguments = {
-				{
-					name = "version",
-					type = "number",
-					prompt = "Score version:",
-					choices = {
-						{title = "Score v1", value = 1},
-						{title = "Score v2", value = 2},
-					},
-				},
-			},
-			callback = function(args)
-				local replayBase = game.replayBase
-				local timings = replayBase.timings or Timings("osuod", game.settings:getNumber(Settings.keys.timings.osuod))
-				local subtimings = Subtimings("scorev", args.version)
-				game.settings:setNumber(Settings.keys.timings.osu_score_version, args.version)
-				applyTimingValues(game, timings, subtimings)
 			end,
 		},
 		{

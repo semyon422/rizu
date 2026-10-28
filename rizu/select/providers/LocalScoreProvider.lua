@@ -21,4 +21,13 @@ function LocalScoreProvider:getChartplaysForChartmeta(chartmeta_key)
 	return self.library:getChartplaysForChartmetaAsync(chartmeta_key)
 end
 
+---See rizu.library.Library:getAccuraciesAsync().
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer
+---@return {[integer]: number}
+function LocalScoreProvider:getAccuracies(ids, timings, subtimings)
+	return self.library:getAccuraciesAsync(ids, timings, subtimings)
+end
+
 return LocalScoreProvider

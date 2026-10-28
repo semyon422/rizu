@@ -58,15 +58,15 @@ PreviewModel.mode = "absolute"
 PreviewModel.manual_time = 0
 
 ---@param settings rizu.config.Config
----@param replayBase sea.ReplayBase
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
 ---@param game table
-function PreviewModel:new(settings, replayBase, game)
+function PreviewModel:new(settings, configurator, game)
 	self.settings = settings
-	self.replayBase = replayBase
+	self.configurator = configurator
 	self.game = game
 	self.audioPreviewPlayer = AudioPreviewPlayer(settings)
 	self.bgaPreviewPlayer = BgaPreviewPlayer()
-	self.chartPreview = NotesPreviewPlayer(settings, self, replayBase)
+	self.chartPreview = NotesPreviewPlayer(settings, self, configurator)
 	self.skinCache = PreviewSkinCache(game, settings)
 	self.loader = PreviewLoader(self)
 

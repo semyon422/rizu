@@ -30,11 +30,20 @@ function BaseScore:new()
 	self.isLongNoteComboBreak = false
 
 	self.lastMean = 0
+
+	self.maxDeltaTime = 0
+	self.deltaTime = 0
+
+	self.earlyLate = {
+		early = 0,
+		late = 0,
+	}
 end
 
----@param inputmode string
-function BaseScore:setInputMode(inputmode)
-	ScoreSystem.setInputMode(self, inputmode)
+---@param info rizu.ScoreSystem.ChartInfo
+function BaseScore:load(info)
+	ScoreSystem.load(self, info)
+	local inputmode = info.inputmode
 
 	---@type {[chart.Column]: "left"|"right"|"center"|"scratch"}
 	local hands = {}
@@ -122,6 +131,28 @@ end
 function BaseScore:earlyHit(event)
 	self.earlyHitCount = self.earlyHitCount + 1
 	self.isEarlyHit = true
+	self.deltaTime = -math.huge
+end
+
+---@param event rizu.LogicNoteChange
+function BaseScore:hitDelta(event)
+	---@type number
+	local deltaTime = event.delta_time
+	self.deltaTime = deltaTime
+	if math.abs(deltaTime) > math.abs(self.maxDeltaTime) then
+		self.maxDeltaTime = deltaTime
+	end
+
+	if deltaTime < 0 then
+		self.earlyLate.early = self.earlyLate.early + 1
+	else
+		self.earlyLate.late = self.earlyLate.late + 1
+	end
+end
+
+---@param event rizu.LogicNoteChange
+function BaseScore:missDelta(event)
+	self.deltaTime = event.delta_time
 end
 
 ---@param event rizu.LogicNoteChange
@@ -156,6 +187,8 @@ function BaseScore:getSlice()
 		isEarlyHit = self.isEarlyHit,
 		isLongNoteComboBreak = self.isLongNoteComboBreak,
 		lastMean = self.lastMean,
+		maxDeltaTime = self.maxDeltaTime,
+		deltaTime = self.deltaTime,
 	}
 	return t
 end
@@ -163,31 +196,31 @@ end
 BaseScore.events = {
 	tap = {
 		clear = {
-			passed = {"success", "countLastMean"},
-			missed = {"breakCombo", "miss"},
+			passed = {"success", "countLastMean", "hitDelta"},
+			missed = {"breakCombo", "miss", "missDelta"},
 			clear = "earlyHit",
 		},
 	},
 	hold = {
 		clear = {
-			startPassedPressed = "countLastMean",
-			startMissed = "breakComboLongNote",
-			startMissedPressed = "breakComboLongNote",
+			startPassedPressed = {"countLastMean", "hitDelta"},
+			startMissed = {"breakComboLongNote", "missDelta"},
+			startMissedPressed = {"breakComboLongNote", "missDelta"},
 			clear = "earlyHit",
 		},
 		startPassedPressed = {
 			startMissed = "breakComboLongNote",
-			endMissed = {"breakComboLongNote", "miss"},
-			endPassed = {"success", "countLastMean"},
+			endMissed = {"breakComboLongNote", "miss", "missDelta"},
+			endPassed = {"success", "countLastMean", "hitDelta"},
 		},
 		startMissedPressed = {
-			endMissedPassed = {"success", "countLastMean"},
+			endMissedPassed = {"success", "countLastMean", "hitDelta"},
 			startMissed = "breakComboLongNote",
-			endMissed = {"breakComboLongNote", "miss"},
+			endMissed = {"breakComboLongNote", "miss", "missDelta"},
 		},
 		startMissed = {
 			startMissedPressed = nil,
-			endMissed = {"breakComboLongNote", "miss"},
+			endMissed = {"breakComboLongNote", "miss", "missDelta"},
 		},
 	},
 }

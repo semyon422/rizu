@@ -2,6 +2,7 @@ local class = require("class")
 local digest = require("digest")
 local valid = require("valid")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local TimingsDefiner = require("sea.timings.TimingsDefiner")
 local ComputeContext = require("sea.compute.ComputeContext")
 local ComputeRequest = require("sea.compute.ComputeRequest")
 local ComputeResult = require("sea.compute.ComputeResult")
@@ -13,10 +14,21 @@ local ReplayLoader = require("sea.replays.ReplayLoader")
 ---@operator call: sea.ReplayComputer
 local ReplayComputer = class()
 
+---Replays of older versions keep the windows their version computed for the same timings, and are judged with them.
+---@param timing_values sea.TimingValues
+---@param timings sea.Timings
+---@param subtimings sea.Subtimings?
+---@return boolean
+function ReplayComputer:isOlderPreset(timing_values, timings, subtimings)
+	local t, st = TimingsDefiner:match(timing_values)
+	return t ~= nil and t == timings and st == subtimings
+end
+
 ---@param request sea.ComputeRequest
 ---@param clock (fun(): number)?
 ---@return sea.ComputeResult?
 ---@return sea.ComputeFailure?
+---@return rizu.ScoreEngine? score_engine Of the replay, outside the result: the game stores its hits.
 function ReplayComputer:computeNoCatch(request, clock)
 	local ok, err = valid.format(ComputeRequest.validate(request))
 	if not ok then
@@ -67,7 +79,7 @@ function ReplayComputer:computeNoCatch(request, clock)
 		local timing_values = TimingValuesFactory:get(timings, chartplay.subtimings)
 		if not timing_values then
 			return nil, ComputeFailure.permanent("invalid_timings", "invalid timings-subtimings pair")
-		elseif not timing_values:equals(replay.timing_values) then
+		elseif not timing_values:equals(replay.timing_values) and not self:isOlderPreset(replay.timing_values, timings, chartplay.subtimings) then
 			return nil, ComputeFailure.permanent("timing_values_mismatch", "timing values differs")
 		end
 	end
@@ -117,19 +129,20 @@ function ReplayComputer:computeNoCatch(request, clock)
 	if not ok then
 		return nil, ComputeFailure.transient("invalid_result", err)
 	end
-	return result
+	return result, nil, ctx.score_engine
 end
 
 ---@param request sea.ComputeRequest
 ---@param clock (fun(): number)?
 ---@return sea.ComputeResult?
 ---@return sea.ComputeFailure?
+---@return rizu.ScoreEngine? score_engine See computeNoCatch().
 function ReplayComputer:compute(request, clock)
-	local ok, result, failure = xpcall(self.computeNoCatch, debug.traceback, self, request, clock)
+	local ok, result, failure, score_engine = xpcall(self.computeNoCatch, debug.traceback, self, request, clock)
 	if not ok then
 		return nil, ComputeFailure.transient("internal_error", tostring(result))
 	end
-	return result, failure
+	return result, failure, score_engine
 end
 
 return ReplayComputer

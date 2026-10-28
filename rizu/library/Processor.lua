@@ -7,6 +7,7 @@ local IidxFileCacheGenerator = require("rizu.library.iidx.FileCacheGenerator")
 local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
@@ -20,6 +21,7 @@ local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
+local HitsTask = require("rizu.library.tasks.HitsTask")
 local TaskContext = require("rizu.library.tasks.TaskContext")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local class = require("class")
@@ -91,7 +93,15 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 		ReplayComputer(),
 		ComputeVersion.current()
 	)
-	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, self.taskContext, timer)
+	local hitsRepo = ChartplayHitsRepo(self.db.models)
+	self.scoreTask = ScoreTask(self.chartsRepo, self.chartsComputer, hitsRepo, self.taskContext, timer)
+	self.hitsTask = HitsTask(
+		self.chartsRepo,
+		hitsRepo,
+		self.computeDataLoader,
+		self.taskContext,
+		timer
+	)
 	self.timer = timer
 end
 
@@ -259,6 +269,17 @@ end
 
 function Processor:computeChartplays()
 	self.scoreTask:computeAll()
+end
+
+---@param since integer?
+---@return boolean completed
+function Processor:recomputeChartplays(since)
+	return self.scoreTask:recomputeAll(since)
+end
+
+---@return boolean completed
+function Processor:computeMissingHits()
+	return self.hitsTask:computeMissing()
 end
 
 return Processor

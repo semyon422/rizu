@@ -39,7 +39,7 @@ function ManiaEngine:load()
 	self.active_input_notes:setInputMap(chart.inputMode:getInputMap())
 	self.logic_engine:load(chart)
 	self.visual_engine:load(chart)
-	self.score_engine:load(self.chartdiff)
+	self.score_engine:load(self.chartdiff, self.chartmeta.healths, chart)
 	self.pause_counter:new()
 
 	self.visual_info.logic_notes = self.logic_engine.linked_to_logic
@@ -49,7 +49,7 @@ end
 function ManiaEngine:hasResult()
 	local time_engine = self.time_engine
 	local base = self.score_engine.scores.base
-	local accuracy = self.score_engine.scores.normalscore.accuracyAdjusted
+	local accuracy = self.score_engine.scores.soundsphere.accuracyAdjusted
 
 	return
 		not time_engine.wind_up and
@@ -116,9 +116,14 @@ end
 
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
-function ManiaEngine:setTimings(timings, subtimings)
+---@param healths sea.Healths?
+---@param accuracy rizu.engine.scoring.Scoring? Counts the accuracy, judges and score instead of the timings' systems.
+function ManiaEngine:setTimings(timings, subtimings, healths, accuracy)
 	timings = assert(timings or self.chartmeta.timings)
-	self.score_engine:createByTimings(timings, subtimings, true)
+	self.score_engine:createByTimings(timings, subtimings, true, healths)
+	if accuracy then
+		self.score_engine:rescore(accuracy.timings, accuracy.subtimings)
+	end
 end
 
 ---@param timing_values sea.TimingValues

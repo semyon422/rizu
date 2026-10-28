@@ -42,15 +42,6 @@ function osu_pp.calc(score, stars, notes, od)
 	return (strain ^ 1.1 + acc ^ 1.1) ^ (1 / 1.1) * 0.8
 end
 
----@param score number [0, 1]
----@param stars number
----@param notes integer
----@return number
-function osu_pp.calc_no_acc(score, stars, notes)
-	score = math.min(math.max(score, 0), 1)
-	return osu_pp.strain(score, stars, notes) * 0.8
-end
-
 assert(osu_pp.calc(0.961285, 11.39, 6552, 7) == 1527.6101513841094857)
 
 return osu_pp

@@ -17,6 +17,10 @@ local UiActions = require("ui.UiActions")
 ---@field account_buttons gui.layout.FlowContainer
 ---@field register_button ui.screens.main_menu.MainMenuButton
 ---@field login_button ui.screens.main_menu.MainMenuButton
+---@field stats gui.layout.FlowContainer
+---@field stat_columns gui.layout.FlowContainer[]
+---@field pp_label ui.views.Label
+---@field msd_label ui.views.Label
 local MainMenu = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -34,6 +38,7 @@ function MainMenu:new(ui)
 	self:createContent()
 	self:createLogo()
 	self:createButtons()
+	self:createStats()
 	self:createWipNotice()
 end
 
@@ -43,6 +48,16 @@ function MainMenu:load()
 		self:updateOnlineStatus()
 	end)
 	self:updateOnlineStatus()
+	-- Coming back from a play loads the menu again, so its score is counted.
+	self.ui.api.scores:getTotalRatings(function(totals)
+		if not totals then return end
+		self.pp_label:setText(("%d"):format(totals.pp))
+		self.msd_label:setText(("%.2f"):format(totals.msd))
+		for _, column in ipairs(self.stat_columns) do
+			column:fitContent()
+		end
+		self.stats:fitContent()
+	end)
 end
 
 function MainMenu:unload()
@@ -202,6 +217,26 @@ end
 function MainMenu:createContent()
 	self.content = self.root:add(FlowContainer({direction = "column", gap = 28, align = 0.5}))
 	self.content:setAlignment(0.5, 0.45)
+end
+
+---The player's total ratings over their local scores, see rizu.api.Scores:getTotalRatings().
+function MainMenu:createStats()
+	self.stats = self.root:add(FlowContainer({direction = "column", gap = 20, align = 0}))
+	self.stat_columns = {}
+	---@param caption string
+	---@return ui.views.Label
+	local function addStat(caption)
+		local column = self.stats:add(FlowContainer({direction = "column", align = 0}))
+		table.insert(self.stat_columns, column)
+		local value = column:add(Label({font_name = "bold", font_size = 48, text = "-"}))
+		column:add(Label({font_name = "medium", font_size = 16, text = caption, color = Colors.muted}))
+		column:fitContent()
+		return value
+	end
+	self.pp_label = addStat("Local PP")
+	self.msd_label = addStat("Local MSD")
+	self.stats:fitContent()
+	self.stats:setAlignment(0, 0):addPosition(24, 52)
 end
 
 function MainMenu:createLogo()

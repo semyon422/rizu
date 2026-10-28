@@ -3,6 +3,7 @@ local thread = require("thread")
 local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 --[[
 How the last play of the selected chart went, or the score that `ui.api.scores:loadSelectedResult()`
@@ -80,14 +81,21 @@ function Result:getChartdiff() return self.game.computeContext.chartdiff --[[@as
 ---@return number
 function Result:getRate()
 	local score = getReplayedScore(self)
-	return score and score.rate or self.game.replayBase.rate
+	return score and score.rate or self.game.replayBaseConfigurator.rate
+end
+
+---@param self rizu.api.Result
+---@return (sea.ReplayBase|rizu.gameplay.ReplayBaseConfigurator)?
+local function getReplayBase(self)
+	local game = self.game ---@diagnostic disable-line: invisible
+	local result_controller = game.resultController
+	return result_controller.replay and result_controller.replay_base or game.replayBaseConfigurator
 end
 
 ---The mutators that changed the chart, in the order they were applied.
 ---@return rizu.api.Mutator[]
 function Result:getMutators()
-	local result_controller = self.game.resultController
-	local replay_base = result_controller.replay and result_controller.replay_base or self.game.replayBase
+	local replay_base = getReplayBase(self)
 	return replay_base and replay_base.modifiers or {}
 end
 
@@ -113,6 +121,12 @@ end
 function Result:getAccuracy()
 	local source = assert(self.game.rhythm_engine.score_engine.accuracySource)
 	return source:getAccuracy(), source:getAccuracyString()
+end
+
+---The gauge ended alive and high enough to count as a clear.
+---@return boolean
+function Result:isPassed()
+	return assert(self.game.rhythm_engine.score_engine.healthsSource):isPassed()
 end
 
 ---The judging system's own score, osu!mania's 1,000,000 for example.
@@ -141,7 +155,7 @@ end
 ---Accuracy the way Rizu counts it, whatever system judged the play.
 ---@return string? text "21.00ms". nil when it was not counted.
 function Result:getNormalscoreText()
-	local normalscore = self.game.rhythm_engine.score_engine.scores.normalscore
+	local normalscore = self.game.rhythm_engine.score_engine.scores.soundsphere
 	return normalscore and normalscore:getAccuracyString()
 end
 
@@ -196,13 +210,13 @@ function Result:getHits()
 	local key = judges_source and judges_source:getKey()
 	local hits = {} ---@type rizu.api.Result.Hit[]
 	for i, slice in ipairs(score_engine.sequence) do
-		local base, normalscore = slice.base, slice.normalscore or {}
+		local base, normalscore = slice.base, slice.soundsphere or {}
 		local judges = slice[key]
 		local is_hit = not base.isMiss and not base.isEarlyHit
 		hits[i] = {
 			time = base.currentTime,
 			kind = base.isMiss and "miss" or base.isEarlyHit and "early" or "hit",
-			delta = is_hit and slice.misc.deltaTime or 0,
+			delta = is_hit and base.deltaTime or 0,
 			judge = judges and (judges.visual_judge or judges.last_judge),
 			accuracy = normalscore.accuracyAdjusted or 0,
 			mean = base.lastMean or 0,
@@ -215,14 +229,11 @@ end
 -- Rescoring
 
 ---Systems rescore() takes. Their names are those of `rizu.api.Play.TimingSystem`.
----@type string[]
-local rescore_systems = {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"}
-
 ---@return string[]
-function Result:getRescoreSystems() return rescore_systems end
+function Result:getRescoreSystems() return TimingSystems.selectable end
 
 ---Counts the same play again with another scoring system. What was hit and when stays as played,
----only the judges, accuracy and score are worked out anew. Read the result again after it.
+---only the judges, accuracy and score are worked out anew, the gauge stays the play's. Read the result again after it.
 ---It is exact only between judges of Etterna or ranks of LR2, whose hit windows do not change
 ---with the value. Elsewhere notes that wider windows would catch stay misses.
 ---@param system string One of getRescoreSystems().

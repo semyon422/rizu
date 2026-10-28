@@ -2,7 +2,6 @@ local Gamemodes = require("rizu.gameplay.Gamemodes")
 local ReplayStore = require("rizu.gameplay.ReplayStore")
 local class = require("class")
 local GameplayChart = require("rizu.gameplay.GameplayChart")
-local GameplayTimings = require("rizu.gameplay.GameplayTimings")
 local RhythmEngineLoader = require("rizu.gameplay.RhythmEngineLoader")
 local GameplaySession = require("rizu.gameplay.GameplaySession")
 local ScoreSaver = require("rizu.gameplay.ScoreSaver")
@@ -15,10 +14,11 @@ local ScrollSpeed = require("rizu.gameplay.ScrollSpeed")
 ---@field playfield rizu.gameplay.Playfield
 ---@field load_state "empty"|"loading"|"ready"|"failed"
 ---@field load_error string?
----@field replay_base (rizu.gameplay.ReplayBase|sea.ReplayBase)? Of the replay being watched.
+---@field replay_base (rizu.gameplay.ReplayBase|sea.ReplayBase)? Of the play loaded or loading: the watched replay's, or a new one from the game's rizu.gameplay.ReplayBaseConfigurator.
 ---@field replay_chart {hash: string, index: integer}? Chart a local replay was loaded for.
 ---@field replay_stores {[sea.Gamemode]: rizu.gameplay.ReplayStore} For gamemodes that do not save scores.
 ---@field complete boolean? The attempt ended and waits on its summary.
+---@field fail_stopped boolean? The gauge died and the play stopped, it waits on retry or quit.
 ---@field gamemode rizu.gameplay.Gamemode Of the loaded chart.
 ---@field input rizu.gameplay.GamemodeInput
 ---@operator call: rizu.GameplayInteractor
@@ -45,7 +45,6 @@ function GameplayInteractor:new(game)
 		game.persistence.library,
 		game.persistence.configModel,
 		game.seaClient,
-		game.replayBase,
 		game.computeContext
 	)
 end
@@ -95,11 +94,11 @@ function GameplayInteractor:loadFileFinderPaths(paths)
 	end
 end
 
----The watched replay's base, or what is selected for a new play. May belong to another
----gamemode than the chart: each gamemode takes from it what it shares.
+---The base of the play being loaded. May belong to another gamemode than the chart: each gamemode takes
+---from it what it shares.
 ---@return rizu.gameplay.ReplayBase|sea.ReplayBase
 function GameplayInteractor:getPreparationBase()
-	return self.replay_base or self.game.replayBase
+	return assert(self.replay_base, "no play is loading")
 end
 
 ---@param chartview table
@@ -149,6 +148,10 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 	assert(game.remoteChartFiles:ensure(chartview))
 	if load_generation ~= self.load_generation then return false end
 
+	if not self.replaying then
+		self.replay_base = game.replayBaseConfigurator:createReplayBase(game.modifierCoordinator.state.inputMode)
+	end
+
 	local gameplay_chart = GameplayChart(game.settings, game.fs, chartview)
 	local data, context = gameplay_chart:prepareAsync()
 	if load_generation ~= self.load_generation then return false end
@@ -175,7 +178,7 @@ function GameplayInteractor:prepareGameplayAsync(chartview)
 		"Local replay does not match the selected chart.")
 
 	if not self.replaying and chartmeta.mode == "mania" then
-		GameplayTimings(game.settings, chartmeta):apply(game.replayBase)
+		game.replayBaseConfigurator:applyChart(preparation_base --[[@as sea.ReplayBase]], chartmeta)
 	end
 
 	assert(gamemode.saves_scores or not game.multiplayerModel.client:isInRoom(),
@@ -235,6 +238,7 @@ function GameplayInteractor:load(autoplay)
 	self.replay_saved = false
 	self.replay_status = nil
 	self.complete = false
+	self.fail_stopped = false
 
 	local play_type = "manual"
 	if self.replaying then
@@ -317,6 +321,7 @@ function GameplayInteractor:unloadGameplay()
 	-- Check this before skipping to the end: skip() advances the engine to
 	-- infinity so checking after it would make every partial play eligible.
 	local should_save_score = was_loaded and self:hasResult() and self:hasReachedScoreSaveTime()
+		and (not self:isFailed() or self.game.settings:getBoolean(Settings.keys.gameplay.continue_on_fail))
 	-- Invalidate loading and disable updates before teardown hooks can yield.
 	self.load_generation = self.load_generation + 1
 	self.loaded = false
@@ -329,6 +334,7 @@ function GameplayInteractor:unloadGameplay()
 	if was_loaded then
 		self:saveLocalReplay()
 	end
+	local replay_base = self.replay_base
 	self.replay_base = nil
 	self.replay_chart = nil
 	self.replaying = false
@@ -347,7 +353,7 @@ function GameplayInteractor:unloadGameplay()
 	end
 
 	if should_save_score then
-		self:saveScore()
+		self:saveScore(assert(replay_base) --[[@as sea.ReplayBase]])
 	end
 	self.gameplay_session = nil
 
@@ -379,6 +385,13 @@ function GameplayInteractor:update(dt, after_inputs)
 		game.pauseModel:update()
 		if game.pauseModel.needRetry then
 			self:retry()
+		elseif not self.fail_stopped and self:isFailed()
+			and not game.settings:getBoolean(Settings.keys.gameplay.continue_on_fail)
+			and not game.multiplayerModel.client:isInRoom()
+		then
+			self.fail_stopped = true
+			game.pauseModel:startProgress()
+			game.pauseModel:pause()
 		end
 	end
 
@@ -409,6 +422,14 @@ function GameplayInteractor:hasResult()
 	return self.gameplay_session and self.gameplay_session:hasResult() or false
 end
 
+---The gauge of a manual play is dead. Replays and autoplay play on.
+---@return boolean
+function GameplayInteractor:isFailed()
+	local session = self.gameplay_session
+	local score_engine = session and session.play_type == "manual" and session.rhythm_engine.score_engine
+	return score_engine and assert(score_engine.healthsSource):isFailed() or false
+end
+
 ---@return boolean
 function GameplayInteractor:hasReachedScoreSaveTime()
 	local re = self.game.rhythm_engine
@@ -427,8 +448,9 @@ function GameplayInteractor:hasReachedScoreSaveTime()
 		or false
 end
 
-function GameplayInteractor:saveScore()
-	self.score_saver:saveScore(self.gameplay_session)
+---@param replay_base sea.ReplayBase Of the play.
+function GameplayInteractor:saveScore(replay_base)
+	self.score_saver:saveScore(self.gameplay_session, replay_base)
 	self.game.chartSelector:updateLamps()
 end
 
@@ -444,7 +466,6 @@ end
 
 function GameplayInteractor:retry()
 	local game = self.game
-	local replayBase = game.replayBase
 
 	game.pauseModel:load()
 
@@ -461,7 +482,6 @@ function GameplayInteractor:retry()
 		error(err)
 	end
 
-	game.rhythm_engine:setTimings(replayBase.timings, replayBase.subtimings)
 	self:play()
 end
 
@@ -478,7 +498,7 @@ end
 ---@param state "play"|"pause"|"retry"
 function GameplayInteractor:changePlayState(state)
 	local game = self.game
-	if game.multiplayerModel.client:isInRoom() then
+	if game.multiplayerModel.client:isInRoom() or self.fail_stopped and state ~= "retry" then
 		return
 	end
 
@@ -493,7 +513,7 @@ end
 
 ---@param event table
 function GameplayInteractor:receive(event)
-	if self.complete then return end
+	if self.complete or self.fail_stopped then return end
 	local virtual_event = self.input:transform(event)
 	if virtual_event then
 		local time = self.gamemode.deferred_input and event.time or self.game.global_timer:getTime()

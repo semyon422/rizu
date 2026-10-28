@@ -1,4 +1,6 @@
 local Events = require("rizu.api.Events")
+local Scoring = require("rizu.engine.scoring.Scoring")
+local Timings = require("sea.chart.Timings")
 
 ---`rizu.api.Scores` with made-up scores, see that file for what each function does.
 ---@class rizu.api.fake.FakeScores : rizu.api.Events
@@ -48,7 +50,20 @@ end
 function FakeScores:select(index) self.selected = self.items[index] or self.selected end
 function FakeScores:getSelected() return self.selected end
 
+---The fake play config has no judging: the leaderboard shows normalscore.
+function FakeScores:getAccuracySystem() end
+
+---@param score rizu.api.Score
+function FakeScores:getAccuracy(score) return ("%0.02fms"):format(score.accuracy * 1000) end
+
+local normalscore = Scoring(Timings("sphere"))
+
+---@param score rizu.api.Score
+function FakeScores:getGrade(score) return normalscore:getGrade(score.accuracy), normalscore end
+
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
+function FakeScores:getTotalRatings(f) f({pp = 1234.5, msd = 25.3}) end
+
 function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end
 
 return FakeScores

@@ -114,6 +114,27 @@ function test.chartplays_full(t)
 end
 
 ---@param t testing.T
+function test.never_computed_chartplay_takes_base_from_replay(t)
+	local ctx = create_test_ctx()
+	local client = FakeClient(0.02, 100)
+	local sample = chart_samples[1]
+	local play = client:play(sample.name, sample.data, 1, 1, 0)
+	assert(ctx.chartplays:submit(ctx.user, 1, client.compute_data_provider, play.chartplay, play.chartdiff))
+
+	-- Like a score migrated from the old scores table.
+	local chartplay = ctx.chartplays:getChartplays()[1]
+	chartplay.judges = nil
+	chartplay.nearest = not chartplay.nearest
+	chartplay.timings = nil
+
+	t:assert(ctx.charts_computer:computeChartplay(chartplay))
+	t:eq(chartplay.compute_state, "valid")
+	t:eq(chartplay.nearest, play.chartplay.nearest)
+	t:tdeq(chartplay.timings, play.chartplay.timings)
+	t:tdeq(chartplay.judges, play.chartplay.judges)
+end
+
+---@param t testing.T
 function test.transient_compute_failure_remains_new(t)
 	local ctx = create_test_ctx()
 	local client = FakeClient(0.02, 100)

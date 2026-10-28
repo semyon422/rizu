@@ -105,7 +105,8 @@ function ModalManager:new(ui, popup_container)
 	ui.api.charts:on("selection_changed", function() self.input:receive() end)
 	self.modifiers = self:addModal(Modifiers(ui.api.play,
 		function() self:hideModal(self.modifiers) end, localization,
-		function() self:showModal(self.column_order) end))
+		function() self:showModal(self.column_order) end,
+		ui.api.scores))
 	self.column_order = self:addModal(ColumnOrder(ui.api.play,
 		function() self:showModal(self.modifiers) end, localization))
 	self.rescore = self:addModal(Rescore(ui.api.result,

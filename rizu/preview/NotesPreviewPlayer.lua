@@ -14,11 +14,11 @@ local NotesPreviewPlayer = class()
 
 ---@param settings rizu.config.Config
 ---@param previewModel rizu.preview.PreviewModel
----@param replayBase sea.ReplayBase
-function NotesPreviewPlayer:new(settings, previewModel, replayBase)
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
+function NotesPreviewPlayer:new(settings, previewModel, configurator)
 	self.settings = settings
 	self.previewModel = previewModel
-	self.replayBase = replayBase
+	self.configurator = configurator
 	self.column_map = {}
 	self.time = 0
 	self.rate = 1
@@ -27,7 +27,7 @@ end
 ---@param self rizu.preview.NotesPreviewPlayer
 local function updateColumnMap(self)
 	local columns = self.columns
-	local order = self.replayBase.columns_order
+	local order = self.configurator.columns_order
 	local map = {} ---@type integer[]
 	for i = 1, columns do
 		map[order and #order == columns and order[i] or i] = i
@@ -69,7 +69,7 @@ end
 
 function NotesPreviewPlayer:update()
 	-- The order is replaced, never changed in place, when the player swaps columns.
-	if self.notes and self.columns_order ~= self.replayBase.columns_order then
+	if self.notes and self.columns_order ~= self.configurator.columns_order then
 		updateColumnMap(self)
 	end
 	local keys = Settings.keys.gameplay

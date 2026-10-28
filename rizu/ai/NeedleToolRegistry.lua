@@ -239,18 +239,17 @@ function NeedleToolRegistry:snapshot()
 	---@type {[string]: rizu.command.Command?}
 	local option_commands = {
 		auto_timings = commands["play_config.set_auto_timings"],
-		nearest = commands["play_config.set_nearest"],
 		tap_only = commands["play_config.set_tap_only"],
 		const = commands["play_config.set_const"],
 		custom = commands["play_config.set_custom"],
 	}
-	if option_commands.auto_timings and option_commands.nearest and option_commands.tap_only and option_commands.const and option_commands.custom then
+	if option_commands.auto_timings and option_commands.tap_only and option_commands.const and option_commands.custom then
 		addTool(tools, by_name, {
 			name = "set_play_option",
 			description = "Enable or disable a gameplay option.",
 			routing_description = "gameplay option enable disable",
 			parameters = object({
-				option = stringEnum({"auto_timings", "nearest", "tap_only", "const", "custom"}, "Play option to change."),
+				option = stringEnum({"auto_timings", "tap_only", "const", "custom"}, "Play option to change."),
 				enabled = {type = "boolean", description = "Whether the option should be enabled."},
 			}, {"option", "enabled"}),
 			argument_order = {"option", "enabled"},

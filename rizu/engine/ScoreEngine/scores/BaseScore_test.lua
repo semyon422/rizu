@@ -7,7 +7,7 @@ local test = {}
 ---@return string
 local function hands(mode)
 	local score = BaseScore()
-	score:setInputMode(mode)
+	score:load({notes_count = 0, inputmode = mode})
 	local t = {}
 	for i, input in ipairs(InputMode(mode):getInputs()) do
 		t[i] = score.columnHands[input]:sub(1, 1)
@@ -25,7 +25,7 @@ end
 ---@param t testing.T
 function test.misses_are_counted_per_hand(t)
 	local score = BaseScore()
-	score:setInputMode("5key")
+	score:load({notes_count = 0, inputmode = "5key"})
 	for _, column in ipairs({"key1", "key3", "key5", "key5"}) do
 		score:miss({column = column})
 	end
@@ -39,7 +39,7 @@ end
 ---@param t testing.T
 function test.scratch_misses_are_separate(t)
 	local score = BaseScore()
-	score:setInputMode("7key1scratch")
+	score:load({notes_count = 0, inputmode = "7key1scratch"})
 	score:miss({column = "scratch1"})
 	local slice = score:getSlice()
 	t:eq(slice.scratchMissCount, 1)

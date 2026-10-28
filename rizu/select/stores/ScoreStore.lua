@@ -3,6 +3,8 @@ local erfunc = require("chart.scoring.erfunc")
 local class = require("class")
 local Observable = require("Observable")
 local Settings = require("rizu.config.Settings")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
+local Timings = require("sea.chart.Timings")
 
 ---@class rizu.select.stores.ScoreStore
 ---@operator call: rizu.select.stores.ScoreStore
@@ -47,6 +49,25 @@ end
 ---@param event rizu.select.ScoreStoreEvent
 function ScoreStore:emitChanged(event)
 	self.observable:send(event)
+end
+
+---The system the leaderboard of a chart shows accuracies in, the one that counts the accuracy of its plays,
+---see rizu.gameplay.ReplayBaseConfigurator.getAccuracyScoring(). Local scores of mania charts only, the server has no hits.
+---@param settings rizu.config.Config
+---@param chartview rizu.library.LocatedChartview?
+---@return rizu.engine.scoring.Scoring? scoring nil for normalscore, which chartplays.accuracy holds.
+function ScoreStore.getScoring(settings, chartview)
+	local s = Settings.keys.select
+	if not chartview or chartview.chartmeta_mode ~= "mania"
+		or not settings:getBoolean(s.rescore)
+		or settings:getChoice(s.score_source) ~= "local"
+	then
+		return
+	end
+	-- Chartviews come from the library thread as plain tables, without the Timings metatable.
+	local timings = chartview.chartmeta_timings
+	timings = timings and Timings(timings.name, timings.data)
+	return ReplayBaseConfigurator.getAccuracyScoring(settings, timings, chartview.format)
 end
 
 ---@param i integer
@@ -136,6 +157,21 @@ function ScoreStore:updateItemsAsync(chartview, score_scope, request_id)
 		chartplays = provider:getChartplaysForChartmeta(chartview)
 	else
 		error("unknown score scope: " .. tostring(score_scope))
+	end
+
+	-- See rizu.api.Scores:getAccuracy().
+	local scoring = ScoreStore.getScoring(self.settings, chartview --[[@as rizu.library.LocatedChartview]])
+	if scoring and not scoring:isNormalscore() and chartplays[1] then
+		---@type integer[]
+		local ids = {}
+		for i, chartplay in ipairs(chartplays) do
+			ids[i] = chartplay.id
+		end
+		local provider = self.localProvider --[[@as rizu.select.providers.LocalScoreProvider]]
+		local accuracies = provider:getAccuracies(ids, scoring:encode())
+		for _, chartplay in ipairs(chartplays) do
+			chartplay.rescored_accuracy = accuracies[chartplay.id]
+		end
 	end
 
 	if request_id ~= self.requestId then

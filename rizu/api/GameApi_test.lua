@@ -6,10 +6,9 @@ local Input = require("rizu.api.Input")
 local Skins = require("rizu.api.Skins")
 local OnlineClient = require("rizu.online.OnlineClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
-local TimingsModel = require("sphere.models.TimingsModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local GameApi = require("rizu.api.GameApi")
-local ReplayBase = require("sea.replays.ReplayBase")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
 local Settings = require("rizu.config.Settings")
 local FakeFilesystem = require("fs.FakeFilesystem")
 
@@ -67,20 +66,19 @@ end
 ---@return table game
 ---@return fun(): integer changes How many times the game was told the mods changed.
 local function createPlay()
-	local replay_base = ReplayBase()
 	local settings = Settings.createConfig(FakeFilesystem())
-	local select_model = ModifierSelectModel(replay_base)
+	local configurator = ReplayBaseConfigurator(settings)
+	local select_model = ModifierSelectModel(configurator)
 	local changed = 0
 	local change = select_model.change
 	select_model.change = function(self) changed = changed + 1; change(self) end
-	local time_rate_model = TimeRateModel(replay_base)
+	local time_rate_model = TimeRateModel(configurator)
 	-- The backend, not the API, tells the select model about a new rate.
 	time_rate_model:onChanged(function() select_model:change() end)
 	local game = {
-		replayBase = replay_base,
+		replayBaseConfigurator = configurator,
 		timeRateModel = time_rate_model,
 		modifierSelectModel = select_model,
-		timingsModel = TimingsModel(replay_base, settings, select_model),
 		gameplayInteractor = {replay_stores = {}},
 		chartSelector = {},
 		settings = settings,
@@ -118,7 +116,7 @@ function test.play_mods_and_judging(t)
 	play:setToggle("constant_scroll", true)
 	play:setToggle("taps_only", true)
 	t:eq(play:getToggle("constant_scroll"), true)
-	t:eq(game.replayBase.const, true)
+	t:eq(game.replayBaseConfigurator.const, true)
 	t:eq(play:getModCount(), 2)
 	t:eq(events, 2)
 	t:eq(changes(), 2)
@@ -126,26 +124,40 @@ function test.play_mods_and_judging(t)
 	t:eq(play:getToggle("auto_timings"), true)
 	play:setToggle("auto_timings", false)
 	t:eq(play:getToggle("auto_timings"), false)
-	t:eq(play:getTimingSystem(), "sphere")
-	t:assert(game.replayBase.timing_values)
-
-	play:setTimingSystem("osuod")
-	play:setTimingValue(9.699999)
 	t:eq(play:getTimingSystem(), "osuod")
-	t:eq(play:getTimingValue(), 9.7)
+	t:eq(play:getTimingValue(), 8)
+
+	play:setTimingValue(9.7)
 	t:eq(play:getOsuScoreVersion(), 1)
 	play:setOsuScoreVersion(2)
 	t:eq(play:getOsuScoreVersion(), 2)
-	t:eq(play:getTimingValue(), 9.7)
-	t:eq(game.replayBase.subtimings.data, 2)
 
 	play:setTimingSystem("etternaj")
 	play:setTimingValue(7)
-	t:eq(game.replayBase.subtimings, nil)
 	play:setTimingSystem("osuod")
 	t:eq(play:getTimingValue(), 9.7, "a system comes back with its last value")
-	play:setTimingSystem("etternaj")
-	t:eq(play:getTimingValue(), 7)
+	play:setTimingSystem("quaver")
+	t:eq(play:getTimingValue(), 0)
+	t:eq(events, 9)
+
+	-- Accuracy and gauge are picked apart from the hit windows.
+	play:setToggle("auto_accuracy", false)
+	play:setAccuracySystem("etternaj")
+	play:setAccuracyValue(6)
+	t:eq(play:getTimingSystem(), "quaver")
+	t:eq(play:getAccuracyValue(), 6)
+	t:eq(play:getAccuracyOsuScoreVersion(), 1)
+	t:eq(assert(ReplayBaseConfigurator.getPickedAccuracy(game.settings)):getName(), "Etterna J6")
+
+	play:setToggle("auto_healths", false)
+	t:eq(play:getGauge(), "simple")
+	play:setGauge("lr2")
+	play:setLr2Gauge(2)
+	t:eq(ReplayBaseConfigurator.getPickedHealths(game.settings), require("sea.chart.Healths")("lr2", 2))
+
+	play:setToggle("random_columns", true)
+	t:eq(play:getToggle("random_columns"), true)
+	t:eq(play:getModCount(), 2, "random columns does not count as a mod")
 end
 
 ---@param t testing.T
@@ -185,7 +197,7 @@ function test.play_mutators(t)
 
 	play:removeMutator(1)
 	t:eq(play:getMutatorCount(), count - 1)
-	t:eq(#game.replayBase.modifiers, count - 1)
+	t:eq(#game.replayBaseConfigurator.modifiers, count - 1)
 end
 
 ---@param t testing.T
@@ -228,15 +240,15 @@ function test.result(t)
 	local score_engine = {
 		scores = {},
 		sequence = {
-			{base = {currentTime = 1, lastMean = 0.01}, misc = {deltaTime = -0.02}, etterna = {last_judge = 1}},
-			{base = {currentTime = 2, isMiss = true}, misc = {}, etterna = {last_judge = 3}},
+			{base = {currentTime = 1, lastMean = 0.01, deltaTime = -0.02}, etterna = {last_judge = 1}},
+			{base = {currentTime = 2, isMiss = true}, etterna = {last_judge = 3}},
 		},
 	}
 	local game = {
 		rhythm_engine = {score_engine = score_engine, pause_counter = {count = 2}},
 		computeContext = {chartdiff = {judges_count = 3}, chartplay = {rate = 1.5, pause_count = 0}},
 		resultController = {},
-		replayBase = {rate = 1.2, modifiers = {{id = 1}}},
+		replayBaseConfigurator = {rate = 1.2, modifiers = {{id = 1}}},
 	}
 	local result = Result(game --[[@as any]])
 
@@ -263,8 +275,8 @@ end
 ---@param t testing.T
 function test.gameplay_score(t)
 	local sequence = {
-		{base = {isMiss = false, isEarlyHit = false}, misc = {deltaTime = -0.012}, osu = {visual_judge = 2}},
-		{base = {isMiss = true, isEarlyHit = false}, misc = {deltaTime = 0.2}},
+		{base = {isMiss = false, isEarlyHit = false, deltaTime = -0.012}, osu = {visual_judge = 2}},
+		{base = {isMiss = true, isEarlyHit = false, deltaTime = 0.2}},
 	}
 	local score_engine = {
 		scores = {base = {hitCount = 1, missCount = 1}},

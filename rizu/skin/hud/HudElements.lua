@@ -32,6 +32,8 @@ HudElements.register("combo", require("rizu.skin.hud.elements.Combo"))
 HudElements.register("judgement", require("rizu.skin.hud.elements.Judgement"))
 HudElements.register("osu_hit_error", require("rizu.skin.hud.elements.OsuHitError"))
 HudElements.register("osu_radial_progress", require("rizu.skin.hud.elements.OsuRadialProgress"))
+HudElements.register("iidx_gauge", require("rizu.skin.hud.elements.IidxGauge"))
+HudElements.register("osu_hp_bar", require("rizu.skin.hud.elements.OsuHpBar"))
 HudElements.register("sprite", require("rizu.skin.hud.elements.Sprite"))
 HudElements.register("box", require("rizu.skin.hud.elements.Box"))
 

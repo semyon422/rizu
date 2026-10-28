@@ -46,8 +46,8 @@ function TotalRating:calc(cpvs)
 			accuracy = accuracy + cp.accuracy
 			rating = rating + cp.rating
 			rating_msd = rating_msd + cp.rating_msd
-			chartmeta_level = rating_msd + (cp.chartmeta_level or 0)
-			difftable_level = rating_msd + (cp.difftable_level or 0)
+			chartmeta_level = chartmeta_level + (cp.chartmeta_level or 0)
+			difftable_level = difftable_level + (cp.difftable_level or 0)
 		end
 		rating_pp = rating_pp + cp.rating_pp * 0.95 ^ (i - 1)
 	end

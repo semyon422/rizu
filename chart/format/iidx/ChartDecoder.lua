@@ -148,9 +148,19 @@ local function get_column(side, lane)
 end
 
 ---@param event chart.iidx.Chart1Event
+---@return integer
+local function get_note_lane(event)
+	-- multi spin scratch segments are scratch holds flagged with lane 107, chained tail to head
+	if event.raw_lane == 107 then
+		return 7
+	end
+	return event.raw_lane
+end
+
+---@param event chart.iidx.Chart1Event
 ---@return boolean
 local function is_playable_note(event)
-	return (event.type == 0 or event.type == 1) and event.raw_lane <= 7
+	return (event.type == 0 or event.type == 1) and get_note_lane(event) <= 7
 end
 
 ---@param event chart.iidx.Chart1Event
@@ -356,13 +366,14 @@ function ChartDecoder:decodeSection(section, variation, song)
 			local side = get_side(event)
 			local start_measure = tick_to_measure(ticks, event.tick)
 			local point = layer:getPoint(start_measure)
-			local column = get_column(side, event.raw_lane)
+			local lane = get_note_lane(event)
+			local column = get_column(side, lane)
 			local note_type = event.value > 0 and "hold" or "tap"
 			local note = Note(visualColumns:getPoint(point, column), column, note_type, event.value > 0 and 1 or 0)
-			local queued_sounds = note_sounds[get_lane_sound_key(side, event.raw_lane)]
+			local queued_sounds = note_sounds[get_lane_sound_key(side, lane)]
 			---@type [string, number][]?
 			local sounds
-			local inherited_key = get_lane_sound_key(side, event.raw_lane)
+			local inherited_key = get_lane_sound_key(side, lane)
 			while queued_sounds and queued_sounds[1] and queued_sounds[1].tick <= event.tick do
 				local sound_event = table.remove(queued_sounds, 1)
 				sounds = sounds or {}

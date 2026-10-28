@@ -123,6 +123,11 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					form = form,
 					popup_container = popup_container,
 				}),
+				ControlFactory.boolean(settings, select_keys.rescore, {
+					name = localization:get("settings.rescore"),
+					keywords = {"song select", "scores", "accuracy", "timings", "leaderboard", "performance"},
+					tip = localization:get("settings.rescore_tip"),
+				}),
 				ControlFactory.boolean(settings, Settings.keys.misc.mute_on_unfocus, {
 					name = localization:get("settings.mute_on_unfocus"),
 					keywords = {"mute", "focus", "background", "audio", "volume"},

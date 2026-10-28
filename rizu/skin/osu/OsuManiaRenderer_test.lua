@@ -602,7 +602,7 @@ function test.old_hit_meter_and_judgement_keys_seed_the_default_layout(t)
 	t:eq(conveyor[3].y, -40)
 
 	config:set("mania", "4key", "hit_meter.mode", 2)
-	t:eq(#renderer:getDefaultHudLayout().conveyor, 2)
+	t:eq(#renderer:getDefaultHudLayout().conveyor, 3)
 
 	-- A saved layout wins over the defaults.
 	config:setHud("mania", "4key", {screen = {}, conveyor = {{type = "combo"}}})
@@ -793,7 +793,7 @@ function test.hud_editor_moves_elements_and_saves_the_layout(t)
 	renderer.reloadHud = function() reloads = reloads + 1 end
 
 	local sections = renderer:getHudSections()
-	t:eq(#sections, 6)
+	t:eq(#sections, 7)
 	local meter = find_section(sections, "conveyor:3")
 	t:eq(meter.label, "osu!stable hit error meter · Conveyor")
 	local meter_y = find_property(meter, "Y")
@@ -820,12 +820,12 @@ function test.hud_editor_moves_elements_and_saves_the_layout(t)
 	t:eq(reloads, 1) -- other textures
 
 	meter.remove()
-	t:eq(#renderer:getHudElements("conveyor"), 2)
-	t:eq(#config:getHud("mania", "4key").conveyor, 2)
+	t:eq(#renderer:getHudElements("conveyor"), 3)
+	t:eq(#config:getHud("mania", "4key").conveyor, 3)
 
 	local reloaded = OsuManiaRenderer(fake_game(FakeFilesystem()), nil, "4key", config)
 	reloaded:buildHud()
-	t:eq(#reloaded:getHudElements("conveyor"), 2)
+	t:eq(#reloaded:getHudElements("conveyor"), 3)
 	reloaded:unload()
 	renderer:unload()
 end

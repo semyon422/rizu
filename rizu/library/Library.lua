@@ -9,6 +9,9 @@ local Status = require("rizu.library.Status")
 local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
+local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local ScoreTask = require("rizu.library.tasks.ScoreTask")
+local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
 local RemoteCatalogLoader = require("rizu.library.RemoteCatalogLoader")
 require("rizu.library.views")
@@ -76,6 +79,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.chartviewsRepo = ChartviewsRepo(self.database.models)
 	self.locationsRepo = LocationsRepo(self.database.models)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
+	self.chartplayHitsRepo = ChartplayHitsRepo(self.database.models)
 
 	self.statusUpdate = Status(self.chartfilesRepo, self.chartsRepo)
 	self.collections = Collections(self.chartfilesRepo, self.locationsRepo)
@@ -110,10 +114,14 @@ function Library:load(db_path)
 
 	if self.is_sync then
 		self.worker = self:createAndLoadWorker(self.workingDirectory)
+		self.reader = self.worker
 	else
 		self.tr = ThreadRemote("rizu.library.Library", self)
 		self.tr.task_handler.timeout = 60 * 60 * 24
 		self.worker = self.tr:start(self.createAndLoadWorker, self.workingDirectory)
+		-- Reads on their own thread and connection: the worker answers only between the items of a task.
+		self.reader_tr = ThreadRemote("rizu.library.Library.reader", self)
+		self.reader = self.reader_tr:start(self.createAndLoadWorker, self.workingDirectory)
 	end
 end
 
@@ -144,8 +152,14 @@ function Library:unload()
 	if self.worker then
 		self.worker:unload()
 	end
+	if self.reader and self.reader ~= self.worker then
+		self.reader:unload()
+	end
 	if self.tr then
 		self.tr:stop()
+	end
+	if self.reader_tr then
+		self.reader_tr:stop()
 	end
 	self.database:unload()
 end
@@ -156,6 +170,10 @@ function Library:stopThread()
 	if self.tr then
 		self.tr:stopDetached()
 		self.tr = nil
+	end
+	if self.reader_tr then
+		self.reader_tr:stopDetached()
+		self.reader_tr = nil
 	end
 end
 
@@ -248,6 +266,52 @@ function Library:computeChartplays()
 	end)
 end
 
+---Computes every local chartplay again, also the ones computed long ago, and stores its hits.
+function Library:recomputeChartplays()
+	self:addTask(function()
+		self.worker:recomputeChartplays()
+	end)
+end
+
+---Computes every local chartplay again once per ScoreTask.version, in the background. A stopped run
+---goes on at the next start with the chartplays computed before the first run began.
+---@param settings rizu.config.Config
+function Library:updateScores(settings)
+	local keys = Settings.keys.scores
+	local version = ScoreTask.version
+	if settings:getNumber(keys.compute_version) == version then
+		return
+	end
+	local since = settings:getNumber(keys.recompute_since)
+	if since == 0 then
+		since = os.time()
+		settings:setNumber(keys.recompute_since, since)
+	end
+	self:addTask(function()
+		if self.worker:recomputeChartplays(since) then
+			settings:setNumber(keys.compute_version, version)
+			settings:setNumber(keys.recompute_since, 0)
+		end
+	end)
+end
+
+---Stores the hits of the local chartplays saved without them, see HitsTask. Once per
+---ChartplayHitsRepo.hits_version, so plays whose chart or replay is gone are not retried at every start.
+---@param settings rizu.config.Config
+function Library:updateHits(settings)
+	local key = Settings.keys.scores.hits_version
+	local version = ChartplayHitsRepo.hits_version
+	if settings:getNumber(key) == version then
+		return
+	end
+	self:addTask(function()
+		-- A stopped task leaves the rest to the next one.
+		if self.worker:computeMissingHits() then
+			settings:setNumber(key, version)
+		end
+	end)
+end
+
 function Library:stopTask()
 	self.worker:stopTask()
 end
@@ -270,10 +334,10 @@ end
 ---@param hashes string[]
 ---@return string[] hashes Of the given ones that are in the library.
 function Library:getKnownHashesAsync(hashes)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartfilesRepo:getKnownHashes(hashes)
 	end
-	return self.worker:getKnownHashes(hashes)
+	return self.reader:getKnownHashes(hashes)
 end
 
 ---Copies a downloaded remote catalog into the library. See `RemoteCatalogLoader.import`.
@@ -325,56 +389,77 @@ end
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:queryAsync(params)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:query()
 	end
-	return self.worker:query(params)
+	return self.reader:query(params)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@param chartview rizu.library.IChartviewBase
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult result
 function Library:getViewsAsync(params, chartview)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:getViews(chartview)
 	end
-	return self.worker:getViews(params, chartview)
+	return self.reader:getViews(params, chartview)
 end
 
 ---@param params rizu.library.ChartviewsRepo.QueryParams
 ---@param chartviews rizu.library.IChartviewBase[]
 ---@return (rizu.library.Chartview|false)[] result
 function Library:getChartviewsAsync(params, chartviews)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		self.chartviewsRepo.params = params
 		return self.chartviewsRepo:getChartviews(chartviews)
 	end
-	return self.worker:getChartviews(params, chartviews)
+	return self.reader:getChartviews(params, chartviews)
 end
 
 ---@param chartdiff_key sea.ChartdiffKey
 ---@return sea.Chartplay[]
 function Library:getChartplaysForChartdiffAsync(chartdiff_key)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartsRepo:getChartplaysForChartdiff(chartdiff_key)
 	end
-	return self.worker:getChartplaysForChartdiff(chartdiff_key)
+	return self.reader:getChartplaysForChartdiff(chartdiff_key)
 end
 
 ---@param chartmeta_key sea.ChartmetaKey
 ---@return sea.Chartplay[]
 function Library:getChartplaysForChartmetaAsync(chartmeta_key)
-	if self.is_sync or not self.worker then
+	if self.is_sync or not self.reader then
 		return self.chartsRepo:getChartplaysForChartmeta(chartmeta_key)
 	end
-	return self.worker:getChartplaysForChartmeta(chartmeta_key)
+	return self.reader:getChartplaysForChartmeta(chartmeta_key)
+end
+
+---See rizu.library.Worker:getTotalRatings(). Nil before the library is loaded.
+---@return {pp: number, msd: number}?
+function Library:getTotalRatingsAsync()
+	return self.reader and self.reader:getTotalRatings()
+end
+
+---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
+---@param ids integer[]
+---@param timings integer
+---@param subtimings integer
+---@return {[integer]: number}
+function Library:getAccuraciesAsync(ids, timings, subtimings)
+	if self.is_sync or not self.reader then
+		return self.chartplayHitsRepo:getAccuracies(ids, timings, subtimings)
+	end
+	return self.reader:getAccuracies(ids, timings, subtimings)
 end
 
 function Library:update()
 	if self.tr then
 		self.tr:update()
+	end
+	if self.reader_tr then
+		self.reader_tr:update()
 	end
 	if not self.isProcessing and #self.tasks > 0 then
 		self:process()

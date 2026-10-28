@@ -1,10 +1,12 @@
 local delay = require("delay")
 local ReplayBase = require("sea.replays.ReplayBase")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
 local ScoreSelector = require("rizu.select.ScoreSelector")
 local SelectionState = require("rizu.select.SelectionState")
 local ScoreStore = require("rizu.select.stores.ScoreStore")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
+local Timings = require("sea.chart.Timings")
 
 local test = {}
 
@@ -59,9 +61,8 @@ local function createConfigModel(secondary_mode)
 end
 
 ---@param secondary_mode rizu.library.ChartviewsRepo.Mode
----@param replayBase sea.ReplayBase
 ---@return rizu.select.TestScoreSelector
-local function createSelector(secondary_mode, replayBase)
+local function createSelector(secondary_mode)
 	local onlineModel = {
 		authManager = {
 			sea_client = {
@@ -71,13 +72,12 @@ local function createSelector(secondary_mode, replayBase)
 	}
 	local settings = Settings.createConfig(FakeFilesystem())
 	settings:setChoice(Settings.keys.select.secondary_mode, secondary_mode)
-	return ScoreSelector(createConfigModel(secondary_mode), settings, {}, onlineModel, replayBase, SelectionState()) --[[@as rizu.select.TestScoreSelector]]
+	return ScoreSelector(createConfigModel(secondary_mode), settings, {}, onlineModel, ReplayBaseConfigurator(settings), SelectionState()) --[[@as rizu.select.TestScoreSelector]]
 end
 
 ---@param t testing.T
 function test.build_selection_replay_base_delegates_to_applier(t)
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartdiffs", replayBase)
+	local selector = createSelector("chartdiffs")
 	local chartview = {hash = "h", index = 1}
 	local candidate = ReplayBase()
 	local applied = true
@@ -96,7 +96,7 @@ end
 
 ---@param t testing.T
 function test.chartview_changed_loads_scores(t)
-	local selector = createSelector("chartmetas", ReplayBase())
+	local selector = createSelector("chartmetas")
 	local chartview = {hash = "h", index = 1, chartdiff_id = 0}
 	local loaded_chartview
 	selector.store = {
@@ -115,8 +115,7 @@ function test.coarse_modes_load_chartmeta_scores(t)
 	---@type rizu.library.ChartviewsRepo.Mode[]
 	local modes = {"chartfile_sets", "chartfiles", "chartmetas"}
 	for _, mode in ipairs(modes) do
-		local replayBase = ReplayBase()
-		local selector = createSelector(mode, replayBase)
+		local selector = createSelector(mode)
 		---@type rizu.select.ScoreScope?
 		local scope
 		selector.store = {
@@ -136,8 +135,7 @@ function test.chartdiff_and_chartplay_modes_load_exact_chartdiff_scores(t)
 	---@type rizu.library.ChartviewsRepo.Mode[]
 	local modes = {"chartdiffs", "chartplays"}
 	for _, mode in ipairs(modes) do
-		local replayBase = ReplayBase()
-		local selector = createSelector(mode, replayBase)
+		local selector = createSelector(mode)
 		---@type rizu.select.ScoreScope?
 		local scope
 		selector.store = {
@@ -161,8 +159,7 @@ end
 
 ---@param t testing.T
 function test.chartdiff_score_visibility_requires_actual_chartdiff(t)
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartdiffs", replayBase)
+	local selector = createSelector("chartdiffs")
 	---@type rizu.select.ScoreScope|false
 	local scope = false
 	selector.store = {
@@ -239,12 +236,62 @@ function test.score_store_clears_incomplete_chartdiff_key(t)
 end
 
 ---@param t testing.T
+function test.score_store_rescores_local_scores_in_the_picked_system(t)
+	local settings = Settings.createConfig(FakeFilesystem())
+	---@type {[1]: integer[], [2]: integer, [3]: integer}[]
+	local calls = {}
+	local provider = {
+		getChartplaysForChartmeta = function()
+			return {{id = 1, accuracy = 0.02}, {id = 2, accuracy = 0.03}}
+		end,
+		getAccuracies = function(_, ids, timings, subtimings)
+			table.insert(calls, {ids, timings, subtimings})
+			return {[2] = 0.95}
+		end,
+	}
+	local store = ScoreStore(createConfigModel("chartmetas"), settings, provider, provider)
+	local chartview = {hash = "h", index = 1, chartmeta_mode = "mania", format = "sphere"}
+
+	-- Auto timings of a Rizu chart: normalscore, nothing to rescore.
+	store:updateItemsAsync(chartview, "chartmeta", 1)
+	t:eq(#calls, 0)
+
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, false)
+	store:updateItemsAsync(chartview, "chartmeta", 2)
+	t:tdeq(calls, {{{1, 2}, 2180, 1101}})
+	t:eq(store:get(1).rescored_accuracy, nil)
+	t:eq(store:get(2).rescored_accuracy, 0.95)
+
+	-- Auto timings of an osu! chart.
+	settings:setBoolean(Settings.keys.replay_base.auto_timings, true)
+	chartview.format = "osu"
+	store:updateItemsAsync(chartview, "chartmeta", 3)
+	t:eq(#calls, 2)
+
+	-- Its own timings, a plain table as chartviews come from the library thread.
+	chartview.chartmeta_timings = {name = "osuod", data = 8}
+	store:updateItemsAsync(chartview, "chartmeta", 4)
+	t:eq(#calls, 3)
+	t:eq(calls[3][2], Timings("osuod", 8):encode())
+
+	-- Turned off.
+	settings:setBoolean(Settings.keys.select.rescore, false)
+	store:updateItemsAsync(chartview, "chartmeta", 5)
+	t:eq(#calls, 3)
+	settings:setBoolean(Settings.keys.select.rescore, true)
+
+	-- The server has no hits.
+	settings:setChoice(Settings.keys.select.score_source, "online")
+	store:updateItemsAsync(chartview, "chartmeta", 6)
+	t:eq(#calls, 3)
+end
+
+---@param t testing.T
 function test.online_throttle_updates_immediately_and_keeps_latest_pending_chart(t)
 	local time = {0}
 	delay.set_timer(time)
 
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartmetas", replayBase)
+	local selector = createSelector("chartmetas")
 	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 
 	---@type string[]
@@ -285,8 +332,7 @@ function test.online_missing_chart_key_does_not_start_throttle(t)
 	local time = {0}
 	delay.set_timer(time)
 
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartmetas", replayBase)
+	local selector = createSelector("chartmetas")
 	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 
 	---@type string[]
@@ -319,8 +365,7 @@ function test.online_debounce_receive_does_not_block_event_dispatch(t)
 	local time = {0}
 	delay.set_timer(time)
 
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartmetas", replayBase)
+	local selector = createSelector("chartmetas")
 	selector.settings:setChoice(Settings.keys.select.score_source, "online")
 
 	---@type string[]
@@ -354,8 +399,7 @@ end
 
 ---@param t testing.T
 function test.score_items_event_is_forwarded_to_ui_observers(t)
-	local replayBase = ReplayBase()
-	local selector = createSelector("chartmetas", replayBase)
+	local selector = createSelector("chartmetas")
 	selector.store.items = {{id = 12, accuracy = 1}}
 
 	---@type rizu.select.ScoreSelectorEvent?

@@ -1,3 +1,4 @@
+local Timings = require("sea.chart.Timings")
 local Events = require("rizu.api.Events")
 
 ---`rizu.api.Charts` over a made-up library, see that file for what each function does.
@@ -34,7 +35,7 @@ function FakeCharts:new(sets_count)
 				name = names[j], creator = "fake",
 				inputmode = inputmodes[(i - 1) % #inputmodes + 1],
 				format = formats[(i - 1) % #formats + 1],
-				chartmeta_mode = "mania", mode = "mania",
+				chartmeta_mode = "mania", mode = "mania", chartmeta_timings = Timings("osuod", 8),
 				level = j * 3, duration = 90 + i % 120, notes_count = 400 * j + i,
 				tempo = 120 + i % 80, tempo_avg = 120 + i % 80, tempo_min = 120, tempo_max = 200,
 				long_notes_ratio = (i % 10) / 10,

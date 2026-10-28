@@ -16,21 +16,18 @@ local ScoreSaver = class()
 ---@param library rizu.library.Library
 ---@param configModel sphere.ConfigModel
 ---@param seaClient rizu.SeaClient
----@param replayBase sea.ReplayBase
 ---@param computeContext sea.ComputeContext
 function ScoreSaver:new(
 	fs,
 	library,
 	configModel,
 	seaClient,
-	replayBase,
 	computeContext
 )
 	self.fs = fs
 	self.library = library
 	self.configModel = configModel
 	self.seaClient = seaClient
-	self.replayBase = replayBase
 	self.computeContext = computeContext
 	self.submission_log = ScoreSubmissionLog(fs)
 
@@ -38,12 +35,12 @@ function ScoreSaver:new(
 end
 
 ---@param gameplay_session rizu.GameplaySession
-function ScoreSaver:saveScore(gameplay_session)
+---@param replayBase sea.ReplayBase Of the play.
+function ScoreSaver:saveScore(gameplay_session, replayBase)
 	local rhythm_engine = gameplay_session.rhythm_engine
 	assert(rhythm_engine.score_engine, "Experimental modes cannot save or submit scores")
 	local pause_counter = rhythm_engine.pause_counter
 	local scoreEngine = rhythm_engine.score_engine
-	local replayBase = self.replayBase
 	local computeContext = self.computeContext
 
 	local chartmeta = assert(computeContext.chartmeta)
@@ -66,7 +63,7 @@ function ScoreSaver:saveScore(gameplay_session)
 
 	local chartplay = Chartplay()
 
-	local cc_factory = ChartplayComputedFactory(chartdiff, computeContext.diffcalc_context, scoreEngine)
+	local cc_factory = ChartplayComputedFactory(chartdiff, computeContext.diffcalc_context, scoreEngine, chartmeta.timings)
 	local chartplay_computed = cc_factory:getChartplayComputed()
 
 	chartplay:importChartplayBase(replay)
@@ -89,6 +86,8 @@ function ScoreSaver:saveScore(gameplay_session)
 
 	local _chartplay = self.library.chartsRepo:createChartplay(chartplay)
 	computeContext.chartplay = _chartplay
+
+	self.library.chartplayHitsRepo:setHits(_chartplay.id, scoreEngine.chart_info, scoreEngine.events)
 
 	---@param event string
 	---@param fields {[string]: any}?
@@ -157,6 +156,11 @@ function ScoreSaver:saveScore(gameplay_session)
 	end
 
 	local function submit()
+		if assert(scoreEngine.healthsSource):isFailed() then
+			log("skipped", {reason = "failed"})
+			return
+		end
+
 		if not self.seaClient.connected then
 			log("skipped", {reason = "not_connected"})
 			return
