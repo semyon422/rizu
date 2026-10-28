@@ -62,6 +62,8 @@ local normalscore = Scoring(Timings("sphere"))
 function FakeScores:getGrade(score) return normalscore:getGrade(score.accuracy), normalscore end
 
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
+function FakeScores:getTotalRatings(f) f({pp = 1234.5, msd = 25.3}) end
+
 function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end
 
 return FakeScores

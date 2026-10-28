@@ -436,6 +436,12 @@ function Library:getChartplaysForChartmetaAsync(chartmeta_key)
 	return self.reader:getChartplaysForChartmeta(chartmeta_key)
 end
 
+---See rizu.library.Worker:getTotalRatings(). Nil before the library is loaded.
+---@return {pp: number, msd: number}?
+function Library:getTotalRatingsAsync()
+	return self.reader and self.reader:getTotalRatings()
+end
+
 ---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
 ---@param ids integer[]
 ---@param timings integer

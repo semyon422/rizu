@@ -131,6 +131,20 @@ function Scores:getGrade(score)
 	return accuracy and scoring:getGrade(accuracy), scoring
 end
 
+---The player's totals over their local scores: osu! PP, the weighted sum of the best play of each chart,
+---and Etterna MSD, the mean of the best 20. Worked out anew at each call, in the background: f gets nil
+---before the library is loaded.
+---@param f fun(totals: {pp: number, msd: number}?)
+function Scores:getTotalRatings(f)
+	thread.coro(function()
+		local ok, totals = pcall(self.selector.library.getTotalRatingsAsync, self.selector.library)
+		if not ok then
+			print("failed to get total ratings:", totals)
+		end
+		f(ok and totals or nil)
+	end)()
+end
+
 ---Replays the selected score in the background so the result screen can show it.
 ---f gets false when there is no selected score or its replay could not be loaded.
 ---@param f fun(ok: boolean, err: string?)
