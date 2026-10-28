@@ -50,6 +50,7 @@ function FakeMedia:getSpectrum() return nil end
 function FakeMedia:startPreview() self.active = true end
 function FakeMedia:stopPreview() self.active = false end
 function FakeMedia:isPreviewActive() return self.active end
+function FakeMedia:setPreviewModes(start_mode, end_action) end
 function FakeMedia:togglePreview() self.paused = not self.paused end
 function FakeMedia:isPaused() return self.paused end
 function FakeMedia:drawNotesPreview(width, height) end

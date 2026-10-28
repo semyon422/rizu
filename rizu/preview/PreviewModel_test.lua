@@ -274,4 +274,104 @@ function test.selection_changed_by_stop_observer_cannot_load_captured_media(t)
 	t:eq(model.loaded_audio_path, nil)
 end
 
+---@param t testing.T
+function test.no_selection_keeps_preview_active_for_the_next_chart(t)
+	local model = createPreviewModel()
+	model:load()
+	model:setAudioPathPreview(nil, nil, nil, nil)
+	t:eq(model.loader:loadPreview(), "empty")
+	t:eq(model.active, true)
+	model:setAudioPathPreview("song.ogg", 12, "absolute", {hash = "a"} --[[@as rizu.preview.PreviewChartview]])
+	t:eq(model.audio_path, "song.ogg")
+	model:stop()
+end
+
+---@param model rizu.preview.PreviewModel
+---@param min_time number
+---@param max_time number
+---@return {seeks: number[], position: number}
+local function playAudio(model, min_time, max_time)
+	---@type {seeks: number[], position: number}
+	local audio = {seeks = {}, position = 5}
+	local player = model.audioPreviewPlayer --[[@as table]]
+	player.getRange = function() return min_time, max_time end
+	player.getPosition = function() return audio.position end
+	---@param time number
+	player.seek = function(_, time)
+		audio.seeks[#audio.seeks + 1] = time
+		audio.position = time
+	end
+	model.bgaPreviewPlayer.seek = function() end
+	model.bgaPreviewPlayer.update = function() end
+	model.chartPreview.update = function() end
+	model.skinCache.update = function() end
+	model.audioPreviewPlayer.setVolume = function() end
+	model.audioPreviewPlayer.setRate = function() end
+	return audio
+end
+
+---@param t testing.T
+function test.start_mode_picks_the_first_position(t)
+	local model = createPreviewModel()
+	model:load()
+	model.preview_time = 5
+	local audio = playAudio(model, 1, 11)
+	model:update()
+	t:tdeq(audio.seeks, {})
+
+	model.initial_seek_done = false
+	model.settings:setBoolean(Settings.keys.select.random_preview_position, true)
+	model:update()
+	t:assert(audio.position >= 3 and audio.position <= 9)
+
+	model.initial_seek_done = false
+	model:setModes("start", "loop")
+	model:update()
+	t:eq(audio.position, 1)
+	model:stop()
+end
+
+---@param t testing.T
+function test.end_action_selects_a_random_chart_and_waits_for_it(t)
+	local model = createPreviewModel()
+	local moves = {true, false, false}
+	local scrolls = 0
+	---@type table
+	local chartSelector = {scrollRandom = function()
+		scrolls = scrolls + 1
+		return moves[scrolls]
+	end}
+	model.game.chartSelector = chartSelector
+	model:load()
+	model.initial_seek_done = true
+	local audio = playAudio(model, 0, 10)
+	local playing = false
+	model.audioPreviewPlayer.pause = function() playing = false end
+	model.audioPreviewPlayer.resume = function() playing = true end
+
+	model:update()
+	audio.position = 10
+	model:update()
+	t:eq(audio.position, 0)
+
+	model:setModes("start", "random_chart")
+	audio.position = 10
+	model:update()
+	model:update()
+	t:eq(scrolls, 1)
+	t:eq(model.waiting_next, true)
+	t:eq(playing, false)
+
+	-- The new chart has no audio: the next random jumps land on the same set, so it loops.
+	model.loader.media_state = "failed"
+	model:update()
+	t:eq(scrolls, 2)
+	t:eq(model.waiting_next, false)
+	model:update()
+	t:eq(audio.position, 0)
+	t:eq(playing, true)
+	t:eq(scrolls, 3)
+	model:stop()
+end
+
 return test

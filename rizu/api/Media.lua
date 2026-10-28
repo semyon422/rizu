@@ -75,6 +75,12 @@ function Media:stopPreview() self.preview:stop() end
 ---@return boolean
 function Media:isPreviewActive() return self.preview.active end
 
+---How the audio preview plays from the next chart on. Song select uses "chart", "loop", the default;
+---a music player "start", "random_chart".
+---@param start_mode rizu.preview.StartMode
+---@param end_action rizu.preview.EndAction
+function Media:setPreviewModes(start_mode, end_action) self.preview:setModes(start_mode, end_action) end
+
 ---Pauses the audio preview, or resumes it.
 function Media:togglePreview() self.preview:togglePause() end
 

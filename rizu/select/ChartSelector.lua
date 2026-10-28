@@ -386,17 +386,20 @@ function ChartSelector:getSecondaryResultMode()
 	return primary_mode
 end
 
+---@return boolean moved false when it landed on the selected set.
 function ChartSelector:scrollRandom()
 	local itemsCount = self.stores[1]:count()
 	local destination = math.random(1, itemsCount)
 	local from = self.state:getPrimary().index
 	self:scrollLevel(1, nil, destination)
-	if from > 0 and self.state:getPrimary().index ~= from then
+	local moved = self.state:getPrimary().index ~= from
+	if from > 0 and moved then
 		local history = self.random_history
 		history.last = history.last % RANDOM_HISTORY_SIZE + 1
 		history[history.last] = from
 		history.count = math.min(history.count + 1, RANDOM_HISTORY_SIZE)
 	end
+	return moved
 end
 
 ---Goes back to where the latest scrollRandom came from.
