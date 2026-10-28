@@ -214,10 +214,23 @@ function ColumnsOrder:bracketswap()
 	return self:transform(transforms.bracketswap)
 end
 
+---Shuffles only the keys, scratches and other inputs keep their columns.
 ---@param mode "left"|"right"?
 ---@return sea.ColumnsOrder
 function ColumnsOrder:random(mode)
-	return self:transform(transforms.random, {}, mode)
+	local inputMode = self.inputMode
+	---@cast inputMode +{[string]: integer}
+	local c = inputMode.key
+	if not c then
+		return self
+	end
+	local t = {}
+	---@type {[chart.Column]: chart.Column}
+	local map = {}
+	for i = 1, c do
+		map["key" .. i] = "key" .. transforms.random(c, i, t, mode)
+	end
+	return self:apply(map)
 end
 
 return ColumnsOrder

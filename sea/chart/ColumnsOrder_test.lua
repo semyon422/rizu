@@ -91,6 +91,12 @@ function test.random(t)
 	values = t:assert(ColumnsOrder("14key2scratch"):random("right"):export())
 	table.sort(values)
 	t:eq(table.concat(values), "12345678910111213141516")
+
+	for _ = 1, 20 do
+		local map = ColumnsOrder("14key2scratch"):random().map
+		t:eq(map.scratch1, "scratch1")
+		t:eq(map.scratch2, "scratch2")
+	end
 end
 
 ---@param t testing.T
