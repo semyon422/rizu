@@ -155,11 +155,6 @@ function test.retry_request_starts_one_fresh_attempt(t)
 				pauseModel = pause_model,
 				global_timer = {getTime = function() return 10 end},
 				multiplayerModel = {client = {isInRoom = function() return false end}},
-				replayBase = {timings = "simple", subtimings = "normal"},
-				rhythm_engine = {setTimings = function(_, timings, subtimings)
-					t:eq(timings, "simple")
-					t:eq(subtimings, "normal")
-				end},
 			},
 			load = function(self, autoplay)
 				t:eq(autoplay, true)
@@ -219,7 +214,7 @@ function test.local_replay_base_replaces_the_selection_without_touching_it(t)
 	source.modifiers = {{id = 1}}
 	local fs = FakeFilesystem()
 	local hash = ("a"):rep(32)
-	local interactor = setmetatable({game = {replayBase = source},
+	local interactor = setmetatable({replay_base = source,
 		replay_stores = {osu = ReplayStore(fs, Gamemodes.osu.ReplayBase)}}, {__index = GameplayInteractor})
 	t:eq(interactor:getPreparationBase(), source)
 	-- Mania modifiers do not reach another gamemode: only the rate is shared.
@@ -346,7 +341,9 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 	for _, state in ipairs({"loading", "failed", "ready"}) do
 		local calls = {playfield = 0, audio = 0, bga = 0, skip = 0, score = 0, playing = 0, lamps = 0}
 		local session = {hasResult = function() return true end}
+		local replay_base = ReplayBase()
 		local interactor = setmetatable({load_state = state, loaded = state == "ready", replay_stores = {},
+			replay_base = replay_base,
 			load_generation = 0, gameplay_session = session,
 			game = {
 				rhythm_engine = {
@@ -365,8 +362,9 @@ function test.unload_is_idempotent_for_loading_failed_and_ready_gameplay(t)
 					calls.playing = calls.playing + 1
 				end}},
 			},
-			score_saver = {saveScore = function(_, saved_session)
+			score_saver = {saveScore = function(_, saved_session, saved_base)
 				t:eq(saved_session, session)
+				t:eq(saved_base, replay_base, "the score keeps the base of its own play")
 				calls.score = calls.score + 1
 			end},
 		}, {__index = GameplayInteractor})
@@ -397,6 +395,7 @@ function test.partial_play_is_not_saved_until_chart_end(t)
 	local function make_interactor(time)
 		local saves = 0
 		local interactor = setmetatable({load_state = "ready", loaded = true, replay_stores = {},
+			replay_base = ReplayBase(),
 			load_generation = 0, gameplay_session = {hasResult = function() return true end},
 			game = {
 				rhythm_engine = {
@@ -451,6 +450,7 @@ function test.dead_gauge_stops_a_manual_play_and_is_not_saved(t)
 		pause_model:load()
 		local saves = 0
 		local interactor = setmetatable({load_state = "ready", loaded = true, replay_stores = {},
+			replay_base = ReplayBase(),
 			load_generation = 0, gamemode = Gamemodes.mania,
 			gameplay_session = {
 				play_type = play_type,

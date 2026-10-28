@@ -7,17 +7,14 @@ local MultiplayerController = class()
 ---@param multiplayerModel rizu.MultiplayerModel
 ---@param configModel sphere.ConfigModel
 ---@param chartSelector rizu.select.ChartSelector
----@param replayBase sea.ReplayBase
 function MultiplayerController:new(
 	multiplayerModel,
 	configModel,
-	chartSelector,
-	replayBase
+	chartSelector
 )
 	self.multiplayerModel = multiplayerModel
 	self.configModel = configModel
 	self.chartSelector = chartSelector
-	self.replayBase = replayBase
 end
 
 function MultiplayerController:load()

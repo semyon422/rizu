@@ -81,15 +81,15 @@ function Result:getChartdiff() return self.game.computeContext.chartdiff --[[@as
 ---@return number
 function Result:getRate()
 	local score = getReplayedScore(self)
-	return score and score.rate or self.game.replayBase.rate
+	return score and score.rate or self.game.replayBaseConfigurator.rate
 end
 
 ---@param self rizu.api.Result
----@return sea.ReplayBase?
+---@return (sea.ReplayBase|rizu.gameplay.ReplayBaseConfigurator)?
 local function getReplayBase(self)
 	local game = self.game ---@diagnostic disable-line: invisible
 	local result_controller = game.resultController
-	return result_controller.replay and result_controller.replay_base or game.replayBase
+	return result_controller.replay and result_controller.replay_base or game.replayBaseConfigurator
 end
 
 ---The mutators that changed the chart, in the order they were applied.
@@ -233,7 +233,7 @@ end
 function Result:getRescoreSystems() return TimingSystems.selectable end
 
 ---Counts the same play again with another scoring system. What was hit and when stays as played,
----only the judges, accuracy and score are worked out anew. Read the result again after it.
+---only the judges, accuracy and score are worked out anew, the gauge stays the play's. Read the result again after it.
 ---It is exact only between judges of Etterna or ranks of LR2, whose hit windows do not change
 ---with the value. Elsewhere notes that wider windows would catch stay misses.
 ---@param system string One of getRescoreSystems().
@@ -251,9 +251,7 @@ function Result:rescore(system, value, osu_score_version)
 		-- Slider arithmetic leaves values such as 7.7 just off the exact tenth Timings requires.
 		value = value and math.floor(value * 10 + 0.5) / 10
 	end
-	local replay_base = getReplayBase(self)
-	local healths = replay_base and replay_base.healths
-	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings, healths)
+	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings)
 end
 
 -- Leaving

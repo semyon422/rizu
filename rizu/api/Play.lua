@@ -27,9 +27,13 @@ How the next play will go: the music speed, the mods, the mutators, how hits are
 ---@alias rizu.api.Play.Toggle
 ---| "constant_scroll" # Notes fall at one speed, ignoring the chart's speed changes. Counts as a mod.
 ---| "taps_only" # Long notes become taps. Counts as a mod.
----| "auto_timings" # Each mania chart is judged the way its own format does, and the leaderboard shows normalscore.
+---| "auto_timings" # Each mania chart has the hit windows of its own format, and the leaderboard shows normalscore.
+---| "auto_healths" # The gauge is the one of the hit windows in use, with the chart's HP. Off: see setGauge().
+---| "auto_accuracy" # The accuracy, judges and score are counted by the system of the hit windows. Off: see setAccuracySystem().
+---| "random_columns" # Each play shuffles the columns anew. Does not count as a mod.
 
----How mania hits are judged when "auto_timings" is off, also the system the leaderboard rescores to.
+---A scoring system. Under "auto_timings" off it gives mania plays their hit windows, under "auto_accuracy" off
+---it counts their accuracy, judges and score. The leaderboard rescores to the one that counts the accuracy.
 ---Three of them take a value, see setTimingValue().
 ---@alias rizu.api.Play.TimingSystem
 ---| "sphere" # Rizu's own.
@@ -79,11 +83,11 @@ end
 
 ---How many times faster than normal the music plays: 1 is normal, 1.5 is one and a half times as fast.
 ---@return number
-function Play:getRate() return self.game.replayBase.rate end
+function Play:getRate() return self.game.replayBaseConfigurator.rate end
 
 ---"linear" counts the speed in multipliers (1.05x), "exp" in steps of a tenth of an octave (+1).
 ---@return sea.RateType
-function Play:getRateType() return self.game.replayBase.rate_type end
+function Play:getRateType() return self.game.replayBaseConfigurator.rate_type end
 
 ---@param steps integer 1 is one step faster, -1 one step slower.
 function Play:changeRate(steps)
@@ -106,7 +110,7 @@ end
 ---@return number step
 function Play:getRateValue()
 	local model = self.game.timeRateModel
-	local range = model.range[self.game.replayBase.rate_type]
+	local range = model.range[self.game.replayBaseConfigurator.rate_type]
 	return model:get(), range[1], range[2], range[3]
 end
 
@@ -128,28 +132,30 @@ local toggle_fields = {constant_scroll = "const", taps_only = "tap_only"}
 ---@param toggle rizu.api.Play.Toggle
 ---@return boolean
 function Play:getToggle(toggle)
-	if toggle == "auto_timings" then
-		return self.game.settings:getBoolean(Settings.keys.replay_base.auto_timings)
+	local key = Settings.keys.replay_base[toggle]
+	if key then
+		return self.game.settings:getBoolean(key)
 	end
-	return self.game.replayBase[toggle_fields[toggle]] and true or false
+	return self.game.replayBaseConfigurator[toggle_fields[toggle]] and true or false
 end
 
 ---@param toggle rizu.api.Play.Toggle
 ---@param on boolean
 function Play:setToggle(toggle, on)
-	if toggle == "auto_timings" then
-		self.game.settings:setBoolean(Settings.keys.replay_base.auto_timings, on)
+	local key = Settings.keys.replay_base[toggle]
+	if key then
+		self.game.settings:setBoolean(key, on)
 		return modsChanged(self)
 	end
-	self.game.replayBase[toggle_fields[toggle]] = on
+	self.game.replayBaseConfigurator[toggle_fields[toggle]] = on
 	modsChanged(self)
 end
 
 ---How many of the play options that count as mods are on (constant scroll, taps only).
 ---@return integer
 function Play:getModCount()
-	local replay_base = self.game.replayBase
-	return (replay_base.const and 1 or 0) + (replay_base.tap_only and 1 or 0)
+	local configurator = self.game.replayBaseConfigurator
+	return (configurator.const and 1 or 0) + (configurator.tap_only and 1 or 0)
 end
 
 -- Column order. Moves the chart's columns to other keys. Only for the selected chart's key count.
@@ -158,7 +164,7 @@ end
 ---@return integer[] order Empty when no chart is selected.
 function Play:getColumnOrder()
 	local inputMode = self.game.modifierCoordinator.state.inputMode
-	local order = self.game.replayBase.columns_order
+	local order = self.game.replayBaseConfigurator.columns_order
 	local columns = inputMode:getColumns()
 	local copy = {} ---@type integer[]
 	for i = 1, columns do
@@ -169,22 +175,22 @@ end
 
 ---@param order integer[]? A permutation of 1..#getColumnOrder(). nil puts every column back.
 function Play:setColumnOrder(order)
-	self.game.replayBase.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, order):export()
+	self.game.replayBaseConfigurator.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, order):export()
 	modsChanged(self)
 end
 
 ---@param side rizu.api.Play.ColumnSide? nil for every column.
 function Play:mirrorColumns(side)
-	local replay_base = self.game.replayBase
-	replay_base.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, replay_base.columns_order)
+	local configurator = self.game.replayBaseConfigurator
+	configurator.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, configurator.columns_order)
 		:mirror(side):export()
 	modsChanged(self)
 end
 
 ---@param side rizu.api.Play.ColumnSide? nil for every column.
 function Play:randomizeColumns(side)
-	local replay_base = self.game.replayBase
-	replay_base.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, replay_base.columns_order)
+	local configurator = self.game.replayBaseConfigurator
+	configurator.columns_order = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, configurator.columns_order)
 		:random(side):export()
 	modsChanged(self)
 end
@@ -193,7 +199,7 @@ end
 ---@return rizu.api.Play.ColumnOrderState state
 ---@return integer? shift How many keys to the right the columns moved, for "shift".
 function Play:getColumnOrderState()
-	local name = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, self.game.replayBase.columns_order)
+	local name = ColumnsOrder(self.game.modifierCoordinator.state.inputMode, self.game.replayBaseConfigurator.columns_order)
 		:getName()
 	if not name then
 		return "original"
@@ -226,11 +232,11 @@ end
 
 ---How many mutators will change the chart.
 ---@return integer
-function Play:getMutatorCount() return #self.game.modifierSelectModel.replayBase.modifiers end
+function Play:getMutatorCount() return #self.game.modifierSelectModel.configurator.modifiers end
 
 ---The same table until the list changes. Do not change it.
 ---@return rizu.api.Mutator[]
-function Play:getMutators() return self.game.modifierSelectModel.replayBase.modifiers --[[@as rizu.api.Mutator[] ]] end
+function Play:getMutators() return self.game.modifierSelectModel.configurator.modifiers --[[@as rizu.api.Mutator[] ]] end
 
 ---@param mutator rizu.api.Mutator
 ---@return string
@@ -287,24 +293,45 @@ end
 ---@return integer
 function Play:getMutatorPosition()
 	local model = self.game.modifierSelectModel
-	return math.max(1, math.min(model.modifierIndex, #model.replayBase.modifiers + 1))
+	return math.max(1, math.min(model.modifierIndex, #model.configurator.modifiers + 1))
 end
 
 ---@param position integer Clamped to 1..getMutatorCount() + 1.
 function Play:setMutatorPosition(position)
 	local model = self.game.modifierSelectModel
-	model.modifierIndex = math.max(1, math.min(position, #model.replayBase.modifiers + 1))
+	model.modifierIndex = math.max(1, math.min(position, #model.configurator.modifiers + 1))
 end
 
--- Judging. Used when "auto_timings" is off.
+-- Hit windows. Used when "auto_timings" is off. They are stored with the score: a replay hits notes with them.
 
 ---@return rizu.api.Play.TimingSystem[]
 function Play:getTimingSystems() return TimingSystems.selectable --[[@as rizu.api.Play.TimingSystem[] ]] end
 
+---@param self rizu.api.Play
+---@param keys {system: string, osu_score_version: string}
 ---@return rizu.api.Play.TimingSystem
-function Play:getTimingSystem()
-	return self.game.settings:getChoice(Settings.keys.timings.system) --[[@as rizu.api.Play.TimingSystem]]
+local function getSystem(self, keys)
+	return self.game.settings:getChoice(keys.system) --[[@as rizu.api.Play.TimingSystem]] ---@diagnostic disable-line: invisible
 end
+
+---@param self rizu.api.Play
+---@param keys {system: string, osu_score_version: string}
+---@return number
+local function getValue(self, keys)
+	local key = keys[getSystem(self, keys)] ---@type string?
+	return key and self.game.settings:getNumber(key) or 0 ---@diagnostic disable-line: invisible
+end
+
+---@param self rizu.api.Play
+---@param keys {system: string, osu_score_version: string}
+---@param value number
+local function setValue(self, keys, value)
+	self.game.settings:setNumber(assert(keys[getSystem(self, keys)], "the system takes no value"), value) ---@diagnostic disable-line: invisible
+	modsChanged(self)
+end
+
+---@return rizu.api.Play.TimingSystem
+function Play:getTimingSystem() return getSystem(self, Settings.keys.timings) end
 
 ---Switches the system. It comes back with the value it was last used with.
 ---@param system rizu.api.Play.TimingSystem
@@ -314,16 +341,10 @@ function Play:setTimingSystem(system)
 end
 
 ---@return number value 0 for systems that take none.
-function Play:getTimingValue()
-	local key = Settings.keys.timings[self:getTimingSystem()]
-	return key and self.game.settings:getNumber(key) or 0
-end
+function Play:getTimingValue() return getValue(self, Settings.keys.timings) end
 
 ---@param value number See rizu.api.Play.TimingSystem for what each system takes.
-function Play:setTimingValue(value)
-	self.game.settings:setNumber(assert(Settings.keys.timings[self:getTimingSystem()], "the system takes no value"), value)
-	modsChanged(self)
-end
+function Play:setTimingValue(value) setValue(self, Settings.keys.timings, value) end
 
 ---osu!mania's ScoreV1 or ScoreV2 hit windows. Only used by "osuod".
 ---@return 1|2
@@ -337,27 +358,103 @@ function Play:setOsuScoreVersion(version)
 	modsChanged(self)
 end
 
----Etterna's life difficulty. Only used by "etternaj".
+-- Accuracy. Used when "auto_accuracy" is off. Not stored with the score: the hits are counted again with it.
+
+---@return rizu.api.Play.TimingSystem
+function Play:getAccuracySystem() return getSystem(self, Settings.keys.accuracy) end
+
+---@param system rizu.api.Play.TimingSystem
+function Play:setAccuracySystem(system)
+	self.game.settings:setChoice(Settings.keys.accuracy.system, system)
+	modsChanged(self)
+end
+
+---@return number value 0 for systems that take none.
+function Play:getAccuracyValue() return getValue(self, Settings.keys.accuracy) end
+
+---@param value number See rizu.api.Play.TimingSystem for what each system takes.
+function Play:setAccuracyValue(value) setValue(self, Settings.keys.accuracy, value) end
+
+---osu!mania's ScoreV1 or ScoreV2 accuracy. Only used by "osuod".
+---@return 1|2
+function Play:getAccuracyOsuScoreVersion()
+	return self.game.settings:getNumber(Settings.keys.accuracy.osu_score_version) --[[@as 1|2]]
+end
+
+---@param version 1|2
+function Play:setAccuracyOsuScoreVersion(version)
+	self.game.settings:setNumber(Settings.keys.accuracy.osu_score_version, version)
+	modsChanged(self)
+end
+
+-- Gauge. Used when "auto_healths" is off, with any hit windows. Stored with the score: it decides the pass.
+
+---@alias rizu.api.Play.Gauge
+---| "simple" # osu!mania's HP drain, see setOsuHp().
+---| "etterna" # Etterna's life, see setEtternaLife().
+---| "lr2" # Lunatic Rave 2's gauges, see setLr2Gauge().
+---| "iidx" # beatmania IIDX's gauges, see setIidxGauge().
+
+---@return rizu.api.Play.Gauge[]
+function Play:getGauges() return {"simple", "etterna", "lr2", "iidx"} end
+
+---@return rizu.api.Play.Gauge
+function Play:getGauge()
+	return self.game.settings:getChoice(Settings.keys.healths.system) --[[@as rizu.api.Play.Gauge]]
+end
+
+---Switches the gauge. It comes back with the setting it was last used with.
+---@param gauge rizu.api.Play.Gauge
+function Play:setGauge(gauge)
+	self.game.settings:setChoice(Settings.keys.healths.system, gauge)
+	modsChanged(self)
+end
+
+---osu!mania's HP drain rate. Only used by "simple".
+---@return number hp 0..10 in steps of 0.1.
+function Play:getOsuHp()
+	return self.game.settings:getNumber(Settings.keys.healths.osu_hp)
+end
+
+---@param hp number
+function Play:setOsuHp(hp)
+	self.game.settings:setNumber(Settings.keys.healths.osu_hp, hp)
+	modsChanged(self)
+end
+
+---Etterna's life difficulty. Only used by "etterna".
 ---@return integer level 1 is the easiest, 7 the hardest, 4 is Etterna's default.
 function Play:getEtternaLife()
-	return self.game.settings:getNumber(Settings.keys.timings.etterna_life)
+	return self.game.settings:getNumber(Settings.keys.healths.etterna_life)
 end
 
 ---@param level integer
 function Play:setEtternaLife(level)
-	self.game.settings:setNumber(Settings.keys.timings.etterna_life, level)
+	self.game.settings:setNumber(Settings.keys.healths.etterna_life, level)
 	modsChanged(self)
 end
 
----Lunatic Rave 2's gauge. Only used by "bmsrank".
+---Lunatic Rave 2's gauge. Only used by "lr2".
 ---@return integer gauge 0 groove, 1 easy, 2 hard, 3 hazard.
 function Play:getLr2Gauge()
-	return self.game.settings:getNumber(Settings.keys.timings.lr2_gauge)
+	return self.game.settings:getNumber(Settings.keys.healths.lr2_gauge)
 end
 
 ---@param gauge integer
 function Play:setLr2Gauge(gauge)
-	self.game.settings:setNumber(Settings.keys.timings.lr2_gauge, gauge)
+	self.game.settings:setNumber(Settings.keys.healths.lr2_gauge, gauge)
+	modsChanged(self)
+end
+
+---beatmania IIDX's gauge. Only used by "iidx".
+---@return integer gauge 0 assist easy, 1 easy, 2 normal, 3 hard, 4 ex-hard.
+function Play:getIidxGauge()
+	return self.game.settings:getNumber(Settings.keys.healths.iidx_gauge)
+end
+
+---@param gauge integer
+function Play:setIidxGauge(gauge)
+	self.game.settings:setNumber(Settings.keys.healths.iidx_gauge, gauge)
 	modsChanged(self)
 end
 

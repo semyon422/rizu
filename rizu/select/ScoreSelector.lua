@@ -20,21 +20,20 @@ local ScoreSelector = class()
 ---@param settings rizu.config.Config
 ---@param library rizu.library.Library
 ---@param onlineModel rizu.OnlineModel
----@param replayBase sea.ReplayBase
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
 ---@param state rizu.select.SelectionState
-function ScoreSelector:new(configModel, settings, library, onlineModel, replayBase, state)
+function ScoreSelector:new(configModel, settings, library, onlineModel, configurator, state)
 	self.configModel = configModel
 	self.settings = settings
 	self.library = library
 	self.onlineModel = onlineModel
-	self.replayBase = replayBase
 	self.state = state
 
 	local localProvider = LocalScoreProvider(library)
 	local onlineProvider = OnlineScoreProvider(onlineModel)
 	self.store = ScoreStore(configModel, settings, localProvider, onlineProvider)
 	self.store:onChanged(self)
-	self.replayBaseApplier = SelectionReplayBaseApplier(settings, replayBase)
+	self.replayBaseApplier = SelectionReplayBaseApplier(settings, configurator)
 	self.scoreFilterSubscription = settings:subscribeChoice(Settings.keys.select.score_filter, function()
 		self:pullScore()
 	end)

@@ -20,7 +20,8 @@ local Subtimings = require("sea.chart.Subtimings")
 ---@field combo integer
 ---@field judged integer
 ---@field combo_portion number
----@field hp number HPDrainRate of the chart.
+---@field hp number HPDrainRate of the chart, or of play_healths.
+---@field play_healths sea.Healths? The HP picked for the play.
 ---@field hp_multiplier number
 ---@field judges integer Judgements of the whole chart, a long note has two.
 ---@field max_combo_portion number
@@ -130,8 +131,10 @@ local function computeHpMultiplier(objects, hp)
 end
 
 ---@param od number
-function OsuManiaV2Score:new(od)
+---@param healths sea.Healths? The HP picked for the play, replaces the chart's own.
+function OsuManiaV2Score:new(od, healths)
 	self.timings = Timings("osuod", od)
+	self.play_healths = healths
 	self.subtimings = Subtimings("scorev", 2)
 
 	self.od = od
@@ -159,7 +162,7 @@ end
 ---@param info rizu.ScoreSystem.ChartInfo
 function OsuManiaV2Score:loadChart(info)
 	ScoreSystem.loadChart(self, info)
-	self.hp = osu_hp.getDrainRate(info.healths)
+	self.hp = osu_hp.getDrainRate(self.play_healths or info.healths)
 	self.hp_multiplier = computeHpMultiplier(osu_hp.getObjects(info.chart), self.hp)
 end
 
@@ -238,7 +241,7 @@ end
 
 ---@return string
 function OsuManiaV2Score:getKey()
-	return "osu_mania_v2_od" .. self.od
+	return "osu_mania_v2_od" .. self.od .. (self.play_healths and "_hp" .. self.play_healths.data or "")
 end
 
 ---@param event rizu.LogicNoteChange

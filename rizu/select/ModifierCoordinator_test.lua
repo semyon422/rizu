@@ -1,4 +1,7 @@
 local ReplayBase = require("sea.replays.ReplayBase")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
+local Settings = require("rizu.config.Settings")
+local FakeFilesystem = require("fs.FakeFilesystem")
 local ModifierCoordinator = require("rizu.select.ModifierCoordinator")
 
 local test = {}
@@ -47,8 +50,8 @@ local function createCoordinator(chartview, calls, is_changed, candidateReplayBa
 			end,
 		},
 	}
-	local replayBase = ReplayBase()
-	replayBase.columns_order = {1, 2, 3, 4}
+	local configurator = ReplayBaseConfigurator(Settings.createConfig(FakeFilesystem()))
+	configurator.columns_order = {1, 2, 3, 4}
 	local previewModel = {
 		setRate = function(_, rate)
 			table.insert(calls, "preview-rate:" .. tostring(rate))
@@ -61,7 +64,7 @@ local function createCoordinator(chartview, calls, is_changed, candidateReplayBa
 		modifierSelectModel,
 		modifierConfigPersistence,
 		multiplayerModel,
-		replayBase,
+		configurator,
 		previewModel
 	)
 end
@@ -70,7 +73,7 @@ end
 function test.provisional_chartview_keeps_the_column_order(t)
 	local calls = {}
 	local coordinator = createCoordinator({chartfile_id = 1}, calls)
-	coordinator.replayBase.columns_order = {2, 1, 3, 4}
+	coordinator.configurator.columns_order = {2, 1, 3, 4}
 
 	t:has_not_error(function()
 		coordinator:applyModifierMeta(true)
@@ -78,7 +81,7 @@ function test.provisional_chartview_keeps_the_column_order(t)
 	end)
 
 	t:tdeq(calls, {})
-	t:tdeq(coordinator.replayBase.columns_order, {2, 1, 3, 4})
+	t:tdeq(coordinator.configurator.columns_order, {2, 1, 3, 4})
 end
 
 ---@param t testing.T
@@ -92,7 +95,7 @@ function test.playable_chartview_applies_modifier_meta(t)
 		"selection-replay-base",
 		"preview-rate:1.25",
 	})
-	t:eq(coordinator.replayBase.rate, 1.25)
+	t:eq(coordinator.configurator.rate, 1.25)
 end
 
 ---@param t testing.T
@@ -131,7 +134,7 @@ function test.selection_candidate_is_validated_before_global_import(t)
 	coordinator:applySelectionModifierMeta()
 
 	t:eq(candidateReplayBase.columns_order, nil)
-	t:eq(coordinator.replayBase.columns_order, nil)
+	t:eq(coordinator.configurator.columns_order, nil)
 end
 
 ---@param t testing.T
@@ -153,7 +156,7 @@ end
 function test.unload_uses_config_persistence(t)
 	local calls = {}
 	local coordinator = createCoordinator({inputmode = "4key"}, calls)
-	coordinator.replayBase.rate = 1.75
+	coordinator.configurator.rate = 1.75
 
 	coordinator:unload()
 

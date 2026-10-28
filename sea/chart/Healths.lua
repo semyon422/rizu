@@ -6,6 +6,7 @@ local class = require("class")
 ---| "etterna"
 ---| "lr2"
 ---| "bmstotal"
+---| "iidx"
 
 ---@class sea.Healths
 ---@operator call: sea.Healths
@@ -36,6 +37,8 @@ function Healths:validate()
 		return v >= 0 and v <= 3 and v == math.floor(v) -- gauge
 	elseif n == "bmstotal" then
 		return v >= 0 and v <= 90000 and v == math.floor(v) -- #TOTAL of the chart
+	elseif n == "iidx" then
+		return v >= 0 and v <= 4 and v == math.floor(v) -- gauge
 	end
 
 	return false
@@ -52,6 +55,8 @@ function Healths.decode(v)
 		return Healths("etterna", v - 200)
 	elseif v >= 300 and v <= 303 then
 		return Healths("lr2", v - 300)
+	elseif v >= 400 and v <= 404 then
+		return Healths("iidx", v - 400)
 	elseif v >= 10000 and v <= 100000 then
 		return Healths("bmstotal", v - 10000)
 	end
@@ -70,6 +75,8 @@ function Healths.encode(t)
 		return 200 + v
 	elseif t.name == "lr2" then
 		return 300 + v
+	elseif t.name == "iidx" then
+		return 400 + v
 	elseif t.name == "bmstotal" then
 		return 10000 + v
 	end

@@ -12,7 +12,7 @@ local ModifierCoordinator = class()
 ---@param modifierSelectModel sphere.ModifierSelectModel
 ---@param modifierConfigPersistence rizu.select.IModifierConfigPersistence
 ---@param multiplayerModel rizu.MultiplayerModel
----@param replayBase sea.ReplayBase
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
 ---@param previewModel rizu.preview.PreviewModel
 function ModifierCoordinator:new(
 	chartSelector,
@@ -20,7 +20,7 @@ function ModifierCoordinator:new(
 	modifierSelectModel,
 	modifierConfigPersistence,
 	multiplayerModel,
-	replayBase,
+	configurator,
 	previewModel
 )
 	self.chartSelector = chartSelector
@@ -28,21 +28,21 @@ function ModifierCoordinator:new(
 	self.modifierSelectModel = modifierSelectModel
 	self.modifierConfigPersistence = modifierConfigPersistence
 	self.multiplayerModel = multiplayerModel
-	self.replayBase = replayBase
+	self.configurator = configurator
 	self.previewModel = previewModel
 	
 	self.state = ModifiersMetaState()
 end
 
 function ModifierCoordinator:load()
-	self.modifierConfigPersistence:loadReplayBase(self.replayBase)
+	self.modifierConfigPersistence:loadReplayBase(self.configurator)
 	self.modifierSelectModel:updateAdded()
 	
 	self:applySelectionModifierMeta()
 end
 
 function ModifierCoordinator:unload()
-	self.modifierConfigPersistence:saveReplayBase(self.replayBase)
+	self.modifierConfigPersistence:saveReplayBase(self.configurator)
 end
 
 function ModifierCoordinator:applySelectionModifierMeta()
@@ -54,7 +54,7 @@ function ModifierCoordinator:applySelectionModifierMeta()
 
 	local replayBase = self.scoreSelector:buildSelectionReplayBase(chartview)
 	self:applyModifierMetaToReplayBase(replayBase, chartview)
-	self.replayBase:importReplayBase(replayBase)
+	self.configurator:importReplayBase(replayBase)
 end
 
 function ModifierCoordinator:applyManualModifierMeta()
@@ -76,10 +76,10 @@ function ModifierCoordinator:applyModifierMetaToCurrentReplayBase()
 		return
 	end
 
-	self:applyModifierMetaToReplayBase(self.replayBase, chartview)
+	self:applyModifierMetaToReplayBase(self.configurator, chartview)
 end
 
----@param replayBase sea.ReplayBase
+---@param replayBase sea.ReplayBase|rizu.gameplay.ReplayBaseConfigurator
 ---@param chartview rizu.library.LocatedChartview
 function ModifierCoordinator:applyModifierMetaToReplayBase(replayBase, chartview)
 	self.state.inputMode = InputMode()

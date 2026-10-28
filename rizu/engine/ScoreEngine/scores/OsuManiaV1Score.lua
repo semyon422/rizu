@@ -18,7 +18,8 @@ local osu_hp = require("rizu.engine.ScoreEngine.scores.osu_hp")
 ---@class rizu.OsuManiaV1Score: rizu.ScoreSystem, rizu.IAccuracySource, rizu.IScoreSource, rizu.SimpleJudgesSource, rizu.IHealthsSource
 ---@operator call: rizu.OsuManiaV1Score
 ---@field health number 0..200
----@field hp number HPDrainRate of the chart.
+---@field hp number HPDrainRate of the chart, or of play_healths.
+---@field play_healths sea.Healths? The HP picked for the play.
 ---@field hp_multiplier number
 local OsuManiaV1Score = ScoreSystem + IAccuracySource + IScoreSource + SimpleJudgesSource + IHealthsSource
 
@@ -113,8 +114,10 @@ local function computeHpMultiplier(objects, hp)
 end
 
 ---@param od number
-function OsuManiaV1Score:new(od)
+---@param healths sea.Healths? The HP picked for the play, replaces the chart's own.
+function OsuManiaV1Score:new(od, healths)
 	self.timings = Timings("osuod", od)
+	self.play_healths = healths
 	self.subtimings = Subtimings("scorev", 1)
 
 	self.od = od
@@ -177,13 +180,13 @@ end
 ---@param info rizu.ScoreSystem.ChartInfo
 function OsuManiaV1Score:loadChart(info)
 	ScoreSystem.loadChart(self, info)
-	self.hp = osu_hp.getDrainRate(info.healths)
+	self.hp = osu_hp.getDrainRate(self.play_healths or info.healths)
 	self.hp_multiplier = computeHpMultiplier(osu_hp.getObjects(info.chart), self.hp)
 end
 
 ---@return string
 function OsuManiaV1Score:getKey()
-	return "osu_mania_v1_od" .. self.od
+	return "osu_mania_v1_od" .. self.od .. (self.play_healths and "_hp" .. self.play_healths.data or "")
 end
 
 ---@param index integer

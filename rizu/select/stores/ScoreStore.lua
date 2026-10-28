@@ -3,9 +3,7 @@ local erfunc = require("chart.scoring.erfunc")
 local class = require("class")
 local Observable = require("Observable")
 local Settings = require("rizu.config.Settings")
-local GameplayTimings = require("rizu.gameplay.GameplayTimings")
-local Scoring = require("rizu.engine.scoring.Scoring")
-local TimingSystems = require("rizu.engine.scoring.TimingSystems")
+local ReplayBaseConfigurator = require("rizu.gameplay.ReplayBaseConfigurator")
 local Timings = require("sea.chart.Timings")
 
 ---@class rizu.select.stores.ScoreStore
@@ -53,8 +51,8 @@ function ScoreStore:emitChanged(event)
 	self.observable:send(event)
 end
 
----The system the leaderboard of a chart shows accuracies in: the one picked in the play config,
----or the chart's auto timings. Local scores of mania charts only, the server has no hits.
+---The system the leaderboard of a chart shows accuracies in, the one that counts the accuracy of its plays,
+---see rizu.gameplay.ReplayBaseConfigurator.getAccuracyScoring(). Local scores of mania charts only, the server has no hits.
 ---@param settings rizu.config.Config
 ---@param chartview rizu.library.LocatedChartview?
 ---@return rizu.engine.scoring.Scoring? scoring nil for normalscore, which chartplays.accuracy holds.
@@ -69,8 +67,7 @@ function ScoreStore.getScoring(settings, chartview)
 	-- Chartviews come from the library thread as plain tables, without the Timings metatable.
 	local timings = chartview.chartmeta_timings
 	timings = timings and Timings(timings.name, timings.data)
-	return GameplayTimings.getPicked(settings)
-		or Scoring(TimingSystems.getAuto(timings, chartview.format))
+	return ReplayBaseConfigurator.getAccuracyScoring(settings, timings, chartview.format)
 end
 
 ---@param i integer

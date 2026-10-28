@@ -9,6 +9,7 @@ local IidxScore = require("rizu.engine.ScoreEngine.scores.IidxScore")
 local Iidx = TimingSystem + {}
 
 Iidx.name = "iidx"
+Iidx.healths_name = "iidx"
 Iidx.label = "IIDX"
 Iidx.normalscore = false
 Iidx.grade_scale = "iidx"

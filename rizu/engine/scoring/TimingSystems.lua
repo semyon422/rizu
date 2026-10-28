@@ -57,6 +57,17 @@ function TimingSystems.getAuto(chart_timings, format)
 	return timings, TimingSystems.get(timings.name).default_subtimings
 end
 
+---The system whose score systems take this kind of sea.Healths as their gauge.
+---@param name sea.HealthsName
+---@return rizu.engine.scoring.TimingSystem?
+function TimingSystems.getByHealths(name)
+	for _, system in pairs(by_name) do
+		if system.healths_name == name then
+			return system
+		end
+	end
+end
+
 ---@param name sea.TimingsName
 ---@return rizu.engine.scoring.TimingSystem
 function TimingSystems.get(name)

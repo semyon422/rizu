@@ -133,4 +133,25 @@ function test.late_system_loads_each_chart_of_course(t)
 	t:eq(late.sequence[2][late_hard:getKey()].healths, late_hard:getHealths())
 end
 
+---@param t testing.T
+function test.gauge_is_picked_apart_from_the_timings(t)
+	local Healths = require("sea.chart.Healths")
+	local se = ScoreEngine()
+	se:load({notes_count = 10} --[[@as sea.Chartdiff]])
+	se:createByTimings(Timings("osuod", 8), Subtimings("scorev", 1), true, Healths("lr2", 2))
+
+	t:eq(se.accuracySource:getKey(), "osu_mania_v1_od8")
+	t:eq(se.healthsSource:getKey(), "lunatic_rank3_g2", "LR2 hard gauge with LR2's default rank")
+
+	se:rescore(Timings("etternaj", 4))
+	t:eq(se.accuracySource:getKey(), "etterna_accuracy_j4")
+	t:eq(se.healthsSource:getKey(), "lunatic_rank3_g2", "rescoring keeps the play's gauge")
+
+	local own = ScoreEngine()
+	own:load({notes_count = 10} --[[@as sea.Chartdiff]])
+	own:createByTimings(Timings("osuod", 8), nil, true, Healths("simple", 90))
+	t:eq(own.healthsSource:getKey(), "osu_mania_v1_od8_hp90", "a picked HP is not the chart's")
+	t:eq(own.accuracySource:getKey(), "osu_mania_v1_od8")
+end
+
 return test

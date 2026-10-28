@@ -64,7 +64,8 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 ---@param healths sea.Healths?
-function RhythmEngine:setTimings(timings, subtimings, healths) end
+---@param accuracy rizu.engine.scoring.Scoring?
+function RhythmEngine:setTimings(timings, subtimings, healths, accuracy) end
 
 ---Scripted inputs for modes that autoplay through the replay player.
 ---@return rizu.ReplayFrame[]?

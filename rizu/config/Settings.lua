@@ -87,18 +87,37 @@ local keys = {
 		-- Score local scores again in the leaderboard's system, see rizu.select.stores.ScoreStore.getScoring().
 		rescore = "select.rescore",
 	},
-	-- How mania plays are judged when replay_base.auto_timings is off, see rizu.gameplay.GameplayTimings.
+	-- The hit windows of mania plays when replay_base.auto_timings is off, see rizu.gameplay.ReplayBaseConfigurator.
 	timings = {
 		system = "timings.system",
 		osuod = "timings.osuod",
 		etternaj = "timings.etternaj",
 		bmsrank = "timings.bmsrank",
 		osu_score_version = "timings.osu_score_version",
-		etterna_life = "timings.etterna_life",
-		lr2_gauge = "timings.lr2_gauge",
+	},
+	-- The gauge of mania plays when replay_base.auto_healths is off, whatever the timings.
+	healths = {
+		system = "healths.system",
+		osu_hp = "healths.osu_hp",
+		etterna_life = "healths.etterna_life",
+		lr2_gauge = "healths.lr2_gauge",
+		iidx_gauge = "healths.iidx_gauge",
+	},
+	-- What counts the accuracy, judges and score of mania plays when replay_base.auto_accuracy is off.
+	-- Client only: it is not in the replay, the hits are scored again with it.
+	accuracy = {
+		system = "accuracy.system",
+		osuod = "accuracy.osuod",
+		etternaj = "accuracy.etternaj",
+		bmsrank = "accuracy.bmsrank",
+		osu_score_version = "accuracy.osu_score_version",
 	},
 	replay_base = {
 		auto_timings = "replay_base.auto_timings",
+		auto_healths = "replay_base.auto_healths",
+		auto_accuracy = "replay_base.auto_accuracy",
+		-- Each play shuffles the columns anew, see rizu.gameplay.ReplayBaseConfigurator:createReplayBase().
+		random_columns = "replay_base.random_columns",
 	},
 	scores = {
 		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
@@ -278,16 +297,24 @@ function Settings.createConfig(filesystem)
 	config:setDefaultChoice(s.score_filter, "No filter", {"No filter", "Unmodified"})
 	config:setDefaultBoolean(s.rescore, true)
 
-	config:setDefaultChoice(keys.timings.system, "osuod", TimingSystems.selectable)
-	for _, name in ipairs({"osuod", "etternaj", "bmsrank"}) do
-		local system = TimingSystems.get(name)
-		local range = system.range or {min = 0, max = 10, step = 1}
-		config:setDefaultNumber(keys.timings[name], system.default_value, range.min, range.max, range.step)
+	for _, k in ipairs({keys.timings, keys.accuracy}) do
+		config:setDefaultChoice(k.system, "osuod", TimingSystems.selectable)
+		for _, name in ipairs({"osuod", "etternaj", "bmsrank"}) do
+			local system = TimingSystems.get(name)
+			local range = system.range or {min = 0, max = 10, step = 1}
+			config:setDefaultNumber(k[name], system.default_value, range.min, range.max, range.step)
+		end
+		config:setDefaultNumber(k.osu_score_version, 1, 1, 2, 1)
 	end
-	config:setDefaultNumber(keys.timings.osu_score_version, 1, 1, 2, 1)
-	config:setDefaultNumber(keys.timings.etterna_life, 4, 1, 7, 1)
-	config:setDefaultNumber(keys.timings.lr2_gauge, 0, 0, 3, 1)
+	config:setDefaultChoice(keys.healths.system, "simple", {"simple", "etterna", "lr2", "iidx"})
+	config:setDefaultNumber(keys.healths.osu_hp, 5, 0, 10, 0.1)
+	config:setDefaultNumber(keys.healths.etterna_life, 4, 1, 7, 1)
+	config:setDefaultNumber(keys.healths.lr2_gauge, 0, 0, 3, 1)
+	config:setDefaultNumber(keys.healths.iidx_gauge, 2, 0, 4, 1)
 	config:setDefaultBoolean(keys.replay_base.auto_timings, true)
+	config:setDefaultBoolean(keys.replay_base.auto_healths, true)
+	config:setDefaultBoolean(keys.replay_base.auto_accuracy, true)
+	config:setDefaultBoolean(keys.replay_base.random_columns, false)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.recompute_since, 0, 0, math.huge, 1)

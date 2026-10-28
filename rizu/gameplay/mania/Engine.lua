@@ -117,9 +117,13 @@ end
 ---@param timings sea.Timings?
 ---@param subtimings sea.Subtimings?
 ---@param healths sea.Healths?
-function ManiaEngine:setTimings(timings, subtimings, healths)
+---@param accuracy rizu.engine.scoring.Scoring? Counts the accuracy, judges and score instead of the timings' systems.
+function ManiaEngine:setTimings(timings, subtimings, healths, accuracy)
 	timings = assert(timings or self.chartmeta.timings)
 	self.score_engine:createByTimings(timings, subtimings, true, healths)
+	if accuracy then
+		self.score_engine:rescore(accuracy.timings, accuracy.subtimings)
+	end
 end
 
 ---@param timing_values sea.TimingValues

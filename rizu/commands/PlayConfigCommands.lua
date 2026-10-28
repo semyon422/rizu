@@ -31,15 +31,15 @@ end
 ---@param game sphere.GameController
 ---@return sea.ColumnsOrder columns_order
 local function getColumnsOrder(game)
-	local replayBase = game.replayBase
+	local configurator = game.replayBaseConfigurator
 	local inputMode = game.modifierCoordinator.state.inputMode
-	return ColumnsOrder(inputMode, replayBase.columns_order)
+	return ColumnsOrder(inputMode, configurator.columns_order)
 end
 
 ---@param game sphere.GameController
 ---@param columns_order sea.ColumnsOrder
 local function setColumnsOrder(game, columns_order)
-	game.replayBase.columns_order = columns_order:export()
+	game.replayBaseConfigurator.columns_order = columns_order:export()
 	updateReplayBase(game)
 end
 
@@ -62,7 +62,7 @@ return function(game)
 							return false, "Must be a valid number"
 						end
 
-						local range = game.timeRateModel.range[game.replayBase.rate_type]
+						local range = game.timeRateModel.range[game.replayBaseConfigurator.rate_type]
 						if range and (num < range[1] or num > range[2]) then
 							return false, ("Rate must be between %s and %s"):format(range[1], range[2])
 						end
@@ -123,7 +123,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.tap_only = args.enabled
+				game.replayBaseConfigurator.tap_only = args.enabled
 				updateReplayBase(game)
 			end,
 		},
@@ -140,7 +140,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.const = args.enabled
+				game.replayBaseConfigurator.const = args.enabled
 				updateReplayBase(game)
 			end,
 		},
@@ -157,7 +157,7 @@ return function(game)
 				},
 			},
 			callback = function(args)
-				game.replayBase.custom = args.enabled
+				game.replayBaseConfigurator.custom = args.enabled
 				updateReplayBase(game)
 			end,
 		},

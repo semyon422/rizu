@@ -9,6 +9,7 @@ local EtternaAccuracy = require("rizu.engine.ScoreEngine.scores.EtternaAccuracy"
 local Etterna = TimingSystem + {}
 
 Etterna.name = "etternaj"
+Etterna.healths_name = "etterna"
 Etterna.label = "Etterna"
 Etterna.normalscore = false
 Etterna.grade_scale = "etternaj"

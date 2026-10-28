@@ -213,7 +213,7 @@ local function compileAudio(chart, loader, audio_engine_factory)
 end
 
 ---@param chartSelector rizu.select.ChartSelector
----@param replayBase sea.ReplayBase
+---@param replayBase sea.ReplayBase|rizu.gameplay.ReplayBaseConfigurator
 function ChartExporter:exportToOsu(chartSelector, replayBase)
 	local chartview = chartSelector.chartview
 	if not chartview then

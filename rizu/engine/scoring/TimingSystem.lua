@@ -15,6 +15,7 @@ local SoundsphereScore = require("rizu.engine.ScoreEngine.scores.SoundsphereScor
 ---@field range {min: number, max: number, step: number}? The values a slider offers.
 ---@field default_value number? For systems that take a value.
 ---@field score_versions integer[]? The scorev subtimings a player can pick, for osu!mania.
+---@field healths_name sea.HealthsName? The kind of sea.Healths its score systems take as their gauge.
 local TimingSystem = class()
 
 TimingSystem.normalscore = true

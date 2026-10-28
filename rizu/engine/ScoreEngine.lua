@@ -10,7 +10,9 @@ local IHealthsSource = require("rizu.engine.ScoreEngine.IHealthsSource")
 local IJudgesSource = require("rizu.engine.ScoreEngine.IJudgesSource")
 local IScoreSource = require("rizu.engine.ScoreEngine.IScoreSource")
 
+local Timings = require("sea.chart.Timings")
 local Scoring = require("rizu.engine.scoring.Scoring")
+local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
 ---@class rizu.ScoreEngine
 ---@operator call: rizu.ScoreEngine
@@ -133,11 +135,11 @@ end
 ---@param t sea.Timings
 ---@param st sea.Subtimings?
 ---@param _select boolean?
----@param healths sea.Healths?
+---@param healths sea.Healths? The gauge of the play, whatever the timings. Nil is the timings' own.
 ---@return boolean?
 ---@return string?
 function ScoreEngine:createByTimings(t, st, _select, healths)
-	local systems, err = Scoring(t, st, healths):createScoreSystems()
+	local systems, err = Scoring(t, st):createScoreSystems()
 	if not systems then
 		if _select then
 			self:selectDefault()
@@ -151,8 +153,31 @@ function ScoreEngine:createByTimings(t, st, _select, healths)
 			self:select(sys:getKey())
 		end
 	end
+	if _select and healths then
+		self:selectHealths(healths, t, st)
+	end
 
 	return true
+end
+
+---Makes the gauge of a sea.Healths the healths source. Its system judges with the play's timings when
+---they are its own, otherwise with its default value. Kinds no system takes, such as bmstotal, change nothing.
+---@param healths sea.Healths
+---@param t sea.Timings The play's.
+---@param st sea.Subtimings?
+function ScoreEngine:selectHealths(healths, t, st)
+	local system = TimingSystems.getByHealths(healths.name)
+	if not system then
+		return
+	end
+	if t.name ~= system.name then
+		t, st = Timings(system.name, system.default_value), nil
+	end
+	for _, sys in ipairs(system:createScoreSystems(t, st, healths) or {}) do
+		if IHealthsSource * sys then
+			self.healthsSource = self:addScoreSystem(sys) --[[@as rizu.IHealthsSource]]
+		end
+	end
 end
 
 ---@param key string
@@ -213,23 +238,24 @@ function ScoreEngine:addScoreSystem(score_system)
 	return score_system
 end
 
----Scores the events received so far with another system and makes it the selected one.
----Hit windows are not touched: the events already hold what was hit and when.
+---Scores the events received so far with another system and makes it the selected one, except for the
+---healths source: the gauge stays the play's. Hit windows are not touched: the events already hold what was hit and when.
 ---@param t sea.Timings
 ---@param st sea.Subtimings?
----@param healths sea.Healths? The gauge of the play, such as an LR2 gauge.
 ---@return boolean?
 ---@return string?
-function ScoreEngine:rescore(t, st, healths)
-	local systems, err = Scoring(t, st, healths):createScoreSystems()
+function ScoreEngine:rescore(t, st)
+	local systems, err = Scoring(t, st):createScoreSystems()
 	if not systems then
 		return nil, err
 	end
 
+	local healths_source = self.healthsSource
 	self:selectDefault()
 	for _, sys in ipairs(systems) do
 		self:select(self:addScoreSystem(sys):getKey())
 	end
+	self.healthsSource = healths_source
 
 	return true
 end

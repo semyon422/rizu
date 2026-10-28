@@ -32,16 +32,14 @@ local MultiplayerModel = class()
 ---@param chartSelector rizu.MultiplayerChartSelector
 ---@param onlineModel rizu.OnlineModel
 ---@param dlcManager rizu.dlc.DlcManager
----@param replayBase sea.ReplayBase
 ---@param multiplayer_client rizu.MultiplayerClient
-function MultiplayerModel:new(library, rhythm_engine, configModel, chartSelector, onlineModel, dlcManager, replayBase, multiplayer_client)
+function MultiplayerModel:new(library, rhythm_engine, configModel, chartSelector, onlineModel, dlcManager, multiplayer_client)
 	self.library = library
 	self.rhythm_engine = rhythm_engine
 	self.configModel = configModel
 	self.chartSelector = chartSelector
 	self.onlineModel = onlineModel
 	self.dlcManager = dlcManager
-	self.replayBase = replayBase
 
 	self.sea_client = onlineModel.sea_client
 	self.remote = self.sea_client.remote

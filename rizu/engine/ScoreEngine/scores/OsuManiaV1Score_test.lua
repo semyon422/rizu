@@ -191,4 +191,13 @@ function test.hp_fails_at_zero_and_stays_failed(t)
 	t:eq(score:getHealths(), 0)
 end
 
+---@param t testing.T
+function test.picked_hp_replaces_the_chart_one(t)
+	local score = OsuManiaV1Score(8, Healths("simple", 90))
+	local info = {notes_count = 10, healths = Healths("simple", 50)}
+	score:load(info)
+	score:loadChart(info)
+	t:eq(score.hp, 9)
+end
+
 return test

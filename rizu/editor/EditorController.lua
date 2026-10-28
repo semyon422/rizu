@@ -12,7 +12,6 @@ local LoveFilesystem = require("fs.LoveFilesystem")
 ---@field library rizu.library
 ---@field fileFinder sphere.FileFinder
 ---@field previewModel rizu.preview.PreviewModel
----@field replayBase sea.ReplayBase
 ---@field resource_finder rizu.ResourceFinder
 ---@field resource_loader rizu.ResourceLoader
 ---@field fs fs.IFilesystem?
@@ -41,7 +40,6 @@ function EditorController:new(deps)
 	self.library = deps.library
 	self.fileFinder = deps.fileFinder
 	self.previewModel = deps.previewModel
-	self.replayBase = deps.replayBase
 	self.resource_finder = deps.resource_finder
 	self.resource_loader = deps.resource_loader
 	self.fs = deps.fs or LoveFilesystem()
@@ -75,7 +73,6 @@ function EditorController:createLoadControllerContext()
 		windowModel = self.windowModel,
 		fileFinder = self.fileFinder,
 		previewModel = self.previewModel,
-		replayBase = self.replayBase,
 		resource_finder = self.resource_finder,
 		resource_loader = self.resource_loader,
 		isModifierApplyRequested = self.isModifierApplyRequested,

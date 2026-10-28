@@ -16,6 +16,15 @@ local Slider = require("ui.views.form.Slider")
 local TimingValueControl = require("ui.views.form.TimingValueControl")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
 
+---Reads and sets one system picker of rizu.api.Play: the hit windows' or the accuracy's.
+---@class ui.modals.modifiers.Modifiers.SystemPicker
+---@field getSystem fun(): rizu.api.Play.TimingSystem
+---@field setSystem fun(name: rizu.api.Play.TimingSystem)
+---@field getVersion fun(): integer
+---@field setVersion fun(version: 1|2)
+---@field getValue fun(): number
+---@field setValue fun(value: number)
+
 ---@class ui.modals.modifiers.Modifiers : ui.ModalView
 ---@operator call: ui.modals.modifiers.Modifiers
 ---@field play rizu.api.Play
@@ -142,6 +151,13 @@ function Modifiers:rebuildForm()
 			play:setToggle("taps_only", value)
 		end,
 	}))
+	self.form:add(Checkbox({
+		text = self.localization:get("song_select.random_columns"),
+		checked = play:getToggle("random_columns"),
+		on_change = function(value)
+			play:setToggle("random_columns", value)
+		end,
+	}))
 	if #play:getColumnOrder() > 0 then
 		local row ---@type ui.views.form.ButtonRow
 		local function summary()
@@ -179,77 +195,155 @@ function Modifiers:rebuildForm()
 			self:invalidateForm()
 		end
 	end
-	local auto_timings = play:getToggle("auto_timings")
-	self.form:add(Checkbox({
-		text = self.localization:get("song_select.auto_timings"),
-		checked = auto_timings,
-		on_change = judging(function(value)
-			play:setToggle("auto_timings", value)
-		end),
-	}))
-
-	if not auto_timings then
-		local system = TimingSystems.get(play:getTimingSystem())
+	---A system picker for the hit windows or for the accuracy, shown while its auto toggle is off.
+	---@param toggle rizu.api.Play.Toggle
+	---@param label string
+	---@param picker ui.modals.modifiers.Modifiers.SystemPicker
+	local function addSystemPicker(toggle, label, picker)
+		local auto = play:getToggle(toggle)
+		self.form:add(Checkbox({
+			text = self.localization:get("song_select." .. toggle),
+			checked = auto,
+			on_change = judging(function(value)
+				play:setToggle(toggle, value)
+			end),
+		}))
+		if auto then
+			return
+		end
+		local system = TimingSystems.get(picker.getSystem())
 		self.form:add(SegmentedControl({
-			label = self.localization:get("song_select.score_system"),
+			label = label,
 			options = play:getTimingSystems(),
 			value = system.name,
 			format = function(name)
 				return TimingSystems.get(name).label
 			end,
-			on_change = judging(function(name)
-				play:setTimingSystem(name)
-			end),
+			on_change = judging(picker.setSystem),
 		}))
 		if system.score_versions then
 			self.form:add(SegmentedControl({
 				label = self.localization:get("song_select.osu_score_version"),
 				options = system.score_versions,
-				value = play:getOsuScoreVersion(),
+				value = picker.getVersion(),
 				format = function(version)
 					return "V" .. version
 				end,
-				on_change = judging(function(version)
-					play:setOsuScoreVersion(version)
-				end),
+				on_change = judging(picker.setVersion),
 			}))
 		end
-		if system.name == "etternaj" then
-			self.form:add(SegmentedControl({
-				label = self.localization:get("song_select.etterna_life"),
-				options = {1, 2, 3, 4, 5, 6, 7},
-				value = play:getEtternaLife(),
-				format = function(level)
-					return "L" .. level
-				end,
-				on_change = function(level)
-					play:setEtternaLife(level)
-				end,
-			}))
-		end
-		if system.name == "bmsrank" then
-			local gauge_names = {[0] = "Groove", "Easy", "Hard", "Hazard"}
-			self.form:add(SegmentedControl({
-				label = self.localization:get("song_select.lr2_gauge"),
-				options = {0, 1, 2, 3},
-				value = play:getLr2Gauge(),
-				format = function(gauge)
-					return gauge_names[gauge]
-				end,
-				on_change = function(gauge)
-					play:setLr2Gauge(gauge)
-				end,
-			}))
-		end
-		local value_control = TimingValueControl(system, play:getTimingValue(), FORM_WIDTH, self.localization,
+		local value_control = TimingValueControl(system, picker.getValue(), FORM_WIDTH, self.localization,
 			function(value)
 				-- Not judging(): rebuilding the form would drop the slider while it is dragged.
-				play:setTimingValue(value)
+				picker.setValue(value)
 				self.judging_changed = true
 			end)
 		if value_control then
 			self.form:add(value_control)
 		end
+	end
+
+	addSystemPicker("auto_timings", self.localization:get("song_select.hit_windows"), {
+		getSystem = function() return play:getTimingSystem() end,
+		setSystem = function(name) play:setTimingSystem(name) end,
+		getVersion = function() return play:getOsuScoreVersion() end,
+		setVersion = function(version) play:setOsuScoreVersion(version) end,
+		getValue = function() return play:getTimingValue() end,
+		setValue = function(value) play:setTimingValue(value) end,
+	})
+	addSystemPicker("auto_accuracy", self.localization:get("song_select.accuracy_system"), {
+		getSystem = function() return play:getAccuracySystem() end,
+		setSystem = function(name) play:setAccuracySystem(name) end,
+		getVersion = function() return play:getAccuracyOsuScoreVersion() end,
+		setVersion = function(version) play:setAccuracyOsuScoreVersion(version) end,
+		getValue = function() return play:getAccuracyValue() end,
+		setValue = function(value) play:setAccuracyValue(value) end,
+	})
+
+	local auto_healths = play:getToggle("auto_healths")
+	self.form:add(Checkbox({
+		text = self.localization:get("song_select.auto_healths"),
+		checked = auto_healths,
+		on_change = function(value)
+			play:setToggle("auto_healths", value)
+			self:invalidateForm()
+		end,
+	}))
+
+	local gauge = not auto_healths and play:getGauge()
+	if gauge then
+		local gauge_labels = {
+			simple = "osu!mania",
+			etterna = "Etterna",
+			lr2 = "LR2",
+			iidx = "IIDX",
+		}
+		self.form:add(SegmentedControl({
+			label = self.localization:get("song_select.gauge"),
+			options = play:getGauges(),
+			value = gauge,
+			format = function(name)
+				return gauge_labels[name]
+			end,
+			on_change = function(name)
+				play:setGauge(name)
+				self:invalidateForm()
+			end,
+		}))
+	end
+	if gauge == "simple" then
+		self.form:add(Slider({
+			label = self.localization:get("song_select.osu_hp"),
+			value = play:getOsuHp(),
+			min = 0,
+			max = 10,
+			step = 0.1,
+			width = FORM_WIDTH,
+			value_format = function(value)
+				return ("HP %.1f"):format(value)
+			end,
+			on_change = function(value)
+				play:setOsuHp(value)
+			end,
+		}))
+	elseif gauge == "etterna" then
+		self.form:add(SegmentedControl({
+			label = self.localization:get("song_select.etterna_life"),
+			options = {1, 2, 3, 4, 5, 6, 7},
+			value = play:getEtternaLife(),
+			format = function(level)
+				return "L" .. level
+			end,
+			on_change = function(level)
+				play:setEtternaLife(level)
+			end,
+		}))
+	elseif gauge == "lr2" then
+		local gauge_names = {[0] = "Groove", "Easy", "Hard", "Hazard"}
+		self.form:add(SegmentedControl({
+			label = self.localization:get("song_select.lr2_gauge"),
+			options = {0, 1, 2, 3},
+			value = play:getLr2Gauge(),
+			format = function(value)
+				return gauge_names[value]
+			end,
+			on_change = function(value)
+				play:setLr2Gauge(value)
+			end,
+		}))
+	elseif gauge == "iidx" then
+		local gauge_names = {[0] = "Assist Easy", "Easy", "Normal", "Hard", "EX-Hard"}
+		self.form:add(SegmentedControl({
+			label = self.localization:get("song_select.iidx_gauge"),
+			options = {0, 1, 2, 3, 4},
+			value = play:getIidxGauge(),
+			format = function(value)
+				return gauge_names[value]
+			end,
+			on_change = function(value)
+				play:setIidxGauge(value)
+			end,
+		}))
 	end
 
 	self.form:fitContent()

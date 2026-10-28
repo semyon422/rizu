@@ -347,7 +347,7 @@ return function(game)
 			title = "Export chart: To .osu",
 			description = "Exports the selected chart into userdata/export",
 			callback = function()
-				game.chartExporter:exportToOsu(game.chartSelector, game.replayBase)
+				game.chartExporter:exportToOsu(game.chartSelector, game.replayBaseConfigurator)
 			end
 		},
 		{

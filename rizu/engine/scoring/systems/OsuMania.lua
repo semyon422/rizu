@@ -11,6 +11,7 @@ local OsuManiaV2Score = require("rizu.engine.ScoreEngine.scores.OsuManiaV2Score"
 local OsuMania = TimingSystem + {}
 
 OsuMania.name = "osuod"
+OsuMania.healths_name = "simple"
 OsuMania.label = "osu!mania"
 OsuMania.normalscore = false
 OsuMania.grade_scale = "osuod"
@@ -50,9 +51,10 @@ end
 
 ---@param timings sea.Timings
 ---@param subtimings sea.Subtimings
-function OsuMania:newScoreSystems(timings, subtimings)
+---@param healths sea.Healths? Other kinds than simple mean the chart's own HP.
+function OsuMania:newScoreSystems(timings, subtimings, healths)
 	local Score = subtimings.data == 2 and OsuManiaV2Score or OsuManiaV1Score
-	return {Score(timings.data)}
+	return {Score(timings.data, healths and healths.name == "simple" and healths or nil)}
 end
 
 ---@param subtimings sea.Subtimings?

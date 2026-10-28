@@ -1,5 +1,4 @@
 local class = require("class")
-local table_util = require("table_util")
 local icc_co = require("icc.co")
 local Room = require("sea.multi.Room")
 local RoomUpdate = require("sea.multi.RoomUpdate")
@@ -35,17 +34,22 @@ local Observable = require("Observable")
 ---@alias sea.multi.MultiplayerClient.EventObserver {receive: fun(self: table, event: sea.multi.MultiplayerClient.Event)}
 ---@alias sea.multi.MultiplayerClient.EventReceiver fun(event: sea.multi.MultiplayerClient.Event)
 
+---What the player set up for their next plays, see rizu.gameplay.ReplayBaseConfigurator.
+---@class sea.IReplayBaseConfigurator
+---@field importReplayBase fun(self: sea.IReplayBaseConfigurator, base: sea.ReplayBase)
+---@field createReplayBase fun(self: sea.IReplayBaseConfigurator): sea.ReplayBase
+
 ---@class sea.MultiplayerClient
 ---@operator call: sea.MultiplayerClient
 ---@field observable util.Observable
 local MultiplayerClient = class()
 
 ---@param server_remote sea.ServerRemote
----@param replay_base sea.ReplayBase
+---@param configurator sea.IReplayBaseConfigurator
 ---@param chart_selector sea.IChartSelector
-function MultiplayerClient:new(server_remote, replay_base, chart_selector)
+function MultiplayerClient:new(server_remote, configurator, chart_selector)
 	self.server_remote = server_remote
-	self.replay_base = replay_base
+	self.configurator = configurator
 	self.chart_selector = chart_selector
 	self.observable = Observable()
 
@@ -129,17 +133,17 @@ function MultiplayerClient:syncReplayBase()
 		return
 	end
 
-	table_util.copy(room.replay_base, self.replay_base)
+	self.configurator:importReplayBase(room.replay_base)
 
 	-- local rules = room.rules
 	-- if not rules.modifiers then
-	-- 	self.replay_base.modifiers = room.replay_base.modifiers
+	-- 	self.configurator.modifiers = room.replay_base.modifiers
 	-- end
 	-- if not rules.const then
-	-- 	self.replay_base.const = room.replay_base.const
+	-- 	self.configurator.const = room.replay_base.const
 	-- end
 	-- if not rules.rate then
-	-- 	self.replay_base.rate = room.replay_base.rate
+	-- 	self.configurator.rate = room.replay_base.rate
 	-- end
 end
 
@@ -312,7 +316,7 @@ function MultiplayerClient:updateReplayBaseAsync()
 	end
 
 	local room_values = RoomUpdate()
-	room_values.replay_base = self.replay_base
+	room_values.replay_base = self.configurator:createReplayBase()
 
 	self.server_remote.multiplayer:updateRoom(room_values)
 end
@@ -336,7 +340,7 @@ function MultiplayerClient:createRoomAsync(name, password, chartmeta_key)
 	local room_values = Room()
 	room_values.name = name
 	room_values.password = password
-	room_values.replay_base = self.replay_base
+	room_values.replay_base = self.configurator:createReplayBase()
 	room_values.chartmeta_key = chartmeta_key
 
 	local room_id, err = self.server_remote.multiplayer:createRoom(room_values)

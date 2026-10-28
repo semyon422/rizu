@@ -8,6 +8,7 @@ local LunaticRaveScore = require("rizu.engine.ScoreEngine.scores.LunaticRaveScor
 local LunaticRave = TimingSystem + {}
 
 LunaticRave.name = "bmsrank"
+LunaticRave.healths_name = "lr2"
 LunaticRave.label = "LR2"
 LunaticRave.normalscore = false
 LunaticRave.grade_scale = "bmsrank"

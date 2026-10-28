@@ -22,9 +22,9 @@ TimeRateModel.format = {
 	exp = "%0.f",
 }
 
----@param replayBase sea.ReplayBase
-function TimeRateModel:new(replayBase)
-	self.replayBase = replayBase
+---@param configurator rizu.gameplay.ReplayBaseConfigurator
+function TimeRateModel:new(configurator)
+	self.configurator = configurator
 	self.observable = Observable()
 end
 
@@ -52,17 +52,17 @@ end
 function TimeRateModel:notifyChanged()
 	self.observable:send({
 		type = "time_rate_changed",
-		rate = self.replayBase.rate,
-		rate_type = self.replayBase.rate_type,
+		rate = self.configurator.rate,
+		rate_type = self.configurator.rate_type,
 	})
 end
 
 ---@return number
 function TimeRateModel:get()
-	local replayBase = self.replayBase
+	local configurator = self.configurator
 
-	local rate_type = replayBase.rate_type
-	local rate = replayBase.rate
+	local rate_type = configurator.rate_type
+	local rate = configurator.rate
 
 	if rate_type == "exp" then
 		rate = int_rates.get_exp(rate, 10)
@@ -73,9 +73,9 @@ end
 
 ---@param newRate number
 function TimeRateModel:set(newRate)
-	local replayBase = self.replayBase
+	local configurator = self.configurator
 
-	local rate_type = replayBase.rate_type
+	local rate_type = configurator.rate_type
 	local rate = newRate
 
 	local range = self.range[rate_type]
@@ -86,26 +86,26 @@ function TimeRateModel:set(newRate)
 	end
 
 	rate = int_rates.round(rate)
-	if replayBase.rate == rate then
+	if configurator.rate == rate then
 		return
 	end
-	replayBase.rate = rate
+	configurator.rate = rate
 	self:notifyChanged()
 end
 
 ---@param rate_type sea.RateType
 function TimeRateModel:setType(rate_type)
 	assert(self.range[rate_type], "unknown time rate type")
-	if self.replayBase.rate_type == rate_type then
+	if self.configurator.rate_type == rate_type then
 		return
 	end
-	self.replayBase.rate_type = rate_type
+	self.configurator.rate_type = rate_type
 	self:notifyChanged()
 end
 
 ---@param delta number
 function TimeRateModel:increase(delta)
-	local rate_type = self.replayBase.rate_type
+	local rate_type = self.configurator.rate_type
 	local range = self.range[rate_type]
 	local rate = self:get() + delta * range[3]
 	rate = math_util.round(rate, range[3])
