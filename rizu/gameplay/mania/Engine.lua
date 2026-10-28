@@ -105,12 +105,16 @@ function ManiaEngine:receive(event)
 	self:syncTime()
 	local input_note, catched = self.input_engine:receive(event)
 
-	if not self.auto_key_sound and event.value == true and catched then
-		local logic_note = input_note and input_note.logic_note
+	local logic_note = input_note and input_note.logic_note
+	if self.auto_key_sound or not logic_note then
+		return
+	end
 
-		if logic_note then
-			self:playSamples(logic_note.linked_note.startNote.data.sounds)
-		end
+	local linked_note = logic_note.linked_note
+	if event.value == true and catched then
+		self:playSamples(linked_note.startNote.data.sounds)
+	elseif event.value == false and linked_note.endNote then
+		self:playSamples(linked_note.endNote.data.sounds)
 	end
 end
 

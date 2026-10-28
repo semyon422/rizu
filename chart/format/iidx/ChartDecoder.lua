@@ -392,6 +392,13 @@ function ChartDecoder:decodeSection(section, variation, song)
 				end_measure = tick_to_measure(ticks, event.tick + event.value)
 				local end_point = layer:getPoint(end_measure)
 				local end_note = Note(visualColumns:getPoint(end_point, column), column, "hold", -1)
+				-- scratch keysounds assigned mid-hold are the backspin release sound
+				local tail_tick = event.tick + event.value
+				while lane == 7 and queued_sounds and queued_sounds[1] and queued_sounds[1].tick < tail_tick do
+					local sound_event = table.remove(queued_sounds, 1)
+					end_note.data.sounds = {{tostring(sound_event.value), 1}}
+					inherited_sounds[inherited_key] = sound_event.value
+				end
 				chart.notes:insert(end_note)
 			end
 			max_measure = math.max(max_measure, end_measure:tonumber())

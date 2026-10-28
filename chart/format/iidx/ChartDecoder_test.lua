@@ -268,6 +268,34 @@ function test.multi_spin_scratch_segments_are_chained_holds(t)
 end
 
 ---@param t testing.T
+function test.mid_hold_scratch_keysound_is_release_sound(t)
+	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
+		SPN = {
+			{tick = 0, type = 4, lane = 0, value = 150},
+			{tick = 0, type = 12, lane = 0, value = 0},
+			{tick = 1500, type = 12, lane = 0, value = 0},
+			{tick = 300, type = 2, lane = 7, value = 42},
+			{tick = 600, type = 0, lane = 7, value = 300},
+			{tick = 750, type = 2, lane = 7, value = 43},
+			{tick = 1200, type = 0, lane = 7, value = 0},
+		},
+	}), nil, {song_id = 1234}))
+
+	local hold, tap
+	for _, note in ipairs(charts[1].chart.notes:getLinkedNotes()) do
+		if note:isLong() then
+			hold = note
+		elseif note.startNote.type == "tap" then
+			tap = note
+		end
+	end
+	assert(hold and hold.endNote and tap)
+	t:tdeq(hold.startNote.data.sounds, {{"42", 1}})
+	t:tdeq(hold.endNote.data.sounds, {{"43", 1}})
+	t:tdeq(tap.startNote.data.sounds, {{"43", 1}})
+end
+
+---@param t testing.T
 function test.note_duration_is_not_a_keysound_id(t)
 	local charts = assert(ChartFactory:getCharts("01234/01234.1", Fixtures.chart1({
 		SPN = {
