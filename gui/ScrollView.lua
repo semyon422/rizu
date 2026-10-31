@@ -17,18 +17,20 @@ local View = require("gui.View")
 ---@field private last_drag_time number
 local ScrollView = View + {}
 
-ScrollView.SCROLL_DECAY = 0.01
+ScrollView.SCROLL_DECAY = 0.02
 ScrollView.SCROLL_STEP = 64
-ScrollView.SCROLL_EPSILON = 0.1
-ScrollView.FLING_DECAY = 4
+ScrollView.SCROLL_EPSILON = 0.25
+ScrollView.FLING_DECAY = 3
+-- Constant deceleration in px/s^2 so a fling stops in finite time instead of crawling.
+ScrollView.FLING_FRICTION = 1000
 ScrollView.FLING_IDLE_DECAY = -math.log(0.95) * 1000
 ScrollView.FLING_VELOCITY_EPSILON = 5
 ScrollView.VELOCITY_RESPONSE = 20
 ScrollView.FLING_STALE_TIME = 0.066
 ScrollView.OVERSCROLL_LIMIT_RATIO = 0.35
 ScrollView.OVERSCROLL_RESISTANCE_RATIO = 0.5
-ScrollView.OVERSCROLL_RECOVERY_DECAY = 12
-ScrollView.OVERSCROLL_EPSILON = 0.1
+ScrollView.OVERSCROLL_RECOVERY_DECAY = 20
+ScrollView.OVERSCROLL_EPSILON = 0.5
 
 ---@param content gui.View?
 function ScrollView:new(content)
@@ -285,11 +287,16 @@ function ScrollView:update(dt)
 		self:applyScrollOffset()
 	end
 	if not self.drag_active and math.abs(self.scroll_velocity) >= self.FLING_VELOCITY_EPSILON then
-		local decay = math.exp(-self.FLING_DECAY * dt)
-		local distance = self.scroll_velocity * (1 - decay) / self.FLING_DECAY
+		-- dv/dt = -k*v - f*sign(v): v(t) = (v + c)e^(-kt) - c with c = sign(v)*f/k, zero at t_stop
+		local k, v = self.FLING_DECAY, self.scroll_velocity
+		local c = (v > 0 and 1 or -1) * self.FLING_FRICTION / k
+		local t_stop = math.log(1 + k * math.abs(v) / self.FLING_FRICTION) / k
+		local t = math.min(dt, t_stop)
+		local decay = math.exp(-k * t)
+		local distance = (v + c) * (1 - decay) / k - c * t
 		local previous = self.scroll_current
 		self:scrollTo(previous + distance, true)
-		self.scroll_velocity = self.scroll_velocity * decay
+		self.scroll_velocity = t < t_stop and (v + c) * decay - c or 0
 		if self.scroll_current == previous or self.scroll_current == 0 or self.scroll_current == self.max_scroll then
 			self.scroll_velocity = 0
 		end

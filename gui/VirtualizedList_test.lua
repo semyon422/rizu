@@ -119,4 +119,19 @@ function test.drag_release_flings(t)
 	t:assert(list:getScrollPosition() > release_position)
 end
 
+---@param t testing.T
+function test.fling_stops_in_finite_time(t)
+	local _, list = createList()
+	list.item_count = 1000
+	list:scrollTo(100, true)
+	list.scroll_velocity = 2000
+
+	for _ = 1, 60 do
+		list:update(1 / 60)
+	end
+
+	t:eq(list.scroll_velocity, 0)
+	t:assert(list:getScrollPosition() > 100)
+end
+
 return test

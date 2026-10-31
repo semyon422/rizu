@@ -17,17 +17,19 @@ local View = require("gui.View")
 ---@field private last_drag_time number
 local VirtualizedList = View + {}
 
-VirtualizedList.SCROLL_DECAY = 0.01
-VirtualizedList.SCROLL_EPSILON = 0.1
-VirtualizedList.FLING_DECAY = 4
+VirtualizedList.SCROLL_DECAY = 0.02
+VirtualizedList.SCROLL_EPSILON = 0.25
+VirtualizedList.FLING_DECAY = 3
+-- Constant deceleration in px/s^2 so a fling stops in finite time instead of crawling.
+VirtualizedList.FLING_FRICTION = 1000
 VirtualizedList.FLING_IDLE_DECAY = -math.log(0.95) * 1000
 VirtualizedList.FLING_VELOCITY_EPSILON = 5
 VirtualizedList.VELOCITY_RESPONSE = 20
 VirtualizedList.FLING_STALE_TIME = 0.066
 VirtualizedList.OVERSCROLL_LIMIT_RATIO = 0.35
 VirtualizedList.OVERSCROLL_RESISTANCE_RATIO = 0.5
-VirtualizedList.OVERSCROLL_RECOVERY_DECAY = 12
-VirtualizedList.OVERSCROLL_EPSILON = 0.1
+VirtualizedList.OVERSCROLL_RECOVERY_DECAY = 20
+VirtualizedList.OVERSCROLL_EPSILON = 0.5
 
 function VirtualizedList:new()
 	View.new(self)
@@ -243,11 +245,16 @@ function VirtualizedList:update(dt)
 		end
 	end
 	if not self.drag_active and math.abs(self.scroll_velocity) >= self.FLING_VELOCITY_EPSILON then
-		local decay = math.exp(-self.FLING_DECAY * dt)
-		local distance = self.scroll_velocity * (1 - decay) / self.FLING_DECAY
+		-- dv/dt = -k*v - f*sign(v): v(t) = (v + c)e^(-kt) - c with c = sign(v)*f/k, zero at t_stop
+		local k, v = self.FLING_DECAY, self.scroll_velocity
+		local c = (v > 0 and 1 or -1) * self.FLING_FRICTION / k
+		local t_stop = math.log(1 + k * math.abs(v) / self.FLING_FRICTION) / k
+		local t = math.min(dt, t_stop)
+		local decay = math.exp(-k * t)
+		local distance = (v + c) * (1 - decay) / k - c * t
 		local previous = self.scroll_current
 		self:scrollTo(previous + distance, true)
-		self.scroll_velocity = self.scroll_velocity * decay
+		self.scroll_velocity = t < t_stop and (v + c) * decay - c or 0
 		if self.scroll_current == previous or self.scroll_current == 0 or self.scroll_current == max_scroll then
 			self.scroll_velocity = 0
 		end
