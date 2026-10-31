@@ -4,7 +4,9 @@ local Settings = require("rizu.config.Settings")
 
 ---@class ui.Sounds
 local Sounds = {}
-Sounds.sounds_dir = "resources/yi/sounds"
+local mounted = false
+Sounds.archive_path = "resources/yi/sounds.zip"
+Sounds.sounds_dir = "ui_sounds"
 Sounds.cache = {} ---@type {[string]: rizu.audio.bass.Sample}
 ---@type rizu.config.Config?
 Sounds.settings = nil
@@ -21,6 +23,10 @@ end
 
 ---@param settings rizu.config.Config
 function Sounds.load(settings)
+	if not mounted then
+		local archive = assert(love.filesystem.newFileData(Sounds.archive_path))
+		mounted = assert(love.filesystem.mount(archive, Sounds.sounds_dir))
+	end
 	Sounds.settings = settings
 	local keys = Settings.keys.audio
 	local function updateVolume()
