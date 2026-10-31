@@ -51,6 +51,7 @@ end
 ---@field library_toolbar ui.screens.song_select_v2.LibraryToolbar
 ---@field backdrop gui.View Background, blur and scrim; also drawn by chart loading
 ---@field content gui.CompositeView Everything above the backdrop
+---@field parts {view: gui.View, x: number, y: number, delay: number}[] Slide in on enter, from x, y
 ---@field unsubscribes fun()[]
 local SongSelectV2 = Screen + {}
 
@@ -67,6 +68,8 @@ local SCORES_EXTRA_HEIGHT = 5
 
 local ZOOM_SCALE = 1.08
 local ZOOM_ROTATION = math.rad(-2)
+
+local ENTER_SCALE = 0.97
 
 ---Rotates the finished content canvas, following the zoom. The view itself stays unrotated:
 ---clipped views such as the carousel cannot be composed under a rotated parent.
@@ -128,7 +131,7 @@ function SongSelectV2:new(ui)
 	right:add(self.chart_browser, "*")
 	layout:add(View(), Footer.HEIGHT + FOOTER_BOTTOM + 8)
 
-	self.content:add(Header(ui)):fillWidth(0, 0):setHeight(Header.HEIGHT)
+	local header = self.content:add(Header(ui)):fillWidth(0, 0):setHeight(Header.HEIGHT)
 
 	local popup_container = PopupContainer()
 	self.library_toolbar = self.content:add(LibraryToolbar(ui, popup_container))
@@ -145,6 +148,14 @@ function SongSelectV2:new(ui)
 	self.content:add(self.footer)
 	self.footer:fillWidth(EDGE, EDGE):setHeight(Footer.HEIGHT):setAlignmentY(1):addPosition(0, -FOOTER_BOTTOM)
 	self.content:add(popup_container)
+
+	self.parts = {
+		{view = header, x = 0, y = -40, delay = 0},
+		{view = self.library_toolbar, x = 0, y = -30, delay = 0.05},
+		{view = left, x = -80, y = 0, delay = 0.07},
+		{view = right, x = 100, y = 0, delay = 0.1},
+		{view = self.footer, x = 0, y = 40, delay = 0.16},
+	}
 
 	self.backdrop:setOpacity(0)
 	self.content:setOpacity(0)
@@ -223,9 +234,14 @@ function SongSelectV2:enter()
 	self:bindChartview(api.charts:getSelectedChart())
 	self.backdrop:fadeIn(0.3, "OutCubic")
 	-- Undoes zoomOut(), which ends while the screen is already hidden.
-	self.content:clearTransforms():setScale(1, 1)
+	self.content:clearTransforms():setScale(ENTER_SCALE, ENTER_SCALE)
 	rawset(self.content, "drawUnderlay", nil)
 	self.content:fadeIn(0.3, "OutCubic")
+	self.content:scaleTo(1, 1, 0.5, "OutQuint")
+	for _, part in ipairs(self.parts) do
+		part.view:clearTransforms():setOffset(part.x, part.y):setOpacity(0)
+		part.view:delay(part.delay):moveTo(0, 0, 0.5, "OutQuint"):fadeIn(0.35, "OutCubic")
+	end
 end
 
 function SongSelectV2:exit()
@@ -235,6 +251,10 @@ function SongSelectV2:exit()
 	self.unsubscribes = {}
 	Screen.exit(self)
 	self.content:fadeOut(0.2, "OutQuad")
+	self.content:scaleTo(ENTER_SCALE, ENTER_SCALE, 0.2, "InQuad")
+	for _, part in ipairs(self.parts) do
+		part.view:clearTransforms():moveTo(part.x * 0.5, part.y * 0.5, 0.2, "InQuad"):fadeIn(0.1)
+	end
 	-- The backdrop stays until the next screen covers it; two half-faded screens would show black through.
 	self.backdrop:delay(0.2):fadeOut(0.2, "OutQuad")
 	return true
@@ -243,6 +263,11 @@ end
 ---Replaces the content fade of exit() on the way into chart loading: the content also flies
 ---towards the viewer. Ends together with the backdrop fade.
 function SongSelectV2:zoomOut()
+	-- The whole content zooms instead of exit()'s parts flying apart.
+	for _, part in ipairs(self.parts) do
+		part.view:clearTransforms():setOffset(0, 0):setOpacity(1)
+	end
+	self.content:clearTransforms():setScale(1, 1)
 	self.content:fadeOut(0.3, "OutQuad")
 	self.content:scaleTo(ZOOM_SCALE, ZOOM_SCALE, 0.4, "OutCubic")
 	rawset(self.content, "drawUnderlay", tiltContent)
