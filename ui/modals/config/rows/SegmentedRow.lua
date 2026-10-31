@@ -11,7 +11,7 @@ local Sounds = require("ui.Sounds")
 ---@field setting_row ui.modals.config.rows.SettingRow
 ---@field track gui.NineSliceUsage?
 ---@field segment gui.NineSliceUsage?
----@field segments_x number Left edge of the first segment.
+---@field segments_width number
 local SegmentedRow = SegmentedControl + {}
 
 local PADDING = 3
@@ -29,8 +29,13 @@ function SegmentedRow:new(params)
 		self.cell_widths[index] = self.font:getWidth(self.format(option)) + SEGMENT_PADDING_X * 2
 		width = width + self.cell_widths[index]
 	end
-	self.segments_x = SettingRow.WIDTH - SettingRow.PADDING_X - PADDING - width
+	self.segments_width = width
 	self:setSize(SettingRow.WIDTH, SettingRow.HEIGHT)
+end
+
+---@return number x Left edge of the first segment.
+function SegmentedRow:getSegmentsX()
+	return self.width - SettingRow.PADDING_X - PADDING - self.segments_width
 end
 
 ---@param screen_x number
@@ -38,7 +43,7 @@ end
 ---@return integer? index
 function SegmentedRow:getIndexAt(screen_x, screen_y)
 	local local_x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
-	local right = self.segments_x
+	local right = self:getSegmentsX()
 	if local_x < right then
 		return
 	end
@@ -72,17 +77,18 @@ function SegmentedRow:draw()
 	local track_height = SEGMENT_HEIGHT + PADDING * 2
 	local track_y = (self.height - track_height) / 2
 	local segment_y = track_y + PADDING
+	local segments_x = self:getSegmentsX()
 	Painter.setColorRgb(1, 1, 1)
 	love.graphics.push()
-	love.graphics.translate(self.segments_x - PADDING, track_y)
-	self.track:draw(self.width - SettingRow.PADDING_X - self.segments_x + PADDING, track_height)
+	love.graphics.translate(segments_x - PADDING, track_y)
+	self.track:draw(self.segments_width + PADDING * 2, track_height)
 	love.graphics.pop()
 
 	local selected_index = self:getSelectedIndex()
 	local hover_index = self.mouse_over and self:getIndexAt(love.mouse.getPosition())
 	local text_y = math.floor(segment_y + (SEGMENT_HEIGHT - self.font:getHeight()) / 2)
 	love.graphics.setFont(self.font)
-	local x = self.segments_x
+	local x = segments_x
 	for index, option in ipairs(self.options) do
 		local width = self.cell_widths[index]
 		if index == selected_index then

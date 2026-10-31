@@ -13,15 +13,16 @@ local labels = {
 ---@param width number
 ---@param localization ui.localization.Localization
 ---@param on_change fun(value: number)
+---@param classes {slider: ui.views.form.Slider, segmented: ui.views.form.SegmentedControl}? Subclasses to build instead.
 ---@return ui.views.form.FormControl? control nil for systems without a value.
-return function(system, value, width, localization, on_change)
+return function(system, value, width, localization, on_change, classes)
 	---@param v number
 	local function format(v)
 		return system:formatValue(v)
 	end
 	local label = localization:get(labels[system.name] or "song_select.score_system")
 	if system.range then
-		return Slider({
+		return (classes and classes.slider or Slider)({
 			label = label,
 			value = value,
 			min = system.range.min,
@@ -32,7 +33,7 @@ return function(system, value, width, localization, on_change)
 			on_change = on_change,
 		})
 	elseif system.values then
-		return SegmentedControl({
+		return (classes and classes.segmented or SegmentedControl)({
 			label = label,
 			options = system.values,
 			value = value,

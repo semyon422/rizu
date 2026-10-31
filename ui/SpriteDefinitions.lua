@@ -257,6 +257,31 @@ local SpriteDefinitions = {
 		fills = fills({0, 0, 0, 0.18}),
 		stroke = {width = {right = 1}, color = Colors.outline},
 	},
+	-- The modifiers modal's footer, inside the modal's 1px border.
+	config_v2_footer = {
+		width = 23,
+		height = 23,
+		corner_radii = {bottom_left = 11, bottom_right = 11},
+		slice = 11,
+		fills = fills({0, 0, 0, 0.18}),
+		stroke = {width = {top = 1}, color = Colors.divider},
+	},
+	config_v2_button = {
+		width = 13,
+		height = 13,
+		border_radius = 6,
+		slice = 6,
+		fills = fills(Colors.background),
+		stroke = {width = 1, color = Colors.outline},
+	},
+	config_v2_button_hover = {
+		width = 13,
+		height = 13,
+		border_radius = 6,
+		slice = 6,
+		fills = fills(Colors.background),
+		stroke = {width = 1, color = Colors.accent},
+	},
 	-- A setting row is one piece of its group; rows open their inner edges to stack.
 	config_v2_row = {
 		width = 21,
