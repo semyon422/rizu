@@ -19,6 +19,9 @@ local CarouselLayout = require("ui.screens.song_select_v2.CarouselLayout")
 ---@field unsubscribe (fun())[]
 local ChartCarousel = VirtualizedList + {}
 
+-- Slower than other lists: the camera follows selections and the set unfolding shares this speed.
+ChartCarousel.SCROLL_DECAY = 0.01
+
 local SET_HEIGHT = 76
 local CHILD_HEIGHT = 44
 local GAP = 5
