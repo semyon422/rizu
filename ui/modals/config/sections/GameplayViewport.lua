@@ -1,4 +1,4 @@
-local ControlFactory = require("ui.modals.config.ControlFactory")
+local ControlFactory = require("ui.modals.config.rows.RowFactory")
 local GameplayViewportPreview = require("ui.modals.config.GameplayViewportPreview")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")

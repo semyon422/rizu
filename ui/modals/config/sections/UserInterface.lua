@@ -1,4 +1,4 @@
-local ControlFactory = require("ui.modals.config.ControlFactory")
+local ControlFactory = require("ui.modals.config.rows.RowFactory")
 local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")

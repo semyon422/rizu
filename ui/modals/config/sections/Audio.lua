@@ -1,5 +1,5 @@
 local decibel = require("decibel")
-local ControlFactory = require("ui.modals.config.ControlFactory")
+local ControlFactory = require("ui.modals.config.rows.RowFactory")
 local Label = require("ui.views.Label")
 local Resources = require("ui.Resources")
 local Section = require("ui.modals.config.Section")

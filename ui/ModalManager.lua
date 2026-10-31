@@ -7,7 +7,7 @@ local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
 local CollectionSelector = require("ui.modals.collections.CollectionSelector")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
-local Config = require("ui.modals.config.Config")
+local Config = require("ui.modals.config.ConfigV2")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
@@ -28,7 +28,7 @@ local UiActions = require("ui.UiActions")
 ---@field ui ui.UserInterface
 ---@field palette ui.modals.command_palette.CommandPalette
 ---@field ai_chat ui.modals.ai_chat.AiChat?
----@field config ui.modals.config.Config
+---@field config ui.modals.config.ConfigV2
 ---@field external_link ui.modals.ExternalLink
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input

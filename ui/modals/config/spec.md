@@ -4,13 +4,17 @@ Provide a section-based settings modal for `rizu.config.Settings` and the UI-spe
 
 ## User Experience
 
-Settings are grouped under named, illustrated sections and use the shared form controls. A padded section list on the left shows each section's icon and name, highlights hovered items, and scrolls the single settings list to that section's heading when clicked. A search box above the section list filters the list on every keystroke: a control is kept when every whitespace-separated term appears (case-insensitively) in its name, keywords, tip, or section name, and a query matching a section name keeps that whole section. Sections without matches lose their heading and their button, and an empty result shows a "No results" label. Changing the query resets the scroll position. Changes to checkboxes, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
+Settings are grouped under named, illustrated sections. The sidebar on the left holds a search box, one item per section and a Close item at the bottom. Clicking a section item scrolls the single settings list to that section's heading; the item of the section currently at the top of the list is raised, and the last section's item once the list is scrolled to its end. The search box filters the list on every keystroke: a control is kept when every whitespace-separated term appears (case-insensitively) in its name, keywords, tip, or section name, and a query matching a section name keeps that whole section. Sections without matches lose their heading and their sidebar item, and an empty result shows a "No results" label. Changing the query resets the scroll position.
+
+Each section's settings form one rounded group of rows: a label on the left and its control on the right, or a label and value above a full-width slider. Booleans are lane-receptor toggles that light up like a pressed key, short choices are segmented controls, longer choices open a list over their field, and key bindings capture a combination in their field. Read-only content (device status, the build, the viewport preview) shares one row. The hovered row, or the keyboard-selected one, is raised and marked with the selection line on its left. Up and Down move the keyboard selection, Left and Right change sliders and segmented controls, and Accept toggles, cycles or opens the selected control. Changes to toggles, sliders, and choices apply immediately. Textbox edits commit when keyboard focus leaves the textbox.
 
 ## Architecture Decisions
 
 `Section` is a stateful definition rather than a view. It owns a name, icon, arbitrary presentation state, and a builder that returns the controls currently applicable to that state. Calling `Section:invalidate()` schedules the modal to rebuild its rows on the next update.
 
-Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`. Section headings are non-selectable rows in the same form. `ControlFactory` binds flat config keys from `rizu.config.Settings` and `ui.UiConfig` to controls; changes update their config stores immediately.
+Each concrete section lives in its own module under `ui/modals/config/sections/`. All generated `FormControl` instances are direct rows of the modal's single `Form`, which owns keyboard navigation. Section headings are non-selectable rows in the same form. `ControlFactory` binds flat config keys from `rizu.config.Settings` and `ui.UiConfig` to controls; changes update their config stores immediately. `ControlFactory.create` builds a factory for another set of control classes: sections use `rows.RowFactory`, whose rows subclass the generic form controls and keep their behavior, while other modals keep the generic controls.
+
+A row draws its own piece of the group's background through `rows.SettingRow`, so hover and selection need no clipping: the modal places each row as first and/or last of its group, and `gui.NineSliceUsage:setOpenEdges` squares the inner edges. Views without a row look are merged into an `rows.InfoRow`. Toggle textures are SVG sources in `resources/yi/svg` rasterized into the sprite atlas, one sprite per state.
 
 The Gameplay section exposes Auto keysound (`gameplay.auto_key_sound`, off by default). When enabled, keysounds play automatically independently of key presses. The stored value updates immediately and is used on the next chart load.
 
@@ -35,7 +39,7 @@ The Bindings section exposes modern UI, Song Select, gameplay, editor, and scree
 ## Invariants
 
 - A section never owns or draws views.
-- Structural changes are deferred until `Config:update()` and never mutate rows from an input callback.
+- Structural changes are deferred until `ConfigV2:update()` and never mutate rows from an input callback.
 - Rebuilding closes dropdown overlays and clears form selection before replacing rows.
 - Every setting control may carry a localized name, search keywords, a stable config key, and an optional `tip` for a future tip view.
 - Textboxes notify their change callback only on focus loss and only when their value changed since the previous commit.

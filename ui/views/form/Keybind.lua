@@ -167,6 +167,26 @@ function Keybind:onKeyUp(e)
 	return true
 end
 
+---The binding, or the combination being captured while focused.
+---@return string text
+---@return gui.Color color
+function Keybind:getBindingText()
+	local preview = self.preview_binding
+	if not (self.focused and preview) then
+		return KeyBindings.format({self.binding}), Colors.text
+	end
+	if preview.key == "" and not (preview.control or preview.shift or preview.alt or preview.super) then
+		return "Press any button...", Colors.muted
+	end
+	local parts = {} ---@type string[]
+	if preview.control then parts[#parts + 1] = "Ctrl" end
+	if preview.shift then parts[#parts + 1] = "Shift" end
+	if preview.alt then parts[#parts + 1] = "Alt" end
+	if preview.super then parts[#parts + 1] = "Super" end
+	if preview.key ~= "" then parts[#parts + 1] = preview.key end
+	return table.concat(parts, "+"), Colors.accent
+end
+
 function Keybind:draw()
 	Painter.snapToPixel()
 	love.graphics.setFont(self.font)
@@ -182,26 +202,8 @@ function Keybind:draw()
 	self.cap_middle:draw(body_x + left_width, 0, 0, middle_width / self.cap_middle:getWidth(), 1)
 	self.cap_right:draw(self.width - right_width, 0)
 
-	local text ---@type string
-	local preview = self.preview_binding
-	if self.focused and preview then
-		if preview.key == "" and not (preview.control or preview.shift or preview.alt or preview.super) then
-			text = "Press any button..."
-			Painter.setColorTable(Colors.muted)
-		else
-			local parts = {} ---@type string[]
-			if preview.control then parts[#parts + 1] = "Ctrl" end
-			if preview.shift then parts[#parts + 1] = "Shift" end
-			if preview.alt then parts[#parts + 1] = "Alt" end
-			if preview.super then parts[#parts + 1] = "Super" end
-			if preview.key ~= "" then parts[#parts + 1] = preview.key end
-			text = table.concat(parts, "+")
-			Painter.setColorTable(Colors.accent)
-		end
-	else
-		text = KeyBindings.format({self.binding})
-		Painter.setColorTable(Colors.text)
-	end
+	local text, color = self:getBindingText()
+	Painter.setColorTable(color)
 	love.graphics.print(text, body_x + TEXT_PADDING, (HEIGHT - self.font:getHeight()) / 2)
 end
 

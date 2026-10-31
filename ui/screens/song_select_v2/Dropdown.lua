@@ -103,8 +103,11 @@ end
 ---@return boolean?
 function Dropdown:onMouseClick(e)
 	if e.button ~= 1 or not self.effective_enabled then return end
-	if not self:close() then self:open() end
-	Sounds.play("click")
+	if self:close() then
+		Sounds.play("click")
+	elseif self:open() then
+		Sounds.play("dropdown_open")
+	end
 	return true
 end
 
