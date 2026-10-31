@@ -155,6 +155,8 @@ function ScrollView:scrollTo(position, immediate)
 	assert(type(position) == "number" and position == position
 		and position > -math.huge and position < math.huge,
 		"scroll position must be a finite number")
+	-- An explicit scroll cancels a fling, which would otherwise overwrite the target.
+	self.scroll_velocity = 0
 	self:refreshBounds()
 	self.scroll_target = math.min(math.max(position, 0), self.max_scroll)
 	if immediate then
@@ -271,7 +273,6 @@ end
 ---@param e gui.ScrollEvent
 ---@return boolean handled
 function ScrollView:onScroll(e)
-	self.scroll_velocity = 0
 	self:scrollTo(self.scroll_target - e.direction_y * self.scroll_step)
 	return true
 end

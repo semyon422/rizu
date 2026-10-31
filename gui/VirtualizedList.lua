@@ -113,6 +113,8 @@ function VirtualizedList:scrollTo(position, immediate)
 	assert(type(position) == "number" and position == position
 		and position > -math.huge and position < math.huge,
 		"scroll position must be a finite number")
+	-- An explicit scroll cancels a fling, which would otherwise overwrite the target.
+	self.scroll_velocity = 0
 	self.scroll_target = self:clampScroll(position)
 	if immediate then
 		self.scroll_current = self.scroll_target
@@ -227,7 +229,6 @@ end
 ---@param e gui.ScrollEvent
 ---@return boolean handled
 function VirtualizedList:onScroll(e)
-	self.scroll_velocity = 0
 	self:scrollTo(self.scroll_target - e.direction_y * self:getRowStep())
 	return true
 end
