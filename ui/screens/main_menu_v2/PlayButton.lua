@@ -1,6 +1,7 @@
 local View = require("gui.View")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
 local Image = require("ui.views.Image")
 local Label = require("ui.views.Label")
 
@@ -84,6 +85,11 @@ function PlayButton:unload()
 		self.mesh:release()
 		self.mesh = nil
 	end
+end
+
+---@param e gui.HoverEvent
+function PlayButton:onHover(e)
+	Sounds.play("hover")
 end
 
 ---@param e gui.MouseDownEvent

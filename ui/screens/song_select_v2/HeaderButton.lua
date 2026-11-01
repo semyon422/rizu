@@ -2,6 +2,7 @@ local View = require("gui.View")
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
 
 ---@class ui.screens.song_select_v2.HeaderButton : gui.View
 ---@operator call: ui.screens.song_select_v2.HeaderButton
@@ -24,9 +25,15 @@ function HeaderButton:new(icon, on_click)
 	self:setSize(WIDTH, HEIGHT)
 end
 
+---@param e gui.HoverEvent
+function HeaderButton:onHover(e)
+	Sounds.play("hover")
+end
+
 ---@param e gui.MouseClickEvent
 function HeaderButton:onMouseClick(e)
 	if e.button ~= 1 then return end
+	Sounds.play("click")
 	if self.on_click then
 		self.on_click()
 	end

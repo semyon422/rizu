@@ -2,6 +2,7 @@ local View = require("gui.View")
 local Painter = require("gui.Painter")
 local Colors = require("ui.Colors")
 local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
 local ChartCarousel = require("ui.screens.song_select_v2.ChartCarousel")
 
 local lg = love.graphics
@@ -59,6 +60,11 @@ function MenuButton.fit(text, width)
 	return font, ChartCarousel.fitText(font, text, width)
 end
 
+---@param e gui.HoverEvent
+function MenuButton:onHover(e)
+	Sounds.play("hover")
+end
+
 ---@param e gui.MouseDownEvent
 function MenuButton:onMouseDown(e)
 	if e.button ~= 1 then return end
@@ -78,6 +84,7 @@ function MenuButton:onMouseClick(e)
 	if e.button ~= 1 then return end
 	-- Leaving the screen drops the press, so onMouseUp may never come.
 	self:scaleTo(1, 1, 0.12, "OutCubic")
+	Sounds.play("click")
 	self.on_click()
 	return true
 end
