@@ -4,6 +4,7 @@ local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
 local FakeGameApi = require("rizu.api.fake.FakeGameApi")
+local PopupContainer = require("ui.views.PopupContainer")
 
 local test = {}
 
@@ -13,8 +14,10 @@ local function newScreen(online)
 	local api = FakeGameApi()
 	api.scores.session_start = os.time() - 3725
 	for k, v in pairs(online or {}) do api.online[k] = v end
-	local ui = {localization = Localization(), api = api}
+	local popup_container = PopupContainer()
+	local ui = {localization = Localization(), api = api, overlay = {popup_container = popup_container}}
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
+	screen.root:add(popup_container) -- the overlay's, over the screen
 	screen:load()
 	screen:resize(1600, 900)
 	screen:enter() -- as setScreen() does
@@ -187,7 +190,7 @@ function test.music_strip_follows_the_selection_and_the_pause(t)
 	t:eq(pause.x + pause.width, next_button.x)
 	t:eq(previous.x + previous.width, pause.x)
 	t:eq(strip.buttons_x, previous.x)
-	local chart = api.charts:getSelectedChart()
+	local chart = assert(api.charts:getSelectedChart())
 	t:eq(strip.title, chart.title)
 	t:eq(strip.artist, chart.artist)
 	t:eq(strip.pause_button.icon, Resources.sprites.icon_pause)
@@ -196,7 +199,7 @@ function test.music_strip_follows_the_selection_and_the_pause(t)
 	strip:update(0)
 	t:eq(strip.pause_button.icon, Resources.sprites.icon_play)
 
-	strip:bind({title = ("very long title "):rep(20), artist = ""} --[[@as rizu.api.Chart]])
+	strip:bind({title = ("very long title "):rep(20), artist = ""} --[[@as rizu.api.Chart]]) ---@diagnostic disable-line: missing-fields
 	t:assert(strip.title:sub(-3) == "…", "a long title is cut before the buttons")
 	t:eq(strip.artist, screen.ui.localization:get("music_player.unknown_artist"))
 	strip:bind(nil)
@@ -222,7 +225,7 @@ function test.status_line_scrolls_recent_scores(t)
 	t:eq(line.items[1].parts[2].text, "97.84%")
 	t:eq(line.items[1].parts[3].text, "Song [4K Hard]")
 	line:update(1)
-	t:eq(line.scroll, 60)
+	t:eq(line.offset, -60)
 	screen.root:finishTransforms()
 	screen:draw()
 
@@ -235,6 +238,95 @@ function test.status_line_scrolls_recent_scores(t)
 	t:eq(#line.items, 0)
 	line:update(1)
 	screen:draw()
+end
+
+---@param t testing.T
+function test.players_coming_online_pass_by_once_after_what_is_on_screen(t)
+	setup()
+	local scores = {} ---@type rizu.api.Online.RecentScore[]
+	for i = 1, 10 do
+		scores[i] = {player_name = "p" .. i, title = "A song with a fairly long title " .. i, difficulty = "4K", accuracy = 0.95}
+	end
+	local listeners = {} ---@type {[string]: function[]}
+	local function emit(event, ...) for _, f in ipairs(listeners[event] or {}) do f(...) end end
+	local screen = newScreen({
+		getRecentScores = function() return scores end,
+		on = function(_, event, f)
+			listeners[event] = listeners[event] or {}
+			table.insert(listeners[event], f)
+			return function() end
+		end,
+	})
+	screen:update(0)
+	screen:flush()
+	local line = screen.status_line
+	local x = line:getItemsX()
+	local visible = 0
+	while x < line.width do
+		visible = visible + 1
+		x = x + line.items[visible].width + 32
+	end
+
+	emit("player_joined", {name = "kaede", avatar_url = "k.png", chartplays_count = 0, play_time = 0})
+	local join = line.items[visible + 1]
+	t:assert(join.once, "goes right after the items on screen")
+	t:eq(join.parts[2].text, "kaede")
+	t:eq(join.parts[3].text, "is online")
+	emit("recent_scores_changed")
+	t:eq(#line.items, 11, "new scores keep it")
+
+	for _ = 1, 200 do line:update(1) end
+	t:eq(#line.items, 10, "gone once it has passed")
+	t:assert(line.offset <= 0)
+	screen:draw()
+end
+
+---@param t testing.T
+function test.presence_shows_the_latest_players_and_lists_everyone(t)
+	setup()
+	local listeners = {} ---@type {[string]: function[]}
+	local function emit(event, ...) for _, f in ipairs(listeners[event] or {}) do f(...) end end
+	local screen = newScreen({
+		on = function(_, event, f)
+			listeners[event] = listeners[event] or {}
+			table.insert(listeners[event], f)
+			return function() end
+		end,
+	})
+	screen:update(0)
+	screen:flush()
+	local presence, bar, clock, content = screen.presence, screen.top_bar, screen.clock, screen.content
+	t:eq(presence.text, "42 online")
+	t:eq(#presence.players, 42)
+	t:assert(presence.x + presence.width < clock.x, "left of the clock")
+	t:eq(bar.x + bar.width, content.width - 40)
+	screen.root:finishTransforms()
+	screen:draw()
+
+	emit("player_joined", {name = "kaede", chartplays_count = 0, play_time = 0})
+	t:eq(presence.joined, 0, "the newest avatar grows in")
+	presence:update(1)
+	t:eq(presence.joined, 0.4)
+
+	screen.ui.api.online.getOnlineCount = function() return 1234 end
+	emit("online_count_changed")
+	screen:flush()
+	t:eq(presence.text, "1234 online")
+	t:eq(bar.x + bar.width, content.width - 40, "the bar refits to the wider count")
+
+	t:assert(presence:open())
+	local list = assert(presence.popup)
+	screen:flush()
+	t:eq(screen.ui.overlay.popup_container.popup, list)
+	t:eq(list.list:getRowCount(), 42)
+	t:eq(list.height, 520, "a long list scrolls")
+	screen:draw()
+	t:assert(presence:close())
+	t:eq(screen.ui.overlay.popup_container.popup, nil)
+
+	presence:open()
+	screen.ui.overlay.popup_container:onMouseDown()
+	t:eq(presence.popup, nil, "a click outside closes it")
 end
 
 ---@param t testing.T

@@ -12,6 +12,7 @@ local SessionPanel = require("ui.screens.main_menu_v2.SessionPanel")
 local PlayerCard = require("ui.screens.main_menu_v2.PlayerCard")
 local MusicStrip = require("ui.screens.main_menu_v2.MusicStrip")
 local StatusLine = require("ui.screens.main_menu_v2.StatusLine")
+local PresenceButton = require("ui.screens.main_menu_v2.PresenceButton")
 local Scrim = require("ui.screens.song_select_v2.Scrim")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -20,7 +21,8 @@ local Label = require("ui.views.Label")
 local HeaderButton = require("ui.screens.song_select_v2.HeaderButton")
 local NotificationsButton = require("ui.screens.song_select_v2.NotificationsButton")
 
--- Layout follows build/main-menu-mockups/6h-full.html, the music strip 6i-glass.html (1920x1080 logical).
+-- Layout follows build/main-menu-mockups/6h-full.html, the music strip 6i-glass.html, the online players
+-- next to the clock and the joins in the status line 6j-presence.html (1920x1080 logical).
 local EDGE = 40
 local PLAY_WIDTH, PLAY_HEIGHT = 560, 160
 local PLAY_SLANT = 40
@@ -45,6 +47,7 @@ local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 ---@field play_button ui.screens.main_menu_v2.PlayButton
 ---@field top_bar gui.layout.FlowContainer
 ---@field player_card ui.screens.main_menu_v2.PlayerCard
+---@field presence ui.screens.main_menu_v2.PresenceButton
 ---@field clock ui.views.Label
 ---@field buttons gui.layout.FlowContainer
 ---@field session_panel ui.screens.main_menu_v2.SessionPanel
@@ -91,9 +94,11 @@ function MainMenuV2:createTopBar()
 	local ui = self.ui
 	local bar = self.content:add(FlowContainer({direction = "row", gap = 4, align = 0.5}))
 	self.top_bar = bar
+	-- The bar is aligned by its right edge, so it refits when the count or the clock changes width.
+	self.presence = bar:add(PresenceButton(ui, function() bar:fitContent() end))
+	bar:add(self:separator())
 	local clock = bar:add(Label({font_name = "medium", font_size = 17}))
 	self.clock = clock
-	-- The bar is aligned by its right edge, so it refits when the time changes width.
 	clock:setUpdate(function()
 		local time = os.date("%H:%M") --[[@as string]]
 		if time == clock.text then return end

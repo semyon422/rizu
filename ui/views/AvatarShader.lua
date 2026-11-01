@@ -1,3 +1,5 @@
+local Resources = require("ui.Resources")
+
 local shader_code = [[
 extern vec2 u_position;
 extern vec2 u_size;
@@ -36,6 +38,29 @@ function AvatarShader.setRect(shader, x, y, width, height, radius)
 	shader:send("u_position", {x1, y1})
 	shader:send("u_size", {x2 - x1, y2 - y1})
 	shader:send("u_radius", radius * scale)
+end
+
+---Draws an avatar to cover a size x size square with rounded corners, the default avatar while
+---`image` is nil. Sets and resets the shader; the color is the caller's.
+---@param shader love.Shader
+---@param image love.Image?
+---@param x number
+---@param y number
+---@param size number
+---@param radius number
+function AvatarShader.draw(shader, image, x, y, size, radius)
+	AvatarShader.setRect(shader, x, y, size, size, radius)
+	love.graphics.setShader(shader)
+	local sprite = Resources.sprites.avatar
+	local w, h = (image or sprite):getDimensions()
+	local scale = math.max(size / w, size / h)
+	local draw_x, draw_y = x + (size - w * scale) / 2, y + (size - h * scale) / 2
+	if image then
+		love.graphics.draw(image, draw_x, draw_y, 0, scale)
+	else
+		sprite:draw(draw_x, draw_y, 0, scale, scale)
+	end
+	love.graphics.setShader()
 end
 
 return AvatarShader
