@@ -180,7 +180,7 @@ function test.online_panel_lists_players_in_the_bottom_left(t)
 	t:eq(panel.x, 40)
 	t:eq(panel.y + panel.height, content.height - 40)
 	t:eq(panel.title, "ONLINE: 42")
-	t:eq(panel.grid:getRowCount(), 21) -- 2 real and 40 fake players
+	t:eq(panel.grid:getRowCount(), 1)
 	screen.root:finishTransforms() -- past the fade-in, which starts at opacity 0
 	screen:draw()
 	t:eq(panel.grid.fitted[1].stats, "1234 plays · 3h 25m")
@@ -190,10 +190,10 @@ function test.online_panel_lists_players_in_the_bottom_left(t)
 		players[i] = {name = ("player_with_a_very_long_name_%d"):format(i), chartplays_count = i, play_time = i}
 	end
 	on_players_changed()
-	t:eq(panel.grid:getRowCount(), 70)
+	t:eq(panel.grid:getRowCount(), 50)
 	local first, last = panel.grid:getVisibleRowRange()
 	t:eq(first, 1)
-	t:assert(last < 70, "only the rows on screen are drawn")
+	t:assert(last < 50, "only the rows on screen are drawn")
 	screen:draw()
 	t:assert(panel.grid.fitted[1].name:sub(-3) == "…", "long names are cut to the card")
 	t:eq(panel.grid.fitted[2 * last + 1], nil)

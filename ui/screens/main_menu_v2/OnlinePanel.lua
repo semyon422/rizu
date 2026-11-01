@@ -53,13 +53,7 @@ function OnlinePanel:refresh()
 	local count = online:getOnlineCount()
 	self.title = count and localization:get("song_select.online", {count = count})
 		or localization:get("song_select.offline")
-	local players = {unpack(online:getOnlinePlayers())}
-	-- shortcut: fake players fill the grid while the server has few players, remove once it has real ones
-	for i = 1, 40 do
-		local role = i % 7 == 1 and "admin" or i % 4 == 0 and "donator" or nil
-		players[#players + 1] = {name = ("fake_player_%d"):format(i), role = role, chartplays_count = i * 53, play_time = i * 4321}
-	end
-	self.grid:setPlayers(players)
+	self.grid:setPlayers(online:getOnlinePlayers())
 end
 
 function OnlinePanel:draw()
