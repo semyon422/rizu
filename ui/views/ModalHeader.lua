@@ -3,7 +3,7 @@ local Label = require("ui.views.Label")
 local NineSlice = require("gui.NineSlice")
 local Resources = require("ui.Resources")
 
----@class ui.views.ModalHeader : ui.views.NineSlice
+---@class ui.views.ModalHeader : gui.NineSlice
 ---@operator call: ui.views.ModalHeader
 ---@field title ui.views.Label
 ---@field subtitle ui.views.Label

@@ -329,3 +329,24 @@ function love.filesystem.setCRequirePath(path) end
 ---@param mode? love.filesystem.FileMode
 ---@return love.filesystem.File file
 function love.filesystem.newFile(filename, mode) end
+
+-- LÖVE 12.x love.graphics additions missing from the bundled LÖVE 11 definitions
+
+---Drawable text. LÖVE 12 renamed love.Text to love.TextBatch; the methods are unchanged.
+---@class love.TextBatch: love.Text
+
+---@param font love.Font
+---@param textstring? string|table
+---@return love.TextBatch textbatch
+function love.graphics.newTextBatch(font, textstring) end
+
+---Copy a texture's pixels into new ImageData.
+---@param texture love.Texture
+---@param slice? number
+---@param mipmap? number
+---@param x? number
+---@param y? number
+---@param width? number
+---@param height? number
+---@return love.ImageData data
+function love.graphics.readbackTexture(texture, slice, mipmap, x, y, width, height) end

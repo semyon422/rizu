@@ -142,11 +142,11 @@ end
 ---@param modifiers gui.ModifierKeys?
 ---@return boolean? handled
 function ScreenManager:receive(event, modifiers)
-	if self.overlay and self.overlay:receive(event, modifiers) then
+	if self.overlay and self.overlay:receive(event) then
 		return true
 	end
 	if self.input_screen then
-		return self.input_screen:receive(event, modifiers)
+		return self.input_screen:receive(event)
 	end
 end
 

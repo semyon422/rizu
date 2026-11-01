@@ -360,8 +360,7 @@ end
 ---@param inputs gui.Inputs
 function Screen:onHandleInputs(inputs) end
 
----Internal semantic-input dispatch. ScreenManager controls which Screens run it.
----@private
+---Semantic-input dispatch. The screen manager decides which screens run it.
 ---@param inputs gui.Inputs
 function Screen:handleInputs(inputs)
 	self:flush()

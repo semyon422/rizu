@@ -72,9 +72,8 @@ function Overlay:new(ui)
 end
 
 ---@param event {name: string, time: number, [integer]: any}
----@param modifiers gui.ModifierKeys?
 ---@return boolean handled
-function Overlay:receive(event, modifiers)
+function Overlay:receive(event)
 	local inputs = self.inputs
 	if not inputs then return false end
 	local keyboard_action = self:isCommandPaletteAllowed()

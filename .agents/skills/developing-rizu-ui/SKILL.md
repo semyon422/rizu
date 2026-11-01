@@ -190,7 +190,7 @@ view:fadeOut(0.2, "OutQuad"):expire()
 | `gui.ScrollView` | Clipped vertical scrolling; explicitly size its content |
 | `gui.VirtualizedList` | Very large fixed-height lists |
 | `gui.NineSlice` | Resizable nine-slice sprites |
-| `gui.Sprite`, `gui.AtlasImage`, `gui.ImageSprite` | Drawable sprite abstractions and atlas regions |
+| `gui.Sprite`, `gui.AtlasImage` | Drawable sprite abstractions and atlas regions |
 | `gui.SpriteBatch` | Explicit sprite batching for dense repeated drawing |
 | `gui.CompositeView` | Subtree with group opacity; uses a canvas only while translucent |
 | `gui.anim.SpringValue`, `TweenValue`, `Easing` | Springs, standalone tweens, and easing |
@@ -255,7 +255,7 @@ Use white RGBA artwork so `Painter.setColorTable(...)` can tint the atlas sprite
 |---|---|
 | `ui.Resources` | Shared atlas sprites, nine-slices, BMFonts, and cached TTF fonts via `getFont(name, size)` |
 | `ui.Colors` / `ui.Color` | Palette and color manipulation helpers |
-| `ui.views.Label`, `BMFontLabel` | Self-sizing text |
+| `ui.views.Label` | Self-sizing text |
 | `ui.views.Image` | Native-size or fitted `gui.Sprite` |
 | `ui.views.Rectangle`, `Panel`, `Line`, `Background` | Common visual surfaces |
 | `ui.views.Button` | Basic clickable button |

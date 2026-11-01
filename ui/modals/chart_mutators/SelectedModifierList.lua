@@ -38,7 +38,7 @@ end
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function ModifierOptionButton:onMouseClick(e)
-	if e.button ~= 1 or self.row.list.drag_active then
+	if e.button ~= 1 then
 		return
 	end
 	local index = self.row.list:getModifierIndex(self.row.config)
@@ -123,7 +123,7 @@ end
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function SelectedModifierRow:onMouseClick(e)
-	if self.list.drag_active or (e.button ~= 1 and e.button ~= 2) then
+	if e.button ~= 1 and e.button ~= 2 then
 		return
 	end
 	local index = self.list:getModifierIndex(self.config)
@@ -420,7 +420,7 @@ end
 ---@param e gui.MouseClickEvent
 ---@return boolean?
 function SelectedModifierList:onMouseClick(e)
-	if self.drag_active or e.button ~= 1 then
+	if e.button ~= 1 then
 		return
 	end
 	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
