@@ -13,6 +13,9 @@ local ChartCarousel = require("ui.screens.song_select_v2.ChartCarousel")
 ---@operator call: ui.screens.song_select_v2.ChartList
 local ChartList = VirtualizedList + {}
 
+-- Scrolls like the carousel it replaces when the sort is ungrouped.
+ChartList.SCROLL_DECAY = ChartCarousel.SCROLL_DECAY
+
 local ITEM_HEIGHT = 76
 local SCROLL_RETURN_DELAY = 2
 -- Same colours as ChartCarousel.
