@@ -4,6 +4,7 @@ local class = require("class")
 ---@class rizu.api.Events
 ---@operator call: rizu.api.Events
 ---@field private listeners {[string]: function[]}
+---@field private report_error fun(event: string, err: string)?
 local Events = class()
 
 function Events:new()
@@ -39,6 +40,12 @@ function Events:removeListeners()
 	self.listeners = {}
 end
 
+---For the game, not for user interfaces: f also gets the error of every listener that fails.
+---@param f fun(event: string, err: string)
+function Events:setErrorReporter(f)
+	self.report_error = f
+end
+
 ---For the API itself, not for user interfaces.
 ---@param event string
 ---@param ... any
@@ -47,6 +54,7 @@ function Events:emit(event, ...)
 		local ok, err = xpcall(f, debug.traceback, ...)
 		if not ok then
 			print(("rizu.api: listener of %q failed:\n%s"):format(event, err))
+			if self.report_error then self.report_error(event, err) end
 		end
 	end
 end

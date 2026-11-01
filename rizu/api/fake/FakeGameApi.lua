@@ -12,6 +12,7 @@ local FakeSkins = require("rizu.api.fake.FakeSkins")
 local FakeInput = require("rizu.api.fake.FakeInput")
 local FakeLibrary = require("rizu.api.fake.FakeLibrary")
 local FakeApp = require("rizu.api.fake.FakeApp")
+local FakeNotifications = require("rizu.api.fake.FakeNotifications")
 local VideoExport = require("rizu.api.VideoExport")
 local GameApi = require("rizu.api.GameApi")
 
@@ -37,6 +38,7 @@ function FakeGameApi:new()
 	self.library = FakeLibrary()
 	self.app = FakeApp()
 	self.video_export = VideoExport()
+	self.notifications = FakeNotifications()
 
 	local function selected(chart)
 		self.scores:setChart(chart)
@@ -49,6 +51,7 @@ end
 ---@param dt number
 function FakeGameApi:update(dt)
 	self.media:update(dt)
+	self.notifications:update(dt)
 end
 
 return FakeGameApi

@@ -1,9 +1,15 @@
 local class = require("class")
+local Observable = require("Observable")
 
 ---@class rizu.ScreenshotModel
 ---@operator call: rizu.ScreenshotModel
 ---@field lastSavedImagePath string?
+---@field onSaved util.Observable Sends {path = string}, the saved file in the game's save directory.
 local ScreenshotModel = class()
+
+function ScreenshotModel:new()
+	self.onSaved = Observable()
+end
 
 local prefix = "userdata/screenshots/screenshot "
 local path_fmt = prefix .. "%s.png"
@@ -30,6 +36,12 @@ local function get_path()
 	return pathn_fmt:format(date, "?")
 end
 
+---Opens a saved screenshot in the system viewer.
+---@param path string As onSaved sends it.
+function ScreenshotModel.open(path)
+	love.system.openURL("file://" .. love.filesystem.getSource() .. "/" .. path)
+end
+
 ---@param open boolean?
 function ScreenshotModel:capture(open)
 	love.graphics.captureScreenshot(function(imageData)
@@ -37,9 +49,10 @@ function ScreenshotModel:capture(open)
 		local fileData = imageData:encode("png")
 		assert(love.filesystem.write(path, fileData:getString()))
 		if open then
-			love.system.openURL("file://" .. love.filesystem.getSource() .. "/" .. path)
+			ScreenshotModel.open(path)
 		end
 		self.lastSavedImagePath = path
+		self.onSaved:send({path = path})
 	end)
 end
 

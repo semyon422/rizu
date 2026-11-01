@@ -11,6 +11,7 @@ local Input = require("rizu.api.Input")
 local Library = require("rizu.api.Library")
 local App = require("rizu.api.App")
 local VideoExport = require("rizu.api.VideoExport")
+local Notifications = require("rizu.api.Notifications")
 
 ---Everything a user interface needs from the game, one documented object per area.
 ---A UI gets it as `ui.api`. What is not here yet is still reachable through `ui.game`.
@@ -28,6 +29,7 @@ local VideoExport = require("rizu.api.VideoExport")
 ---@field library rizu.api.Library Chart folders and scanning them.
 ---@field app rizu.api.App The user interface, the audio device, screenshots.
 ---@field video_export rizu.api.VideoExport Frames the UI draws, written to an animated WebP with the system ffmpeg.
+---@field notifications rizu.api.Notifications Notifications for the player and running background tasks.
 ---@field settings rizu.config.Config Every setting. Keys are in `rizu.config.Settings.keys`, see `rizu/config/spec.md`.
 ---@field version integer Which API this is. A user interface built for another number may break.
 ---@field fake boolean? True when this is `rizu.api.fake.FakeGameApi` and there is no game behind it.
@@ -50,6 +52,7 @@ function GameApi:new(game)
 	self.library = Library(game)
 	self.app = App(game)
 	self.video_export = VideoExport()
+	self.notifications = Notifications(game.notifications)
 	self.settings = game.settings
 end
 

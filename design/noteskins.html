@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Note Skins</title>
+<style>
+@font-face {
+	font-family: "Rubik";
+	src: url("../resources/fonts/Rubik/Rubik-Regular.ttf");
+	font-weight: 400;
+}
+@font-face {
+	font-family: "Rubik";
+	src: url("../resources/fonts/Rubik/Rubik-Medium.ttf");
+	font-weight: 500;
+}
+@font-face {
+	font-family: "Rubik";
+	src: url("../resources/fonts/Rubik/Rubik-Bold.ttf");
+	font-weight: 700;
+}
+:root {
+	/* ui/Colors.lua */
+	--bg: #0D0C0F;
+	--panel: #211C2B;
+	--surface: #2D283E;
+	--raised: #403854;
+	--text: #F2F2FF;
+	--muted: #A6B2CC;
+	--outline: #4A4460;
+	--divider: rgba(74, 68, 96, .55);
+	--subtle: rgba(242, 242, 255, .07);
+	--accent: #D9A04F;
+	--radius: 12px;
+	--ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+	margin: 0;
+	height: 100vh;
+	display: grid;
+	place-items: center;
+	background: radial-gradient(circle at 70% 30%, #3a4f78, #2a2540 60%, var(--bg));
+	color: var(--text);
+	font: 14px/1.4 "Rubik", system-ui, sans-serif;
+}
+
+.overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(13, 12, 15, .45);
+}
+
+.modal {
+	position: relative;
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	width: min(1060px, calc(100vw - 32px));
+	height: min(740px, calc(100vh - 32px));
+	background: var(--panel);
+	border: 1px solid var(--subtle);
+	border-radius: var(--radius);
+	box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+	overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 16px 12px;
+	background: rgba(0, 0, 0, .18);
+	border-right: 1px solid var(--divider);
+}
+
+.search {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 38px;
+	margin-bottom: 12px;
+	padding: 0 12px;
+	background: var(--bg);
+	border: 1px solid var(--outline);
+	border-radius: 8px;
+	color: var(--muted);
+}
+.search:focus-within { border-color: var(--accent); }
+.search input {
+	flex: 1;
+	min-width: 0;
+	background: none;
+	border: 0;
+	outline: 0;
+	color: var(--text);
+	font: inherit;
+}
+.search input::placeholder { color: var(--muted); }
+
+.nav-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	height: 38px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	color: var(--muted);
+	font: 500 14px "Rubik", sans-serif;
+	text-align: left;
+	cursor: pointer;
+	transition: background .15s, color .15s;
+}
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active { background: var(--raised); color: var(--text); }
+.nav-item.active svg { color: var(--accent); }
+.nav-item svg { flex: none; width: 18px; height: 18px; }
+.nav-item.close { margin-top: auto; }
+
+svg {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* Content */
+.content {
+	overflow-y: auto;
+	padding: 8px 32px 32px;
+	scroll-behavior: smooth;
+	scrollbar-width: thin;
+	scrollbar-color: var(--outline) transparent;
+}
+
+.section { padding-top: 24px; }
+.section h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 12px;
+	font-size: 22px;
+	font-weight: 700;
+}
+.section h2 svg { width: 20px; height: 20px; color: var(--accent); }
+
+.group {
+	overflow: hidden;
+	background: var(--surface);
+	border: 1px solid var(--subtle);
+	border-radius: 10px;
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	min-height: 56px;
+	padding: 10px 16px;
+}
+.row + .row { border-top: 1px solid var(--divider); }
+.row { position: relative; transition: background .15s; }
+/* Hover: brighter row plus the in-game selection line on the left */
+.row:hover { background: var(--raised); }
+.row:hover::before {
+	content: "";
+	position: absolute;
+	left: 6px;
+	top: 8px;
+	bottom: 8px;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--muted);
+}
+.row.stack { flex-direction: column; align-items: stretch; gap: 10px; }
+
+.label { font-weight: 500; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.value { color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
+.head { display: flex; justify-content: space-between; }
+
+/* Segmented control */
+.segmented {
+	display: inline-flex;
+	flex: none;
+	padding: 3px;
+	background: var(--bg);
+	border-radius: 8px;
+}
+.segmented button {
+	height: 30px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--muted);
+	font: 500 13px "Rubik", sans-serif;
+	cursor: pointer;
+	transition: background .15s, color .15s;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button.on { background: var(--raised); color: var(--accent); box-shadow: inset 0 0 0 1px var(--subtle); }
+
+/* Select */
+.select {
+	position: relative;
+	flex: none;
+	width: 220px;
+}
+.select select {
+	width: 100%;
+	height: 36px;
+	padding: 0 32px 0 12px;
+	appearance: none;
+	background: var(--bg);
+	border: 1px solid var(--outline);
+	border-radius: 8px;
+	color: var(--text);
+	font: inherit;
+	cursor: pointer;
+}
+.select select:focus { outline: 0; border-color: var(--accent); }
+.select svg {
+	position: absolute;
+	right: 10px;
+	top: 10px;
+	width: 16px;
+	height: 16px;
+	pointer-events: none;
+	color: var(--muted);
+}
+
+/* Toggle: a lane receptor that lights up from the bottom like a pressed key */
+.toggle {
+	position: relative;
+	flex: none;
+	width: 34px;
+	height: 26px;
+	border: 1px solid var(--outline);
+	border-radius: 4px;
+	background: var(--bg);
+	overflow: hidden;
+	cursor: pointer;
+	transition: border-color .2s;
+}
+.toggle::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(to top, rgba(217, 160, 79, .45), transparent);
+	transform: scaleY(0);
+	transform-origin: bottom;
+	transition: transform .25s var(--ease);
+}
+.toggle::after {
+	content: "";
+	position: absolute;
+	left: 4px;
+	right: 4px;
+	bottom: 4px;
+	height: 4px;
+	border-radius: 1px;
+	background: var(--outline);
+	transition: background .2s, box-shadow .2s;
+}
+.toggle:hover { border-color: var(--muted); }
+.toggle.on { border-color: var(--accent); }
+.toggle.on::before { transform: scaleY(1); }
+.toggle.on::after { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+/* Slider */
+input[type=range] {
+	width: 100%;
+	height: 18px;
+	margin: 0;
+	appearance: none;
+	background: none;
+	cursor: pointer;
+	--p: 50%;
+}
+input[type=range]::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 2px;
+	background: linear-gradient(var(--accent), var(--accent)) 0 / var(--p) 100% no-repeat, var(--bg);
+}
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--bg); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+input[type=range]::-webkit-slider-thumb {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	margin-top: -5px;
+	border: 0;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 0 4px var(--surface);
+	transition: transform .15s var(--ease);
+}
+input[type=range]::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border: 0;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 0 4px var(--surface);
+	transition: transform .15s var(--ease);
+}
+input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.2); }
+input[type=range]:hover::-moz-range-thumb { transform: scale(1.2); }
+
+.info {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 16px;
+	font-size: 13px;
+}
+.info dt { color: var(--muted); }
+.info dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.viewport {
+	aspect-ratio: 16 / 9;
+	border: 2px dashed var(--accent);
+	border-radius: 8px;
+	background: rgba(217, 160, 79, .12);
+	display: grid;
+	place-items: center;
+	color: var(--muted);
+}
+
+@media (max-width: 720px) {
+	.modal { grid-template-columns: 1fr; }
+	.sidebar { display: none; }
+	.content { padding: 8px 16px 16px; }
+	.row:not(.stack) { flex-wrap: wrap; }
+}
+
+/* Modifiers modal: single column with header and footer */
+.modal.single {
+	display: flex;
+	flex-direction: column;
+	grid-template-columns: none;
+	width: min(640px, calc(100vw - 32px));
+}
+.modal-head {
+	padding: 24px 32px 16px;
+	border-bottom: 1px solid var(--divider);
+}
+.modal-head h1 { margin: 0; font-size: 26px; font-weight: 700; }
+.modal-head p { margin: 4px 0 0; color: var(--muted); }
+.modal.single .content { flex: 1; padding-bottom: 24px; }
+.section h3 {
+	margin: 0 0 8px;
+	color: var(--muted);
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+.modal-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 20px;
+	border-top: 1px solid var(--divider);
+	background: rgba(0, 0, 0, .18);
+}
+.modal-foot .nav-item { margin: 0; }
+.buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn {
+	height: 30px;
+	padding: 0 14px;
+	border: 1px solid var(--outline);
+	border-radius: 6px;
+	background: var(--bg);
+	color: var(--text);
+	font: 500 13px "Rubik", sans-serif;
+	cursor: pointer;
+	transition: border-color .15s, color .15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.lanes { display: flex; gap: 4px; }
+.lanes span {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 4px;
+	background: var(--bg);
+	border: 1px solid var(--outline);
+	color: var(--muted);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Skin list: radio rows inside one card */
+.skin { cursor: pointer; justify-content: flex-start; gap: 14px; min-height: 48px; }
+.radio {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	border: 2px solid var(--outline);
+	border-radius: 50%;
+	transition: border-color .15s;
+}
+.skin.on { background: var(--raised); }
+.skin.on .radio { border-color: var(--accent); background: radial-gradient(var(--accent) 0 3px, transparent 4px); }
+.skin.on .label { color: var(--accent); }
+.skin .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.primary { background: var(--raised); border-color: var(--accent); color: var(--accent); padding: 0 24px; height: 36px; }
+.btn.primary:hover { background: var(--accent); color: var(--bg); }
+.btn.primary { display: inline-flex; align-items: center; gap: 8px; }
+.btn.primary svg { width: 16px; height: 16px; }
+/* Two columns: skin list and a live preview of the selected skin */
+.modal.single.wide { width: min(1000px, calc(100vw - 32px)); }
+.body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.body .content { min-height: 0; }
+.preview {
+	position: relative;
+	margin: 24px 24px 24px 0;
+	border-radius: 10px;
+	overflow: hidden;
+	background: linear-gradient(to right, #2a2a2a, #1a1a1a 30%, #1a1a1a 70%, #2a2a2a);
+	border: 1px solid var(--subtle);
+}
+.playfield {
+	position: absolute;
+	inset: 0 10%;
+	display: flex;
+	background: #121212;
+}
+.lane { position: relative; flex: 1; border-right: 1px solid #262626; }
+.lane:first-child { border-left: 1px solid #262626; }
+.lane::after {
+	content: "";
+	position: absolute;
+	left: 1px;
+	right: 1px;
+	bottom: 6%;
+	height: 4px;
+	background: var(--c);
+	opacity: .35;
+}
+.note {
+	position: absolute;
+	left: 2px;
+	right: 2px;
+	height: 12px;
+	background: var(--c);
+	border-radius: var(--note-radius, 1px);
+}
+.bars .note { height: 5px; }
+.circles .note { height: auto; aspect-ratio: 1; border-radius: 50%; }
+@media (max-width: 720px) { .body { grid-template-columns: 1fr; } .preview { display: none; } }
+.modal-head.with-mode { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+</style>
+</head>
+<body>
+<div class="overlay"></div>
+
+<div class="modal single wide">
+	<header class="modal-head with-mode">
+		<div>
+			<h1>Note Skins</h1>
+			<p>Choose a skin for <span id="mode-name">7key</span>, then edit it to change notes, lanes and hit effects.</p>
+		</div>
+		<div class="select"><select id="mode"><optgroup label="Mania"><option value="4">4key</option><option value="5">5key</option><option value="6">6key</option><option value="7" selected>7key</option><option value="8">8key</option><option value="10">10key</option></optgroup><optgroup label="Other"><option>osu!</option><option>Taiko</option><option>Catch</option></optgroup></select><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
+	</header>
+
+	<div class="body">
+	<main class="content">
+		<section class="section">
+			<div class="group">
+				<div class="row skin on"><span class="radio"></span><span class="label">Rizu Default</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">Bars</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">- #  vivian 「ZZZ」!#</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">- # {center} RALSEI 『ラルセイ』- FULL # - v2_ultra_lite</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">- # 「Lunar Tempest」 - 4k bar ver - kirami</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">- PENDUAL -</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">- {S} Arekk_s OFF SCRIPT</span></div>
+				<div class="row skin"><span class="radio"></span><span class="label">O2Jam - XenoJam (Keishii)</span></div>
+			</div>
+		</section>
+	</main>
+	<aside class="preview"><div class="playfield"></div></aside>
+	</div>
+
+	<footer class="modal-foot">
+		<button class="nav-item close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>Close</button>
+		<button class="btn primary"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/></svg>Edit selected skin</button>
+	</footer>
+</div>
+
+<script>
+for (const skin of document.querySelectorAll(".skin"))
+	skin.addEventListener("click", () => {
+		document.querySelector(".skin.on").classList.remove("on");
+		skin.classList.add("on");
+		playfield.className = "playfield " + (styles[skin.querySelector(".label").textContent] || "");
+	});
+
+// Preview: N mania lanes, white / blue lanes with a yellow center like a typical skin
+const styles = { "Bars": "bars", "- PENDUAL -": "circles" };
+const playfield = document.querySelector(".playfield");
+let lanes = [];
+const setKeys = keys => {
+	playfield.replaceChildren();
+	lanes = Array.from({ length: keys }, (_, i) => {
+		const lane = document.createElement("div");
+		lane.className = "lane";
+		const c = keys % 2 && i === (keys - 1) / 2 ? "#f2cf3a" : i % 2 ? "#2fb2dc" : "#ddd";
+		lane.style.setProperty("--c", c);
+		playfield.append(lane);
+		return lane;
+	});
+	notes.length = 0;
+};
+const mode = document.getElementById("mode");
+mode.addEventListener("change", () => {
+	document.getElementById("mode-name").textContent = mode.selectedOptions[0].textContent;
+	// shortcut: non-mania modes preview as 7key lanes, draw real playfields when the game renders previews
+	setKeys(Number(mode.value) || 7);
+});
+const notes = [];
+setKeys(7);
+let last = 0, spawn = 0;
+requestAnimationFrame(function frame(t) {
+	const dt = Math.min((t - last) / 1000, .1);
+	last = t;
+	spawn -= dt;
+	if (spawn <= 0) {
+		spawn = .18 + Math.random() * .2;
+		const el = document.createElement("div");
+		el.className = "note";
+		lanes[Math.floor(Math.random() * lanes.length)].append(el);
+		notes.push({ el, y: -0.05 });
+	}
+	for (let i = notes.length - 1; i >= 0; i--) {
+		const n = notes[i];
+		n.y += dt * .6;
+		if (n.y > .94) { n.el.remove(); notes.splice(i, 1); continue; }
+		n.el.style.top = n.y * 100 + "%";
+	}
+	requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>

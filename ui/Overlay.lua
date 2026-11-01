@@ -3,7 +3,7 @@ local Screen = require("gui.Screen")
 local ModalManager = require("ui.ModalManager")
 local CheatsLabel = require("ui.views.CheatsLabel")
 local FpsView = require("ui.views.FpsView")
-local CacheProgressView = require("ui.views.CacheProgressView")
+local NotificationToasts = require("ui.views.NotificationToasts")
 local PopupContainer = require("ui.views.PopupContainer")
 local VolumeOverlay = require("ui.views.VolumeOverlay")
 local UiActions = require("ui.UiActions")
@@ -14,10 +14,10 @@ local Settings = require("rizu.config.Settings")
 ---@field modal_manager ui.ModalManager
 ---@field fps_view ui.views.FpsView
 ---@field popup_container ui.views.PopupContainer
+---@field notification_toasts ui.views.NotificationToasts
 ---@field volume_overlay ui.views.VolumeOverlay
 ---@field tooltip ui.views.Tooltip
 ---@field ui ui.UserInterface
----@field cache_progress_view ui.views.CacheProgressView
 local Overlay = Screen + {}
 
 local MASTER_VOLUME_STEP = 0.05
@@ -49,8 +49,15 @@ function Overlay:new(ui)
 	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
-	self.cache_progress_view = self.root:add(CacheProgressView(ui.api.library))
-	self.cache_progress_view:setOffset(16, 96)
+	-- Song select has its own notifications button in the header.
+	self.notification_toasts = self.root:add(NotificationToasts(ui.api.notifications, ui.localization, function()
+		local screen = ui.screen_manager.input_screen
+		return screen ~= ui.gameplay and screen ~= ui.song_select
+			and self.modal_manager.active_view ~= self.modal_manager.notifications
+	end, function()
+		self.modal_manager:attachNotifications()
+	end))
+	self.notification_toasts:setAlignment(1, 0):setOffset(-16, 16)
 	self.popup_container = PopupContainer()
 	self.modal_manager = self.root:add(ModalManager(ui, self.popup_container))
 	self.root:add(self.popup_container)

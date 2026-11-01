@@ -28,7 +28,11 @@ local Observable = require("Observable")
 ---@field type "online_count_changed"
 ---@field count integer?
 
----@alias rizu.online.Event rizu.online.OnlineCountChangedEvent|rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
+---@class rizu.online.ChartplaySubmittedEvent
+---@field type "chartplay_submitted"
+---@field chartplay_id integer
+
+---@alias rizu.online.Event rizu.online.ChartplaySubmittedEvent|rizu.online.OnlineCountChangedEvent|rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
 ---@alias rizu.online.EventObserver {receive: fun(self: table, event: rizu.online.Event)}
 ---@alias rizu.online.EventReceiver fun(event: rizu.online.Event)
 
@@ -148,6 +152,7 @@ end
 ---@param chartplay_id integer
 function OnlineClient:chartplaySubmissionCompleted(chartplay_id)
 	table.insert(self.completed_chartplay_ids, chartplay_id)
+	self.observable:send({type = "chartplay_submitted", chartplay_id = chartplay_id})
 end
 
 ---@param lb_id integer
