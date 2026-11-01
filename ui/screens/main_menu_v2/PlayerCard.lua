@@ -5,6 +5,7 @@ local Colors = require("ui.Colors")
 local Resources = require("ui.Resources")
 local Label = require("ui.views.Label")
 local AvatarShader = require("ui.views.AvatarShader")
+local MainMenuButton = require("ui.screens.main_menu.MainMenuButton")
 
 local lg = love.graphics
 
@@ -13,10 +14,13 @@ local RING_WIDTH = 3
 local MSD_COLOR = {0xF5 / 255, 0xC8 / 255, 0x42 / 255, 1}
 local DIVIDER_COLOR = {0xF2 / 255, 0xF2 / 255, 1, 0.25}
 
----Top left of the main menu: round avatar, name and local MSD.
+---Top left of the main menu: round avatar and name, or Register and Login when connected but
+---not logged in, then the local MSD.
 ---@class ui.screens.main_menu_v2.PlayerCard : gui.layout.FlowContainer
 ---@operator call: ui.screens.main_menu_v2.PlayerCard
 ---@field ui ui.UserInterface
+---@field profile gui.layout.FlowContainer Avatar and name
+---@field account gui.layout.FlowContainer Register and Login
 ---@field name ui.views.Label
 ---@field msd ui.views.Label
 ---@field msd_column gui.layout.FlowContainer
@@ -29,9 +33,20 @@ function PlayerCard:new(ui)
 	FlowContainer.new(self, {direction = "row", gap = 18, align = 0.5})
 	self.ui = ui
 
-	local avatar = self:add(View():setSize(AVATAR_SIZE, AVATAR_SIZE))
+	local localization = ui.localization
+	self.profile = self:add(FlowContainer({direction = "row", gap = 18, align = 0.5}))
+	local avatar = self.profile:add(View():setSize(AVATAR_SIZE, AVATAR_SIZE))
 	avatar:setDraw(function() self:drawAvatar() end)
-	self.name = self:add(Label({font_name = "bold", font_size = 32}))
+	self.name = self.profile:add(Label({font_name = "bold", font_size = 32}))
+
+	self.account = FlowContainer({direction = "row", gap = 10, align = 0.5})
+	self.account:add(MainMenuButton(localization:get("main_menu.register"), function()
+		ui.modal_manager:attachExternalLink(localization:get("external_link.register_title"), "https://rizu.su/register")
+	end, {font_size = 15, icon = Resources.sprites.icon_user_plus})):setSize(150, 44)
+	self.account:add(MainMenuButton(localization:get("main_menu.login"), function()
+		ui.modal_manager:attachLogin()
+	end, {variant = "primary", font_size = 15, icon = Resources.sprites.icon_log_in})):setSize(150, 44)
+	self.account:fitContent()
 
 	-- With the 18px gaps on both sides, the line gets the mockup's 22px of room.
 	local divider = self:add(View():setSize(9, 52))
@@ -45,16 +60,16 @@ function PlayerCard:new(ui)
 	self.msd_column:add(Label({
 		font_name = "medium",
 		font_size = 13,
-		text = ui.localization:get("main_menu.local_msd"):upper(),
+		text = localization:get("main_menu.local_msd"):upper(),
 		color = Colors.muted,
 	}))
 	self.msd_column:fitContent()
-	self:updateName()
+	self:updateAccount()
 end
 
 function PlayerCard:load()
-	self.unsubscribe = self.ui.api.online:on("account_changed", function() self:updateName() end)
-	self:updateName()
+	self.unsubscribe = self.ui.api.online:on("account_changed", function() self:updateAccount() end)
+	self:updateAccount()
 	-- Coming back from a play loads the menu again, so its score is counted.
 	self.ui.api.scores:getTotalRatings(function(totals)
 		if not totals then return end
@@ -71,9 +86,16 @@ function PlayerCard:unload()
 	end
 end
 
-function PlayerCard:updateName()
+function PlayerCard:updateAccount()
 	local online = self.ui.api.online
+	-- Offline or still unknown keeps the profile, so the buttons do not flash on startup.
+	local show_account = online:isConnected() and online:isAuthenticationResolved() and not online:isLoggedIn()
+	local shown, hidden = self.profile, self.account
+	if show_account then shown, hidden = self.account, self.profile end
+	if hidden.parent then self:remove(hidden) end
+	if not shown.parent then self:insert(1, shown) end
 	self.name:setText(online:getUsername() or self.ui.localization:get("song_select.username"))
+	self.profile:fitContent()
 	self:fitContent()
 end
 

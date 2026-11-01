@@ -8,8 +8,9 @@ local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
 
 local test = {}
 
+---@param online {[string]: function}? Overrides for the fake online api
 ---@return ui.screens.main_menu_v2.MainMenuV2
-local function newScreen()
+local function newScreen(online)
 	local ui = {localization = Localization(), api = {
 		notifications = {getTaskCount = function() return 0 end, getUnreadCount = function() return 0 end},
 		media = {getBeat = function() end},
@@ -20,9 +21,13 @@ local function newScreen()
 			getAvatarUrl = function() end,
 			getAvatar = function() end,
 			getOnlineCount = function() return 128 end,
+			isConnected = function() return true end,
+			isAuthenticationResolved = function() return true end,
+			isLoggedIn = function() return true end,
 		},
 		scores = {getTotalRatings = function(_, f) f({pp = 4812, msd = 24.371}) end},
 	}}
+	for k, v in pairs(online or {}) do ui.api.online[k] = v end
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
 	screen:load()
 	screen:resize(1600, 900)
@@ -93,6 +98,29 @@ function test.player_card_shows_the_name_and_local_msd(t)
 	t:eq(card.width, card.msd_column.x + card.msd_column.width)
 	screen:update(0)
 	screen:draw()
+end
+
+---@param t testing.T
+function test.player_card_offers_login_until_logged_in(t)
+	setup()
+	local logged_in = false
+	local on_account_changed ---@type fun()
+	local screen = newScreen({
+		isLoggedIn = function() return logged_in end,
+		getUsername = function() return logged_in and "nimue" or nil end,
+		on = function(_, _, f) on_account_changed = f return function() end end,
+	})
+	local card = screen.player_card
+	t:eq(card.children[1], card.account)
+	t:assert(not card.profile.parent, "profile hidden")
+	t:eq(card.msd.text, "24.37")
+
+	logged_in = true
+	on_account_changed()
+	t:eq(card.children[1], card.profile)
+	t:assert(not card.account.parent, "buttons hidden")
+	t:eq(card.name.text, "nimue")
+	t:eq(card.width, card.msd_column.x + card.msd_column.width)
 end
 
 ---@param t testing.T
