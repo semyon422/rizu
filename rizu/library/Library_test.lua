@@ -208,7 +208,7 @@ end
 
 ---@param ctx rizu.library.LibraryTestContext
 ---@return integer[] scanned
----@return {location_id: integer, stopped: boolean}[] ended
+---@return {location_id: integer, stopped: boolean, failed: boolean}[] ended
 local function fakeScans(ctx)
 	local scanned, ended = {}, {}
 	ctx.lib.worker.computeLocation = function(_, path, location_id)
@@ -236,7 +236,7 @@ function test.location_scans_are_queued_once_and_cancelled_by_location(t)
 	ctx:process()
 
 	t:tdeq(scanned, {1, 3})
-	t:tdeq(ended, {{location_id = 1, stopped = false}, {location_id = 3, stopped = false}})
+	t:tdeq(ended, {{location_id = 1, stopped = false, failed = false}, {location_id = 3, stopped = false, failed = false}})
 	t:eq(lib:getLocationScan(1), nil)
 	ctx:cleanup()
 end
@@ -265,7 +265,39 @@ function test.stopping_a_scan_does_not_stop_the_next_one(t)
 
 	t:tdeq(scanned, {1, 2})
 	t:eq(stop_seen, false)
-	t:tdeq(ended, {{location_id = 1, stopped = true}, {location_id = 2, stopped = false}})
+	t:tdeq(ended, {{location_id = 1, stopped = true, failed = false}, {location_id = 2, stopped = false, failed = false}})
+	ctx:cleanup()
+end
+
+---@param t testing.T
+function test.failed_task_does_not_stop_the_queue(t)
+	local ctx = LibraryTestContext()
+	local lib = ctx.lib
+	local scanned, ended = fakeScans(ctx)
+	local failures = {}
+	lib.onTaskFailed:add(function(event) table.insert(failures, event) end)
+	lib.worker.computeLocation = function(_, path, location_id)
+		table.insert(scanned, location_id)
+		if location_id == 1 then
+			lib.worker.processor.taskContext:startStage("hashing", 10)
+			error("disk I/O error")
+		end
+	end
+
+	lib:computeLocation(nil, 1)
+	lib:computeLocation(nil, 2)
+	ctx:process()
+
+	t:tdeq(scanned, {1, 2})
+	t:eq(lib.isProcessing, false)
+	t:eq(lib.status.stage, "idle")
+	t:eq(#failures, 1)
+	t:eq(failures[1].location_id, 1)
+	t:assert(failures[1].error:find("disk I/O error", 1, true))
+	t:tdeq(ended, {
+		{location_id = 1, stopped = false, failed = true},
+		{location_id = 2, stopped = false, failed = false},
+	})
 	ctx:cleanup()
 end
 

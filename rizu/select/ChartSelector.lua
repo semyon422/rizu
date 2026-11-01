@@ -338,7 +338,8 @@ function ChartSelector:chartExists()
 end
 
 function ChartSelector:debounceRefresh(...)
-	delay.debounce(self, "refreshDebounce", self.debounceTime, self.refresh, self, ...)
+	-- Through the task queue, so it never runs alongside another refresh.
+	delay.debounce(self, "refreshDebounce", self.debounceTime, self.noDebounceRefresh, self, ...)
 end
 
 function ChartSelector:noDebounceRefresh(...)

@@ -9,7 +9,7 @@ local test = {}
 ---@param t testing.T
 function test.library_stage_is_a_task_and_errors_are_grouped(t)
 	local n = Notifications()
-	local library = {status = {stage = "idle"}, errors = {}, onStatusChanged = Observable(), onLocationScanned = Observable()}
+	local library = {status = {stage = "idle"}, errors = {}, onStatusChanged = Observable(), onLocationScanned = Observable(), onTaskFailed = Observable()}
 	GameNotifications.connectLibrary(n, library --[[@as any]])
 
 	library.onStatusChanged:send({stage = "hashing", current = 1, total = 0})
@@ -30,12 +30,13 @@ end
 ---@param t testing.T
 function test.ended_location_scan_is_posted_with_its_charts(t)
 	local n = Notifications()
-	local info = {}
+	local info = {} ---@type {[integer]: {chartfiles: integer}}
 	local library = {
 		status = {stage = "idle"},
 		errors = {},
 		onStatusChanged = Observable(),
 		onLocationScanned = Observable(),
+		onTaskFailed = Observable(),
 		locationsRepo = {selectLocationById = function(_, id) return {id = id, name = "Songs"} end},
 		locations = {info = info, updateLocationInfo = function(_, id) info[id] = {chartfiles = 12} end},
 	}
@@ -48,6 +49,29 @@ function test.ended_location_scan_is_posted_with_its_charts(t)
 	t:eq(#n.notifications, 2)
 	local stopped = n.notifications[1].type == "location_scan_stopped" and n.notifications[1] or n.notifications[2]
 	t:eq(stopped.type, "location_scan_stopped")
+end
+
+---@param t testing.T
+function test.failed_task_is_posted_once(t)
+	local n = Notifications()
+	local library = {
+		status = {stage = "idle"},
+		errors = {},
+		onStatusChanged = Observable(),
+		onLocationScanned = Observable(),
+		onTaskFailed = Observable(),
+		locationsRepo = {selectLocationById = function(_, id) return {id = id, name = "Drive"} end},
+	}
+	GameNotifications.connectLibrary(n, library --[[@as any]])
+
+	library.onTaskFailed:send({location_id = 2, error = "Folder not found: /mnt/drive\ntraceback"})
+	library.onLocationScanned:send({location_id = 2, stopped = false, failed = true})
+	t:eq(#n.notifications, 1)
+	t:eq(n.notifications[1].type, "location_scan_failed")
+	t:eq(n.notifications[1].text, "Folder not found: /mnt/drive")
+
+	library.onTaskFailed:send({error = "boom"})
+	t:eq(n.notifications[1].type, "library_task_failed")
 end
 
 ---@param t testing.T

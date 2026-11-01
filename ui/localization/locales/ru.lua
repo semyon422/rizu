@@ -466,6 +466,8 @@ return {
 	["notifications.type.location_scanned"] = "Папка просканирована",
 	["notifications.type.location_scanned.text"] = "{name}: карт — {count}",
 	["notifications.type.location_scan_stopped"] = "Сканирование остановлено",
+	["notifications.type.location_scan_failed"] = "Ошибка сканирования: {name}",
+	["notifications.type.library_task_failed"] = "Ошибка задачи библиотеки",
 	["notifications.action.open"] = "Открыть",
 	["notifications.action.copy"] = "Скопировать подробности",
 }

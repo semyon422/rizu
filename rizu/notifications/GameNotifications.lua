@@ -12,7 +12,7 @@ local stage_titles = {
 }
 
 ---A task for every scan stage. Charts that failed in it are posted as one error when it ends.
----A location scan that ends or is stopped is posted too.
+---A location scan that ends or is stopped is posted too, and so is a task that fails.
 ---@param notifications rizu.notifications.Notifications
 ---@param library rizu.library.Library
 function GameNotifications.connectLibrary(notifications, library)
@@ -54,18 +54,40 @@ function GameNotifications.connectLibrary(notifications, library)
 		end
 	end)
 
-	---@param event {location_id: integer, stopped: boolean}
-	library.onLocationScanned:add(function(event)
-		local id = event.location_id
+	---@param id integer?
+	---@return string?
+	local function locationName(id)
+		if not id then return end
 		local location = library.locationsRepo:selectLocationById(id)
-		local name = location and location.name or tostring(id)
+		return location and location.name or tostring(id)
+	end
+
+	---@param event {location_id: integer?, error: string}
+	library.onTaskFailed:add(function(event)
+		local err = event.error
+		local name = locationName(event.location_id)
+		notifications:post({
+			kind = "error",
+			type = name and "location_scan_failed" or "library_task_failed",
+			params = {name = name},
+			title = name and "Scan failed: " .. name or "Library task failed",
+			text = err:match("^[^\n]*"),
+			actions = {{id = "copy", label = "Copy details", run = function() love.system.setClipboardText(err) end}},
+		})
+	end)
+
+	---@param event {location_id: integer, stopped: boolean, failed: boolean}
+	library.onLocationScanned:add(function(event)
+		if event.failed then return end -- posted by onTaskFailed
+		local id = event.location_id
+		local name = assert(locationName(id))
 		if event.stopped then
 			notifications:post({kind = "info", type = "location_scan_stopped", params = {name = name},
 				title = "Scan stopped", text = name})
 			return
 		end
 		library.locations:updateLocationInfo(id)
-		local count = library.locations.info[id].chartfiles
+		local count = library.locations.info[id].chartfiles ---@type integer
 		notifications:post({kind = "success", type = "location_scanned", params = {name = name, count = count},
 			title = "Location scanned", text = ("%s: %d charts"):format(name, count)})
 	end)

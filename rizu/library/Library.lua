@@ -43,8 +43,9 @@ end
 ---@operator call: rizu.library.Library
 ---@field onStatusChanged util.Observable
 ---@field onChartsChanged util.Observable
----@field onScansChanged util.Observable A location scan was queued, started, cancelled or ended. No arguments.
----@field onLocationScanned util.Observable A location scan ended. Sends {location_id: integer, stopped: boolean}.
+---@field onScansChanged util.Observable A location scan was queued, started, cancelled or ended. Sends an empty table.
+---@field onLocationScanned util.Observable A location scan ended. Sends {location_id: integer, stopped: boolean, failed: boolean}.
+---@field onTaskFailed util.Observable A task threw. Sends {location_id: integer?, error: string}.
 ---@field task rizu.library.LibraryTask? The running task.
 local Library = class()
 
@@ -68,6 +69,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.onChartsChanged = Observable()
 	self.onScansChanged = Observable()
 	self.onLocationScanned = Observable()
+	self.onTaskFailed = Observable()
 
 	---@type rizu.library.TaskStatus
 	self.status = {
@@ -233,7 +235,7 @@ function Library:addTask(f, async, location_id)
 	local task = {f = f, location_id = location_id}
 	table.insert(self.tasks, task)
 	if location_id then
-		self.onScansChanged:send()
+		self.onScansChanged:send({})
 	end
 
 	if async then
@@ -275,13 +277,13 @@ function Library:cancelLocationScan(location_id)
 	if task and task.location_id == location_id and not task.stopped then
 		task.stopped = true
 		self:stopTask()
-		self.onScansChanged:send()
+		self.onScansChanged:send({})
 		return
 	end
 	for i, queued in ipairs(self.tasks) do
 		if queued.location_id == location_id then
 			table.remove(self.tasks, i)
-			self.onScansChanged:send()
+			self.onScansChanged:send({})
 			return
 		end
 	end
@@ -525,15 +527,26 @@ function Library:process()
 	local task = table.remove(tasks, 1)
 	while task do
 		self.task = task
-		-- A stop sent after the previous task ended must not stop this one.
-		self.worker:clearStop()
 		local location_id = task.location_id
-		if location_id then self.onScansChanged:send() end
-		task.f()
+		if location_id then self.onScansChanged:send({}) end
+		-- A failed task must not stop the queue, or nothing would run until the game restarts.
+		local ok, err = xpcall(function()
+			-- A stop sent after the previous task ended must not stop this one.
+			self.worker:clearStop()
+			task.f()
+		end, debug.traceback)
 		self.task = nil
+		if not ok then
+			print("Library task failed: " .. tostring(err))
+			-- The worker did not get to report the end of its stage.
+			if self.status.stage ~= "idle" then
+				self:updateProgress({stage = "idle", current = 0, total = 0, errorCount = 0}, {})
+			end
+			self.onTaskFailed:send({location_id = location_id, error = tostring(err)})
+		end
 		if location_id then
-			self.onScansChanged:send()
-			self.onLocationScanned:send({location_id = location_id, stopped = task.stopped == true})
+			self.onScansChanged:send({})
+			self.onLocationScanned:send({location_id = location_id, stopped = task.stopped == true, failed = not ok})
 		end
 		if task.co then
 			resumeTaskCoroutine(task.co)

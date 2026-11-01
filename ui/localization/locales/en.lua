@@ -501,6 +501,8 @@ return {
 	["notifications.type.location_scanned"] = "Location scanned",
 	["notifications.type.location_scanned.text"] = "{name}: {count} charts",
 	["notifications.type.location_scan_stopped"] = "Scan stopped",
+	["notifications.type.location_scan_failed"] = "Scan failed: {name}",
+	["notifications.type.library_task_failed"] = "Library task failed",
 	["notifications.action.open"] = "Open",
 	["notifications.action.copy"] = "Copy details",
 }
