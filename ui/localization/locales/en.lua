@@ -6,6 +6,7 @@ return {
 	["welcome.waiting"] = "Waiting to scan",
 	["welcome.charts"] = "{count} charts",
 	["welcome.welcome"] = "Welcome!",
+	["welcome.transition_band"] = "WELCOME",
 	["welcome.subtitle"] = "Set up a few things before you play",
 	["welcome.language"] = "LANGUAGE",
 	["welcome.master_volume"] = "MASTER VOLUME",

@@ -1,4 +1,5 @@
 return {
+	["welcome.transition_band"] = "BIENVENIDO",
 	["main_menu.play"] = "Jugar",
 	["main_menu.editor"] = "Editor",
 	["main_menu.lobby_list"] = "Lista de salas",

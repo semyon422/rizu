@@ -69,6 +69,7 @@ local TARGET_HEIGHT = 1080
 ---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
 ---@field localization ui.localization.Localization
 ---@field skin_editor boolean
+---@field welcome_transition_shown boolean? The main menu played its welcome transition this session
 ---@field play_options rizu.api.Play.StartOptions? What ChartLoading starts, set by loadSelectedChart()
 ---@field private prev_w number
 ---@field private prev_h number

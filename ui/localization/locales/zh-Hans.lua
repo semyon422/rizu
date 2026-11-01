@@ -1,4 +1,5 @@
 return {
+	["welcome.transition_band"] = "欢迎",
 	["welcome.chart_folders"] = "谱面文件夹",
 	["welcome.add_folder"] = "添加文件夹",
 	["welcome.scanning"] = "扫描中",

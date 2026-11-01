@@ -1,4 +1,5 @@
 return {
+	["welcome.transition_band"] = "ДОБРО ПОЖАЛОВАТЬ",
 	["welcome.chart_folders"] = "ПАПКИ С КАРТАМИ",
 	["welcome.add_folder"] = "ДОБАВИТЬ ПАПКУ",
 	["welcome.scanning"] = "Сканирование",
