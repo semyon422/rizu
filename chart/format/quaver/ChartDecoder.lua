@@ -9,6 +9,7 @@ local Barlines = require("chart.format.osu.Barlines")
 local PrimaryTempo = require("chart.format.osu.PrimaryTempo")
 local tinyyaml = require("tinyyaml")
 local Visual = require("chart.model.visual.Visual")
+local VisualColumns = require("chart.model.visual.VisualColumns")
 local Chartmeta = require("sea.chart.Chartmeta")
 local Timings = require("sea.chart.Timings")
 local Healths = require("sea.chart.Healths")
@@ -49,6 +50,7 @@ function ChartDecoder:decodeQua(qua)
 	local visual = Visual()
 	layer.visuals.main = visual
 	self.visual = visual
+	self.visualColumns = VisualColumns(visual)
 
 	if qua.BPMDoesNotAffectScrollVelocity then
 		visual.tempoMultiplyTarget = "none"
@@ -174,7 +176,7 @@ end
 ---@return chart.Note
 function ChartDecoder:getNote(time, column, noteType, sounds)
 	local point = self.layer:getPoint(time)
-	local visualPoint = self.visual:getPoint(point)
+	local visualPoint = self.visualColumns:getPoint(point, column)
 	local note = Note(visualPoint, column, noteType)
 	note.data.sounds = sounds
 	return note
