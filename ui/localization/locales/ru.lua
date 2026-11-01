@@ -20,6 +20,7 @@ return {
 	["main_menu.play"] = "Играть",
 	["main_menu.editor"] = "Редактор",
 	["main_menu.lobby_list"] = "Список лобби",
+	["main_menu.multiplayer"] = "Мультиплеер",
 	["main_menu.lobby"] = "Лобби",
 	["main_menu.music_player"] = "Плеер",
 	["main_menu.dlc"] = "DLC",

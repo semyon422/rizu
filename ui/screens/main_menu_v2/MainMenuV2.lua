@@ -1,14 +1,22 @@
 local Screen = require("gui.Screen")
 local ShadowCompositeView = require("gui.ShadowCompositeView")
+local Colors = require("ui.Colors")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local UiActions = require("ui.UiActions")
 local MainMenuBackground = require("ui.screens.main_menu.MainMenuBackground")
 local WelcomeTransition = require("ui.screens.main_menu.WelcomeTransition")
 local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
+local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
+local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
 
 -- Layout follows build/main-menu-mockups/6g-scrim.html (1920x1080 logical).
 local EDGE = 40
+local PLAY_WIDTH, PLAY_HEIGHT = 560, 160
+local PLAY_SLANT = 40
+local ROW_GAP = 10
+local ROW_ABOVE_PLAY = 20
+local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
 -- The content drifts with the background, less, so it reads as nearer.
 local CONTENT_PARALLAX = 0.35
 
@@ -40,7 +48,28 @@ function MainMenuV2:new(ui)
 	self.play_button = self.content:add(PlayButton(ui.localization:get("main_menu.play"):upper(), function()
 		self:play()
 	end))
-	self.play_button:setSize(560, 160):setAlignment(1, 1):addPosition(-EDGE, -EDGE)
+	self.play_button:setSize(PLAY_WIDTH, PLAY_HEIGHT):setAlignment(1, 1):addPosition(-EDGE, -EDGE)
+	self:createRow()
+end
+
+---@private
+function MainMenuV2:createRow()
+	local ui = self.ui
+	local localization = ui.localization
+	local sprites = Resources.sprites
+	-- Spans Play without its slant.
+	local row = self.content:add(MenuRow(ROW_GAP))
+	row:setSize(PLAY_WIDTH - PLAY_SLANT, MenuButton.SIZE)
+	row:setAlignment(1, 1):addPosition(-EDGE, -EDGE - PLAY_HEIGHT - ROW_ABOVE_PLAY)
+	row:add(MenuButton(localization:get("main_menu.multiplayer"), sprites.icon_gamepad, MULTIPLAYER_COLOR, function()
+		ui:setScreen(ui.lobby_list, true)
+	end))
+	row:add(MenuButton(localization:get("main_menu.editor"), sprites.icon_pen, Colors.magenta, function()
+		ui:setScreen(ui.editor, true)
+	end))
+	row:add(MenuButton(localization:get("main_menu.dlc"), sprites.icon_download, Colors.success, function()
+		ui:setScreen(ui.dlc, true)
+	end))
 end
 
 function MainMenuV2:enter()

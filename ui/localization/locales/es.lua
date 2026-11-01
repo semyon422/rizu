@@ -3,6 +3,7 @@ return {
 	["main_menu.play"] = "Jugar",
 	["main_menu.editor"] = "Editor",
 	["main_menu.lobby_list"] = "Lista de salas",
+	["main_menu.multiplayer"] = "Multijugador",
 	["main_menu.lobby"] = "Sala",
 	["main_menu.music_player"] = "Reproductor de música",
 	["main_menu.dlc"] = "DLC",

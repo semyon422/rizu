@@ -20,6 +20,7 @@ return {
 	["main_menu.play"] = "Play",
 	["main_menu.editor"] = "Editor",
 	["main_menu.lobby_list"] = "Lobby List",
+	["main_menu.multiplayer"] = "Multiplayer",
 	["main_menu.lobby"] = "Lobby",
 	["main_menu.music_player"] = "Music Player",
 	["main_menu.dlc"] = "DLC",
