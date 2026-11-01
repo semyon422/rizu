@@ -250,7 +250,7 @@ function ChartSelector:findChartmeta(hash, index)
 			end
 			self:emitChanged({type = "chartmeta_found", hash = hash, index = index})
 		end
-	end, TaskRunner.priority.high)
+	end, TaskRunner.priority.query)
 end
 
 ---@return string?
@@ -349,7 +349,7 @@ function ChartSelector:noDebounceRefresh(...)
 		if chartview then
 			self:setConfig(chartview)
 		end
-	end, TaskRunner.priority.high)
+	end, TaskRunner.priority.query)
 end
 
 ---@param sortFunctionName string
