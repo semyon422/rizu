@@ -104,14 +104,14 @@ function test.input_offset_recorded_on_logic_clock(t)
 	re:setTimingValues(TimingValues())
 	re:load()
 	re:setAudioEnabled(false)
-	re:setInputOffset(0.025)
+	re:setInputOffset(0.03125) -- 32/1024, the engine rounds offsets to 1/1024
 
 	re:setTimeNoAudio(2)
-	t:eq(re.logic_info.time, 2 - 0.025)
+	t:eq(re.logic_info.time, 2 - 0.03125)
 
 	gc:receive(VirtualInputEvent(1, true, 1), 0)
 	local frame = gc.replay_recorder.frames[1]
-	t:eq(frame.time, re:getTime() - 0.025)
+	t:eq(frame.time, re:getTime() - 0.03125)
 
 	re:setInputOffset(0)
 	t:eq(re:getLogicTime(), re:getTime())

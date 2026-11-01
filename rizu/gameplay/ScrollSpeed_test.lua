@@ -22,7 +22,7 @@ end
 
 ---@param t testing.T
 function test.clamps_to_canonical_range(t)
-	t:eq(ScrollSpeed.toCanonical("osu", 40), ScrollSpeed.canonical_max)
+	t:eq(ScrollSpeed.toCanonical("osu", 100), 40 * ScrollSpeed.osu_factor)
 	t:eq(ScrollSpeed.toCanonical("default", 100), ScrollSpeed.canonical_max)
 end
 

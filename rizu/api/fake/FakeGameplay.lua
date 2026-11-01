@@ -28,6 +28,7 @@ function FakeGameplay:getScore() end
 function FakeGameplay:getAccuracy() end
 function FakeGameplay:getCombo() end
 function FakeGameplay:getHealths() end
+function FakeGameplay:getGaugeStatus() end
 function FakeGameplay:getHitCounts() return 0, 0 end
 function FakeGameplay:getJudgeNames() return empty end
 function FakeGameplay:getJudgeWindows() end

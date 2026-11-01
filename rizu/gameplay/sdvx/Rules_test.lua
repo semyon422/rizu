@@ -20,10 +20,10 @@ function test.dual_lasers_and_buttons_replay_across_update_partitions(t)
 ]])
 	local input = Input()
 	local frames = {}
-	for _, key in ipairs({"d", "f", "j", "k", "c", "m", "e", "o"}) do
+	for _, key in ipairs({"a", "s", "l", ";", "lalt", "ralt", "w", "p"}) do
 		frames[#frames + 1] = {time = 0, event = input:transform({name = "keypressed", key})}
 	end
-	for _, key in ipairs({"d", "f", "j", "k", "c", "m", "e", "o"}) do
+	for _, key in ipairs({"a", "s", "l", ";", "lalt", "ralt", "w", "p"}) do
 		frames[#frames + 1] = {time = 1.5, event = input:transform({name = "keyreleased", key})}
 	end
 	frames = ReplayFrames.decode(ReplayFrames.encode(frames))

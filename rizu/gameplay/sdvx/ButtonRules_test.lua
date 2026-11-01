@@ -59,7 +59,7 @@ end
 function test.keys_and_wrapped_turns_survive_binary_replay(t)
 	local input = Input()
 	local frames = {}
-	for id, key in ipairs({"d", "f", "j", "k", "c", "m", "w", "e", "o", "p"}) do
+	for id, key in ipairs({"a", "s", "l", ";", "lalt", "ralt", "q", "w", "p", "["}) do
 		local event = input:transform({name = "keypressed", key})
 		t:eq(event.id, id)
 		frames[#frames + 1] = {time = id, event = event}
