@@ -49,10 +49,10 @@ function Overlay:new(ui)
 	self.fps_view = self.root:add(FpsView(ui.config))
 	self.fps_view:setAlignment(1, 1)
 	self.fps_view:setOffset(-16, -16)
-	-- Song select has its own notifications button in the header.
+	-- Song select and the main menu have their own notifications button.
 	self.notification_toasts = self.root:add(NotificationToasts(ui.api.notifications, ui.localization, function()
 		local screen = ui.screen_manager.input_screen
-		return screen ~= ui.gameplay and screen ~= ui.song_select
+		return screen ~= ui.gameplay and screen ~= ui.song_select and screen ~= ui.main_menu
 			and self.modal_manager.active_view ~= self.modal_manager.notifications
 	end, function()
 		self.modal_manager:attachNotifications()

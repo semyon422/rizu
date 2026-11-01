@@ -9,6 +9,12 @@ local WelcomeTransition = require("ui.screens.main_menu.WelcomeTransition")
 local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
+local View = require("gui.View")
+local FlowContainer = require("gui.layout.FlowContainer")
+local Painter = require("gui.Painter")
+local Label = require("ui.views.Label")
+local HeaderButton = require("ui.screens.song_select_v2.HeaderButton")
+local NotificationsButton = require("ui.screens.song_select_v2.NotificationsButton")
 
 -- Layout follows build/main-menu-mockups/6g-scrim.html (1920x1080 logical).
 local EDGE = 40
@@ -16,6 +22,8 @@ local PLAY_WIDTH, PLAY_HEIGHT = 560, 160
 local PLAY_SLANT = 40
 local ROW_GAP = 10
 local ROW_ABOVE_PLAY = 20
+local TOP = 36
+local SEPARATOR_HEIGHT = 26
 local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
 -- The content drifts with the background, less, so it reads as nearer.
 local CONTENT_PARALLAX = 0.35
@@ -25,6 +33,8 @@ local CONTENT_PARALLAX = 0.35
 ---@field ui ui.UserInterface
 ---@field content gui.ShadowCompositeView
 ---@field play_button ui.screens.main_menu_v2.PlayButton
+---@field top_bar gui.layout.FlowContainer
+---@field clock ui.views.Label
 local MainMenuV2 = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -47,9 +57,63 @@ function MainMenuV2:new(ui)
 
 	self.play_button = self.content:add(PlayButton(ui.localization:get("main_menu.play"):upper(), function()
 		self:play()
+	end, function()
+		return ui.api.media:getBeat()
+	end, function()
+		local chartview = ui.api.charts:getSelectedChart()
+		return chartview and chartview.tempo
 	end))
 	self.play_button:setSize(PLAY_WIDTH, PLAY_HEIGHT):setAlignment(1, 1):addPosition(-EDGE, -EDGE)
 	self:createRow()
+	self:createTopBar()
+end
+
+---@private
+function MainMenuV2:createTopBar()
+	local ui = self.ui
+	local bar = self.content:add(FlowContainer({direction = "row", gap = 4, align = 0.5}))
+	self.top_bar = bar
+	local clock = bar:add(Label({font_name = "medium", font_size = 17}))
+	self.clock = clock
+	-- The bar is aligned by its right edge, so it refits when the time changes width.
+	clock:setUpdate(function()
+		local time = os.date("%H:%M") --[[@as string]]
+		if time == clock.text then return end
+		clock:setText(time)
+		bar:fitContent()
+	end)
+	bar:add(self:separator())
+	local sprites = Resources.sprites
+	bar:add(HeaderButton(sprites.icon_folder, function()
+		ui:setScreen(ui.locations, true)
+	end))
+	bar:add(HeaderButton(sprites.icon_music, function()
+		ui:setScreen(ui.music_player, true)
+	end))
+	bar:add(HeaderButton(sprites.icon_gear, function()
+		ui.modal_manager:attachConfig()
+	end))
+	bar:add(NotificationsButton(ui.api.notifications, function()
+		ui.modal_manager:attachNotifications()
+	end))
+	bar:add(self:separator())
+	local quit = bar:add(HeaderButton(Resources.sprites.icon_power, function()
+		love.event.quit()
+	end))
+	quit.color = Colors.danger
+	bar:fitContent()
+	bar:setAlignment(1, 0):addPosition(-EDGE, TOP)
+end
+
+---@private
+---@return gui.View
+function MainMenuV2:separator()
+	local separator = View():setSize(13, SEPARATOR_HEIGHT)
+	separator:setDraw(function(view)
+		Painter.setColorRgb(0.95, 0.95, 1, 0.3)
+		Resources.sprites.pixel:draw(math.floor(view.width / 2), 0, 0, 1, view.height)
+	end)
+	return separator
 end
 
 ---@private

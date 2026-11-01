@@ -8,6 +8,19 @@ local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
 
 local test = {}
 
+---@return ui.screens.main_menu_v2.MainMenuV2
+local function newScreen()
+	local ui = {localization = Localization(), api = {
+		notifications = {},
+		media = {getBeat = function() end},
+		charts = {getSelectedChart = function() end},
+	}}
+	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
+	screen:load()
+	screen:resize(1600, 900)
+	return screen
+end
+
 local function setup()
 	if not love.graphics.isActive() then assert(love.window.setMode(1600, 900)) end
 	Resources.load()
@@ -16,9 +29,7 @@ end
 ---@param t testing.T
 function test.enter_animates_again_after_an_exit_that_never_stepped(t)
 	setup()
-	local screen = MainMenuV2({localization = Localization()} --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
-	screen:load()
-	screen:resize(1600, 900)
+	local screen = newScreen()
 	screen:enter()
 	screen.root:finishTransforms()
 
@@ -31,6 +42,36 @@ function test.enter_animates_again_after_an_exit_that_never_stepped(t)
 	screen.root:finishTransforms()
 	t:eq(screen.root.scale_x, 1)
 	t:eq(screen.root.opacity, 1)
+end
+
+---@param t testing.T
+function test.top_bar_stays_at_the_right_edge_when_the_clock_changes_width(t)
+	setup()
+	local screen = newScreen()
+	screen.clock:setText("88:88:88:88")
+	screen.top_bar:fitContent()
+	screen:update(0)
+	screen:flush()
+	local bar, content = screen.top_bar, screen.content
+
+	t:eq(screen.clock.text, os.date("%H:%M"))
+	t:eq(bar.x + bar.width, content.width - 40)
+	local quit = bar.children[#bar.children]
+	t:eq(quit.x + quit.width, bar.width)
+end
+
+---@param t testing.T
+function test.icon_copy_pulses_with_the_beat(t)
+	setup()
+	local beat = 3.25 ---@type number?
+	local button = PlayButton("PLAY", function() end, function() return beat end)
+	button:update(0)
+	t:eq(button.pulse.scale_x, 1.1)
+	t:eq(button.pulse.opacity, 0.75)
+
+	beat = nil
+	button:update(0.5) -- no beat and no bpm: one pulse a second
+	t:eq(button.pulse_phase, 0.75)
 end
 
 ---@param t testing.T
