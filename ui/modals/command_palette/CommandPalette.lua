@@ -10,8 +10,6 @@ local UiActions = require("ui.UiActions")
 ---@class ui.modals.command_palette.CommandPalette : ui.ModalView
 ---@operator call: ui.modals.command_palette.CommandPalette
 ---@field prompt string?
----@field needle_model rizu.ai.NeedleModel?
----@field needle_tools rizu.ai.NeedleToolRegistry?
 ---@field textbox ui.views.Textbox
 ---@field list ui.modals.command_palette.CommandList
 ---@field background gui.NineSliceUsage
@@ -26,14 +24,10 @@ local Y_INACTIVE = -20
 
 ---@param state rizu.command.PaletteState
 ---@param on_close function
----@param needle_model rizu.ai.NeedleModel
----@param needle_tools rizu.ai.NeedleToolRegistry
-function CommandPalette:new(state, on_close, needle_model, needle_tools)
+function CommandPalette:new(state, on_close)
 	ModalView.new(self)
 	self.state = state
 	self.on_close = on_close
-	self.needle_model = needle_model
-	self.needle_tools = needle_tools
 	self:setSize(MODAL_WIDTH, MODAL_HEIGHT)
 	self:setAlignment(0.5, 0.5)
 	self:setPivot(0.5, 0.5)
@@ -97,7 +91,6 @@ function CommandPalette:focusTextbox()
 end
 
 function CommandPalette:reset()
-	if self.needle_model then self.needle_model:cancel() end
 	self.query = ""
 	self.prompt = nil
 	self.selected_index = 1
@@ -121,14 +114,8 @@ function CommandPalette:hide()
 	end)
 end
 
----@return boolean
-function CommandPalette:isNeedleMode()
-	return self.state.active_command ~= nil and self.state.active_command.id == "global.needle"
-end
-
 function CommandPalette:queryChanged()
 	self.state:setQuery(self.query)
-	if self:isNeedleMode() and self.needle_model then self.needle_model:setQuery(self.query) end
 	self:updateCandidates()
 end
 
@@ -157,17 +144,6 @@ function CommandPalette:close()
 end
 
 function CommandPalette:confirmSelection()
-	if self:isNeedleMode() then
-		if not self.needle_model then return end
-		local executed, err = self.needle_model:execute()
-		if executed then
-			self:close()
-		elseif err then
-			print(err)
-		end
-		return
-	end
-
 	local success, err, executed = self.state:confirmSelection(self:getSelectedCandidate())
 	if not success then
 		print(err)
@@ -183,9 +159,6 @@ function CommandPalette:confirmSelection()
 		self.prompt = self.state:getPromptText()
 		self.textbox.placeholder = self.prompt
 		self.textbox:setText("")
-		if self:isNeedleMode() and self.needle_model and self.needle_tools then
-			self.needle_model:activate(self.needle_tools:snapshot())
-		end
 		self:updateCandidates()
 	end
 end
@@ -219,31 +192,6 @@ end
 function CommandPalette:draw()
 	Painter.setColorTable(Colors.panel)
 	self.background:draw(self.width, self.height)
-
-	if not self:isNeedleMode() then
-		return
-	end
-	local model = self.needle_model
-	if not model then
-		return
-	end
-	local preview = model.formatted_call or model.streamed_text
-	if preview == "" then
-		if model.state == "debouncing" then preview = "Waiting for input pause…"
-		elseif model.state == "generating" then preview = "Generating…"
-		elseif model.state == "unavailable" or model.state == "error" then preview = model.error or "Needle unavailable"
-		else preview = "Type a request; Enter runs the displayed call." end
-	end
-	love.graphics.setFont(Resources.getFont("regular", 18))
-	local failed = model.state == "error" or model.state == "unavailable"
-	Painter.setColorTable(failed and {0.9, 0.3, 0.3, 1} or Colors.muted)
-	love.graphics.printf(preview, PADDING, LIST_TOP + 12, self.width - PADDING * 2, "left")
-	local telemetry = model:formatTelemetry()
-	if telemetry then
-		love.graphics.setFont(Resources.getFont("regular", 14))
-		Painter.setColorTable(Colors.muted)
-		love.graphics.printf(telemetry, PADDING, LIST_TOP + 46, self.width - PADDING * 2, "left")
-	end
 end
 
 return CommandPalette

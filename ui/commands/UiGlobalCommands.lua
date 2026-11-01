@@ -3,10 +3,9 @@ local AudioFilePicker = require("rizu.mapperatorinator.AudioFilePicker")
 local audio_file_picker = AudioFilePicker()
 
 -- Returns commands specific to this user interface.
----@param game sphere.GameController
 ---@param ui ui.UserInterface
 ---@return rizu.command.Command[]
-return function(game, ui)
+return function(ui)
 	local commands = {
 		{
 			id = "ui.global.mapperatorinator",
@@ -42,15 +41,5 @@ return function(game, ui)
 			end,
 		},
 	}
-	if game.aiChatModel then
-		table.insert(commands, 1, {
-			id = "ui.global.ai_chat",
-			title = "AI: Open Chat",
-			description = "Opens the local AI agent chat",
-			callback = function()
-				ui.modal_manager:attachChat()
-			end,
-		})
-	end
 	return commands
 end

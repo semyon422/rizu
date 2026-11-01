@@ -36,17 +36,6 @@ end
 return function(game)
 	return {
 		{
-			id = "global.needle",
-			title = "Needle",
-			description = "Turn natural language into a safe game command",
-			arguments = {{
-				name = "query",
-				type = "string",
-				prompt = "Needle:",
-			}},
-			callback = function() end,
-		},
-		{
 			id = "global.restart",
 			title = "Restart Game",
 			description = "Restarts the game",

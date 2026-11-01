@@ -1,11 +1,9 @@
 local View = require("gui.View")
 local PaletteState = require("rizu.command.PaletteState")
-local AiChat = require("ui.modals.ai_chat.AiChat")
 local CommandPalette = require("ui.modals.command_palette.CommandPalette")
 local ExternalLink = require("ui.modals.ExternalLink")
 local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
 local CollectionSelector = require("ui.modals.collections.CollectionSelector")
-local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
 local Config = require("ui.modals.config.ConfigV2")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
@@ -28,7 +26,6 @@ local UiActions = require("ui.UiActions")
 ---@operator call: ui.ModalManager
 ---@field ui ui.UserInterface
 ---@field palette ui.modals.command_palette.CommandPalette
----@field ai_chat ui.modals.ai_chat.AiChat?
 ---@field config ui.modals.config.ConfigV2
 ---@field external_link ui.modals.ExternalLink
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
@@ -68,10 +65,9 @@ function ModalManager:new(ui, popup_container)
 	local game = not ui.api.fake and ui.game
 
 	if game then
-		local needle_tools = NeedleToolRegistry(ui.command_registry)
 		self.palette = CommandPalette(PaletteState(ui.command_registry), function()
 			self:modalClosed(self.palette)
-		end, game.needleModel, needle_tools)
+		end)
 	end
 
 	self.bg = self:add(OverlayBackground(function()
@@ -138,11 +134,6 @@ function ModalManager:new(ui, popup_container)
 	end))
 	if game then
 		self.create_room = self:addModal(CreateRoom(ui))
-		if game.aiChatModel then
-			self.ai_chat = self:addModal(AiChat(game.aiChatModel, function()
-				self:hideModal(self.ai_chat)
-			end))
-		end
 		self:addModal(self.palette)
 	end
 end
@@ -190,9 +181,6 @@ function ModalManager:hideModal(view)
 	-- A locked modal is busy and closes itself when it is done.
 	if view.locked then
 		return false
-	end
-	if view == self.palette and self.palette.needle_model then
-		self.palette.needle_model:cancel()
 	end
 	view:hide()
 	self:modalClosed(view)
@@ -263,16 +251,6 @@ end
 ---@return boolean detached
 function ModalManager:detachPalette()
 	return self:hideModal(self.palette)
-end
-
----@return boolean attached
-function ModalManager:attachChat()
-	return self.ai_chat ~= nil and self:showModal(self.ai_chat)
-end
-
----@return boolean detached
-function ModalManager:detachChat()
-	return self.ai_chat ~= nil and self:hideModal(self.ai_chat)
 end
 
 ---@return boolean attached
