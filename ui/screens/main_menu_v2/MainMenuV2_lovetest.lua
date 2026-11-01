@@ -160,43 +160,81 @@ function test.session_panel_and_buttons_stack_above_play(t)
 end
 
 ---@param t testing.T
-function test.online_panel_lists_players_in_the_bottom_left(t)
+function test.status_line_spans_the_bottom_under_the_music_strip_and_play(t)
 	setup()
-	local players = {
-		{name = "nimue", avatar_url = "n.png", role = "admin", chartplays_count = 1234, play_time = 3 * 3600 + 25 * 60},
-		{name = "aqua", chartplays_count = 0, play_time = 0},
-	}
-	local on_players_changed ---@type fun()
+	local screen = newScreen()
+	screen:update(0)
+	screen:flush()
+	local strip, line, play, content = screen.music_strip, screen.status_line, screen.play_button, screen.content
+	t:eq(line.x, 0)
+	t:eq(line.width, content.width)
+	t:eq(line.y + line.height, content.height)
+	t:eq(strip.x, 40)
+	t:eq(strip.y + strip.height, line.y - 20)
+	t:eq(play.y + play.height, line.y - 20)
+	screen.root:finishTransforms() -- past the fade-in, which starts at opacity 0
+	screen:draw()
+end
+
+---@param t testing.T
+function test.music_strip_follows_the_selection_and_the_pause(t)
+	setup()
+	local screen = newScreen()
+	local strip, api = screen.music_strip, screen.ui.api
+	screen:flush()
+	local next_button, pause, previous = strip.children[1], strip.children[2], strip.children[3]
+	t:eq(next_button.x + next_button.width, strip.width - 8)
+	t:eq(pause.x + pause.width, next_button.x)
+	t:eq(previous.x + previous.width, pause.x)
+	t:eq(strip.buttons_x, previous.x)
+	local chart = api.charts:getSelectedChart()
+	t:eq(strip.title, chart.title)
+	t:eq(strip.artist, chart.artist)
+	t:eq(strip.pause_button.icon, Resources.sprites.icon_pause)
+
+	api.media:togglePreview()
+	strip:update(0)
+	t:eq(strip.pause_button.icon, Resources.sprites.icon_play)
+
+	strip:bind({title = ("very long title "):rep(20), artist = ""} --[[@as rizu.api.Chart]])
+	t:assert(strip.title:sub(-3) == "…", "a long title is cut before the buttons")
+	t:eq(strip.artist, screen.ui.localization:get("music_player.unknown_artist"))
+	strip:bind(nil)
+	t:eq(strip.title, screen.ui.localization:get("music_player.no_song"))
+	screen:draw()
+end
+
+---@param t testing.T
+function test.status_line_scrolls_recent_scores(t)
+	setup()
+	local scores = {{player_name = "aqua", title = "Song", difficulty = "4K Hard", accuracy = 0.9784}}
+	local listeners = {} ---@type {[string]: fun()}
 	local screen = newScreen({
-		getOnlinePlayers = function() return players end,
+		getRecentScores = function() return scores end,
 		on = function(_, event, f)
-			if event == "online_players_changed" then on_players_changed = f end
+			listeners[event] = f
 			return function() end
 		end,
 	})
-	screen:update(0)
-	screen:flush()
-	local panel, content = screen.online_panel, screen.content
-	t:eq(panel.x, 40)
-	t:eq(panel.y + panel.height, content.height - 40)
-	t:eq(panel.title, "ONLINE: 42")
-	t:eq(panel.grid:getRowCount(), 1)
-	screen.root:finishTransforms() -- past the fade-in, which starts at opacity 0
+	local line = screen.status_line
+	t:eq(#line.items, 1)
+	t:eq(line.items[1].parts[1].text, "aqua")
+	t:eq(line.items[1].parts[2].text, "97.84%")
+	t:eq(line.items[1].parts[3].text, "Song [4K Hard]")
+	line:update(1)
+	t:eq(line.scroll, 60)
+	screen.root:finishTransforms()
 	screen:draw()
-	t:eq(panel.grid.fitted[1].stats, "1234 plays · 3h 25m")
 
-	players = {}
-	for i = 1, 100 do
-		players[i] = {name = ("player_with_a_very_long_name_%d"):format(i), chartplays_count = i, play_time = i}
-	end
-	on_players_changed()
-	t:eq(panel.grid:getRowCount(), 50)
-	local first, last = panel.grid:getVisibleRowRange()
-	t:eq(first, 1)
-	t:assert(last < 50, "only the rows on screen are drawn")
+	scores = {{player_name = "ren", title = "Untitled", difficulty = "", accuracy = 1}}
+	listeners.recent_scores_changed()
+	t:eq(line.items[1].parts[3].text, "Untitled", "no brackets without a difficulty name")
+
+	scores = {}
+	listeners.recent_scores_changed()
+	t:eq(#line.items, 0)
+	line:update(1)
 	screen:draw()
-	t:assert(panel.grid.fitted[1].name:sub(-3) == "…", "long names are cut to the card")
-	t:eq(panel.grid.fitted[2 * last + 1], nil)
 end
 
 ---@param t testing.T

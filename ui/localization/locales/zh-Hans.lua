@@ -32,7 +32,7 @@ return {
 	["main_menu.session_best_enps"] = "最佳 ENPS",
 	["main_menu.session_best_msd"] = "最佳 MSD",
 	["main_menu.session_firsts"] = "本地第一",
-	["main_menu.player_stats"] = "{plays} 次游玩 · {hours} 小时 {minutes} 分",
+	["main_menu.recent_scores"] = "最近成绩",
 	["main_menu.music_player"] = "音乐播放器",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "本地文件夹",

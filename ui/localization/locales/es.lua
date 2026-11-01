@@ -14,7 +14,7 @@ return {
 	["main_menu.session_best_enps"] = "mejor ENPS",
 	["main_menu.session_best_msd"] = "mejor MSD",
 	["main_menu.session_firsts"] = "#1 locales",
-	["main_menu.player_stats"] = "{plays} partidas · {hours} h {minutes} min",
+	["main_menu.recent_scores"] = "PUNTUACIONES RECIENTES",
 	["main_menu.music_player"] = "Reproductor de música",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Ubicaciones",

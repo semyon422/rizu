@@ -10,7 +10,8 @@ local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local SessionPanel = require("ui.screens.main_menu_v2.SessionPanel")
 local PlayerCard = require("ui.screens.main_menu_v2.PlayerCard")
-local OnlinePanel = require("ui.screens.main_menu_v2.OnlinePanel")
+local MusicStrip = require("ui.screens.main_menu_v2.MusicStrip")
+local StatusLine = require("ui.screens.main_menu_v2.StatusLine")
 local Scrim = require("ui.screens.song_select_v2.Scrim")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -19,7 +20,7 @@ local Label = require("ui.views.Label")
 local HeaderButton = require("ui.screens.song_select_v2.HeaderButton")
 local NotificationsButton = require("ui.screens.song_select_v2.NotificationsButton")
 
--- Layout follows build/main-menu-mockups/6g-scrim.html, the right column 6h-full.html (1920x1080 logical).
+-- Layout follows build/main-menu-mockups/6h-full.html, the music strip 6i-glass.html (1920x1080 logical).
 local EDGE = 40
 local PLAY_WIDTH, PLAY_HEIGHT = 560, 160
 local PLAY_SLANT = 40
@@ -27,6 +28,8 @@ local COLUMN_WIDTH = PLAY_WIDTH - PLAY_SLANT -- spans Play without its slant
 local BUTTON_GAP = 8
 local COLUMN_GAP = 16
 local ABOVE_PLAY = 20
+-- Play and the music strip stand on the status line, which spans the bottom edge.
+local BOTTOM = StatusLine.HEIGHT + ABOVE_PLAY
 local TOP = 36
 local SEPARATOR_HEIGHT = 26
 local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
@@ -45,7 +48,8 @@ local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 ---@field clock ui.views.Label
 ---@field buttons gui.layout.FlowContainer
 ---@field session_panel ui.screens.main_menu_v2.SessionPanel
----@field online_panel ui.screens.main_menu_v2.OnlinePanel
+---@field music_strip ui.screens.main_menu_v2.MusicStrip
+---@field status_line ui.screens.main_menu_v2.StatusLine
 local MainMenuV2 = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -71,13 +75,15 @@ function MainMenuV2:new(ui)
 		local chartview = ui.api.charts:getSelectedChart()
 		return chartview and chartview.tempo
 	end))
-	self.play_button:setSize(PLAY_WIDTH, PLAY_HEIGHT):setAlignment(1, 1):addPosition(-EDGE, -EDGE)
+	self.play_button:setSize(PLAY_WIDTH, PLAY_HEIGHT):setAlignment(1, 1):addPosition(-EDGE, -BOTTOM)
 	self:createColumn()
 	self:createTopBar()
 	self.player_card = self.content:add(PlayerCard(ui))
 	self.player_card:setAlignment(0, 0):addPosition(EDGE, EDGE)
-	self.online_panel = self.content:add(OnlinePanel(ui))
-	self.online_panel:setAlignment(0, 1):addPosition(EDGE, -EDGE)
+	self.music_strip = self.content:add(MusicStrip(ui))
+	self.music_strip:setAlignment(0, 1):addPosition(EDGE, -BOTTOM)
+	self.status_line = self.content:add(StatusLine(ui))
+	self.status_line:setSize(0, StatusLine.HEIGHT):setAlignment(0, 1):fillWidth(0, 0)
 end
 
 ---@private
@@ -153,7 +159,7 @@ function MainMenuV2:createColumn()
 		ui.modal_manager:attachConfig()
 	end)
 	buttons:fitContent()
-	local buttons_bottom = -EDGE - PLAY_HEIGHT - ABOVE_PLAY
+	local buttons_bottom = -BOTTOM - PLAY_HEIGHT - ABOVE_PLAY
 	buttons:setAlignment(1, 1):addPosition(-EDGE, buttons_bottom)
 
 	local _, buttons_height = buttons:getAuthoredSize() -- height is only resolved by the layout pass
