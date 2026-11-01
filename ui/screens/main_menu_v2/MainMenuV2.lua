@@ -9,6 +9,9 @@ local WelcomeTransition = require("ui.screens.main_menu.WelcomeTransition")
 local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
+local PlayerCard = require("ui.screens.main_menu_v2.PlayerCard")
+local FakeChat = require("ui.screens.main_menu_v2.FakeChat")
+local Scrim = require("ui.screens.song_select_v2.Scrim")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
 local Painter = require("gui.Painter")
@@ -20,13 +23,14 @@ local NotificationsButton = require("ui.screens.song_select_v2.NotificationsButt
 local EDGE = 40
 local PLAY_WIDTH, PLAY_HEIGHT = 560, 160
 local PLAY_SLANT = 40
+local CHAT_WIDTH, CHAT_HEIGHT = 520, 440
 local ROW_GAP = 10
 local ROW_ABOVE_PLAY = 20
 local TOP = 36
 local SEPARATOR_HEIGHT = 26
 local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
--- The content drifts with the background, less, so it reads as nearer.
-local CONTENT_PARALLAX = 0.35
+-- Darkens the top so the player card and top bar read on any background.
+local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 
 ---@class ui.screens.main_menu_v2.MainMenuV2 : gui.Screen
 ---@operator call: ui.screens.main_menu_v2.MainMenuV2
@@ -34,6 +38,7 @@ local CONTENT_PARALLAX = 0.35
 ---@field content gui.ShadowCompositeView
 ---@field play_button ui.screens.main_menu_v2.PlayButton
 ---@field top_bar gui.layout.FlowContainer
+---@field player_card ui.screens.main_menu_v2.PlayerCard
 ---@field clock ui.views.Label
 local MainMenuV2 = Screen + {}
 
@@ -46,14 +51,11 @@ function MainMenuV2:new(ui)
 
 	local background = self.root:add(MainMenuBackground(Resources.images.main_menu_bg))
 	background:anchorFill(0, 0, 0, 0)
+	self.root:add(Scrim(TOP_SCRIM)):anchorFill(0, 0, 0, 0)
 
 	-- Everything above the background casts a soft shadow, like on the result screen.
 	self.content = self.root:add(ShadowCompositeView({blur = 6, opacity = 0.85}))
 	self.content:anchorFill(0, 0, 0, 0)
-	-- Updates after the background, so it follows this frame's parallax.
-	self.content:setUpdate(function(content)
-		content:setOffset(background.parallax_x * CONTENT_PARALLAX, background.parallax_y * CONTENT_PARALLAX)
-	end)
 
 	self.play_button = self.content:add(PlayButton(ui.localization:get("main_menu.play"):upper(), function()
 		self:play()
@@ -66,6 +68,10 @@ function MainMenuV2:new(ui)
 	self.play_button:setSize(PLAY_WIDTH, PLAY_HEIGHT):setAlignment(1, 1):addPosition(-EDGE, -EDGE)
 	self:createRow()
 	self:createTopBar()
+	self.player_card = self.content:add(PlayerCard(ui))
+	self.player_card:setAlignment(0, 0):addPosition(EDGE, EDGE)
+	local chat = self.content:add(FakeChat(ui))
+	chat:setSize(CHAT_WIDTH, CHAT_HEIGHT):setAlignment(0, 1):addPosition(EDGE, -EDGE)
 end
 
 ---@private

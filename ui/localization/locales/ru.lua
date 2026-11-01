@@ -22,6 +22,7 @@ return {
 	["main_menu.lobby_list"] = "Список лобби",
 	["main_menu.multiplayer"] = "Мультиплеер",
 	["main_menu.lobby"] = "Лобби",
+	["main_menu.local_msd"] = "Локальный MSD",
 	["main_menu.music_player"] = "Плеер",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Папки с картами",

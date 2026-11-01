@@ -22,6 +22,7 @@ return {
 	["main_menu.lobby_list"] = "Lobby List",
 	["main_menu.multiplayer"] = "Multiplayer",
 	["main_menu.lobby"] = "Lobby",
+	["main_menu.local_msd"] = "Local MSD",
 	["main_menu.music_player"] = "Music Player",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Locations",

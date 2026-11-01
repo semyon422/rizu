@@ -5,6 +5,7 @@ return {
 	["main_menu.lobby_list"] = "Lista de salas",
 	["main_menu.multiplayer"] = "Multijugador",
 	["main_menu.lobby"] = "Sala",
+	["main_menu.local_msd"] = "MSD local",
 	["main_menu.music_player"] = "Reproductor de música",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Ubicaciones",

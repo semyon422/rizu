@@ -23,6 +23,7 @@ return {
 	["main_menu.lobby_list"] = "房间列表",
 	["main_menu.multiplayer"] = "多人游戏",
 	["main_menu.lobby"] = "房间",
+	["main_menu.local_msd"] = "本地 MSD",
 	["main_menu.music_player"] = "音乐播放器",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "本地文件夹",

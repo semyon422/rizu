@@ -11,9 +11,17 @@ local test = {}
 ---@return ui.screens.main_menu_v2.MainMenuV2
 local function newScreen()
 	local ui = {localization = Localization(), api = {
-		notifications = {},
+		notifications = {getTaskCount = function() return 0 end, getUnreadCount = function() return 0 end},
 		media = {getBeat = function() end},
 		charts = {getSelectedChart = function() end},
+		online = {
+			on = function() return function() end end,
+			getUsername = function() return "nimue" end,
+			getAvatarUrl = function() end,
+			getAvatar = function() end,
+			getOnlineCount = function() return 128 end,
+		},
+		scores = {getTotalRatings = function(_, f) f({pp = 4812, msd = 24.371}) end},
 	}}
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
 	screen:load()
@@ -72,6 +80,19 @@ function test.icon_copy_pulses_with_the_beat(t)
 	beat = nil
 	button:update(0.5) -- no beat and no bpm: one pulse a second
 	t:eq(button.pulse_phase, 0.75)
+end
+
+---@param t testing.T
+function test.player_card_shows_the_name_and_local_msd(t)
+	setup()
+	local screen = newScreen()
+	local card = screen.player_card
+	t:eq(card.name.text, "nimue")
+	t:eq(card.msd.text, "24.37")
+	-- Refitted to the new MSD, so the card hugs its content.
+	t:eq(card.width, card.msd_column.x + card.msd_column.width)
+	screen:update(0)
+	screen:draw()
 end
 
 ---@param t testing.T
