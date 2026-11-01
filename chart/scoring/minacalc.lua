@@ -109,6 +109,13 @@ function minacalc.get_rows(notes)
 		return a.rowTime < b.rowTime
 	end)
 
+	-- minacalc throws a C++ exception on rows before -0.5s (after rate scaling),
+	-- which LuaJIT can't catch on Windows and crashes the game
+	local offset = rows[1] and math.min(rows[1].rowTime, 0) or 0
+	for _, row in ipairs(rows) do
+		row.rowTime = row.rowTime - offset
+	end
+
 	return ffi.new("NoteInfo[?]", #rows, rows), #rows
 end
 
