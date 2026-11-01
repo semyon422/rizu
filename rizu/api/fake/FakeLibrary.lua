@@ -56,6 +56,8 @@ end
 
 function FakeLibrary:toggleCacheUpdate(location) end
 
+function FakeLibrary:getLocationScan(location) return nil end
+
 function FakeLibrary:getCacheStatus() return {stage = "idle", current = 0, total = 0} end
 
 return FakeLibrary

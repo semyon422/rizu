@@ -76,6 +76,7 @@ return {
 	["locations.stop_update"] = "Stop",
 	["locations.scan_progress"] = "{stage}: {current} / {total}",
 	["locations.scan_busy"] = "{stage}…",
+	["locations.scan_queued"] = "Waiting for another scan…",
 	["locations.edit"] = "Edit",
 	["locations.delete"] = "Delete",
 
@@ -497,6 +498,9 @@ return {
 	["notifications.type.library_difficulty"] = "Computing difficulty",
 	["notifications.type.library_scores"] = "Updating scores",
 	["notifications.type.library_hits"] = "Preparing scores for rescoring",
+	["notifications.type.location_scanned"] = "Location scanned",
+	["notifications.type.location_scanned.text"] = "{name}: {count} charts",
+	["notifications.type.location_scan_stopped"] = "Scan stopped",
 	["notifications.action.open"] = "Open",
 	["notifications.action.copy"] = "Copy details",
 }

@@ -10,7 +10,7 @@ local View = require("gui.View")
 ---@field ui ui.UserInterface
 ---@field path ui.views.Label
 ---@field update_cache ui.views.Button?
----@field busy boolean?
+---@field scan ("running"|"queued"|false)?
 local LocationRow = View + {}
 
 ---@param location rizu.api.Location
@@ -64,21 +64,24 @@ function LocationRow:new(location, width, ui, on_update_cache, on_edit, on_delet
 	delete:setSize(110, 40):setAlignment(1, 0.5):setOffset(-24, 0)
 end
 
----Any running scan turns the button into Stop, since pressing it stops that scan.
+---A running scan turns the button into Stop and a queued one into Cancel.
 ---@param status rizu.api.CacheStatus
----@param scanning boolean This location is the one being scanned: show the progress under its name.
-function LocationRow:setScan(status, scanning)
+---@param scan "running"|"queued"|nil The scan of this location, see rizu.api.Library:getLocationScan().
+function LocationRow:setScan(status, scan)
 	local button = self.update_cache
 	if not button then return end
 	local localization = self.ui.localization
-	local busy = status.stage ~= "idle"
-	if busy ~= self.busy then
-		self.busy = busy
-		button.text = localization:get(busy and "locations.stop_update" or "locations.update_cache")
-		button:setVariant(busy and "secondary" or "primary")
+	scan = scan or false
+	if scan ~= self.scan then
+		self.scan = scan
+		button.text = localization:get(scan == "running" and "locations.stop_update"
+			or scan == "queued" and "locations.cancel" or "locations.update_cache")
+		button:setVariant(scan and "secondary" or "primary")
 	end
 	local path = self.location.url or self.location.path
-	if scanning and busy then
+	if scan == "queued" then
+		path = localization:get("locations.scan_queued")
+	elseif scan == "running" and status.stage ~= "idle" then
 		local key = "notifications.type.library_" .. status.stage
 		local stage = localization:get(key)
 		if stage == key then stage = status.stage end

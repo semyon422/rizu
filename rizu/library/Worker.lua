@@ -64,6 +64,11 @@ function Worker:stopTask()
 	self.needStop = true
 end
 
+function Worker:clearStop()
+	self.needStop = false
+	self.processor.needStop = false
+end
+
 ---@param path string?
 ---@param location_id integer
 function Worker:computeLocation(path, location_id)

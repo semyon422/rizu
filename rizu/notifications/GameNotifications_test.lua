@@ -9,7 +9,7 @@ local test = {}
 ---@param t testing.T
 function test.library_stage_is_a_task_and_errors_are_grouped(t)
 	local n = Notifications()
-	local library = {status = {stage = "idle"}, errors = {}, onStatusChanged = Observable()}
+	local library = {status = {stage = "idle"}, errors = {}, onStatusChanged = Observable(), onLocationScanned = Observable()}
 	GameNotifications.connectLibrary(n, library --[[@as any]])
 
 	library.onStatusChanged:send({stage = "hashing", current = 1, total = 0})
@@ -25,6 +25,29 @@ function test.library_stage_is_a_task_and_errors_are_grouped(t)
 	t:eq(#n.notifications, 1)
 	t:eq(n.notifications[1].params.count, 2)
 	t:eq(n.notifications[1].text, "bad 2")
+end
+
+---@param t testing.T
+function test.ended_location_scan_is_posted_with_its_charts(t)
+	local n = Notifications()
+	local info = {}
+	local library = {
+		status = {stage = "idle"},
+		errors = {},
+		onStatusChanged = Observable(),
+		onLocationScanned = Observable(),
+		locationsRepo = {selectLocationById = function(_, id) return {id = id, name = "Songs"} end},
+		locations = {info = info, updateLocationInfo = function(_, id) info[id] = {chartfiles = 12} end},
+	}
+	GameNotifications.connectLibrary(n, library --[[@as any]])
+
+	library.onLocationScanned:send({location_id = 4, stopped = false})
+	t:eq(n.notifications[1].type, "location_scanned")
+	t:tdeq(n.notifications[1].params, {name = "Songs", count = 12})
+	library.onLocationScanned:send({location_id = 4, stopped = true})
+	t:eq(#n.notifications, 2)
+	local stopped = n.notifications[1].type == "location_scan_stopped" and n.notifications[1] or n.notifications[2]
+	t:eq(stopped.type, "location_scan_stopped")
 end
 
 ---@param t testing.T

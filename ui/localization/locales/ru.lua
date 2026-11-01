@@ -59,6 +59,7 @@ return {
 	["locations.stop_update"] = "Остановить",
 	["locations.scan_progress"] = "{stage}: {current} / {total}",
 	["locations.scan_busy"] = "{stage}…",
+	["locations.scan_queued"] = "Ждёт другого сканирования…",
 	["locations.edit"] = "Изменить",
 	["locations.delete"] = "Удалить",
 
@@ -462,6 +463,9 @@ return {
 	["notifications.type.library_difficulty"] = "Расчёт сложности",
 	["notifications.type.library_scores"] = "Обновление результатов",
 	["notifications.type.library_hits"] = "Подготовка результатов к пересчёту",
+	["notifications.type.location_scanned"] = "Папка просканирована",
+	["notifications.type.location_scanned.text"] = "{name}: карт — {count}",
+	["notifications.type.location_scan_stopped"] = "Сканирование остановлено",
 	["notifications.action.open"] = "Открыть",
 	["notifications.action.copy"] = "Скопировать подробности",
 }

@@ -10,7 +10,6 @@ local UiActions = require("ui.UiActions")
 ---@class ui.screens.locations.Locations : gui.Screen
 ---@operator call: ui.screens.locations.Locations
 ---@field rows ui.screens.locations.LocationRow[]
----@field scanning_id integer? The location whose update was last started on this screen.
 ---@field unsubscribe (fun())?
 local Locations = Screen + {}
 
@@ -58,7 +57,6 @@ function Locations:refresh()
 	for _, location in ipairs(library:getLocations()) do
 		displayed = displayed + 1
 		self.rows[displayed] = self.content:add(LocationRow(location, LIST_WIDTH, self.ui, function(selected)
-			if library:getCacheStatus().stage == "idle" then self.scanning_id = selected.id end
 			library:toggleCacheUpdate(selected)
 		end, function(selected)
 			self.ui.modal_manager:attachLocationEditor(selected)
@@ -75,8 +73,9 @@ end
 
 ---@param status rizu.api.CacheStatus
 function Locations:updateRows(status)
+	local library = self.ui.api.library
 	for _, row in ipairs(self.rows) do
-		row:setScan(status, row.location.id == self.scanning_id)
+		row:setScan(status, library:getLocationScan(row.location))
 	end
 end
 
@@ -92,8 +91,6 @@ function Locations:exit()
 	Screen.exit(self)
 	if self.unsubscribe then self.unsubscribe() end
 	self.unsubscribe = nil
-	-- The scan may report "idle" between its stages, so the started location is only forgotten here.
-	self.scanning_id = nil
 	self.root:fadeOut(0.2, "OutQuad")
 	self.root:scaleTo(1.01, 1.01, 0.3, "OutQuart")
 	return true

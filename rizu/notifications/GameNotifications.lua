@@ -12,6 +12,7 @@ local stage_titles = {
 }
 
 ---A task for every scan stage. Charts that failed in it are posted as one error when it ends.
+---A location scan that ends or is stopped is posted too.
 ---@param notifications rizu.notifications.Notifications
 ---@param library rizu.library.Library
 function GameNotifications.connectLibrary(notifications, library)
@@ -51,6 +52,22 @@ function GameNotifications.connectLibrary(notifications, library)
 		if task then
 			notifications:progressTask(task, status.current, status.total > 0 and status.total or nil)
 		end
+	end)
+
+	---@param event {location_id: integer, stopped: boolean}
+	library.onLocationScanned:add(function(event)
+		local id = event.location_id
+		local location = library.locationsRepo:selectLocationById(id)
+		local name = location and location.name or tostring(id)
+		if event.stopped then
+			notifications:post({kind = "info", type = "location_scan_stopped", params = {name = name},
+				title = "Scan stopped", text = name})
+			return
+		end
+		library.locations:updateLocationInfo(id)
+		local count = library.locations.info[id].chartfiles
+		notifications:post({kind = "success", type = "location_scanned", params = {name = name, count = count},
+			title = "Location scanned", text = ("%s: %d charts"):format(name, count)})
 	end)
 end
 

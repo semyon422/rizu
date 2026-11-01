@@ -59,10 +59,10 @@ end
 ---@param location_id integer
 function SelectionActions:updateCacheLocation(location_id)
 	local library = self.library
-	if not library.isProcessing then
-		library:computeLocation(nil, location_id)
+	if library:getLocationScan(location_id) then
+		library:cancelLocationScan(location_id)
 	else
-		library:stopTask()
+		library:computeLocation(nil, location_id)
 	end
 end
 
