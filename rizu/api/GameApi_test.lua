@@ -65,13 +65,29 @@ function test.online(t)
 	} --[[@as any]])
 	t:eq(players, 1)
 	t:tdeq(online:getOnlinePlayers(), {
-		{name = "Nimue", avatar_url = "n.png", role = "admin", chartplays_count = 12, play_time = 3600},
-		{name = "Aqua", avatar_url = "", role = "donator", chartplays_count = 0, play_time = 0},
 		{name = "Bob", avatar_url = "", chartplays_count = 1, play_time = 60},
-	}, "an owner shows as admin, an expired role is ignored")
+		{name = "Aqua", avatar_url = "", role = "donator", chartplays_count = 0, play_time = 0},
+		{name = "Nimue", avatar_url = "n.png", role = "admin", chartplays_count = 12, play_time = 3600},
+	}, "an owner shows as admin, an expired role is ignored, the newest account counts as the latest")
+
+	local joined = {} ---@type string[]
+	online:on("player_joined", function(player) joined[#joined + 1] = player.name end)
+	local users = multiplayer.users
+	multiplayer:setUsers({users[1], {name = "Cara"}, users[2], users[3]} --[[@as any]])
+	t:tdeq(joined, {"Cara"}, "the first list after connecting joins nobody")
+	t:eq(online:getOnlinePlayers()[1].name, "Cara", "the latest to come online first")
+	multiplayer:setUsers({users[2], {name = "Cara"}} --[[@as any]])
+	multiplayer:setUsers({users[2], {name = "Cara"}, users[3]} --[[@as any]])
+	t:tdeq(joined, {"Cara", "Bob"}, "leaving and coming back joins again")
+	t:eq(online:getOnlinePlayers()[1].name, "Bob")
+	multiplayer:setUsers({users[1], users[2], {name = "Cara"}, users[3]} --[[@as any]])
+	t:tdeq(joined, {"Cara", "Bob"}, "this player does not join themselves")
+
 	client:setConnected(false)
 	t:tdeq(online:getOnlinePlayers(), {}, "no list while offline")
 	client:setConnected(true)
+	multiplayer:setUsers(users)
+	t:tdeq(joined, {"Cara", "Bob"}, "the first list after a reconnect joins nobody")
 
 	local scores = 0
 	online:on("recent_scores_changed", function() scores = scores + 1 end)
