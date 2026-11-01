@@ -85,7 +85,13 @@ function PackageLoader:loadPackage(path, real_path)
 	local metadata_path = path_util.join(root_path, "pkg.json")
 	local data = love.filesystem.read(metadata_path)
 
-	local pkg = Package(json.decode(data))
+	local tbl, err = json.decode_safe(data)
+	if not tbl then
+		print(("package skipped, invalid %s (%s): %s"):format(metadata_path, tostring(real_path), err))
+		return
+	end
+
+	local pkg = Package(tbl)
 	local name = pkg.name
 
 	local existing_pkg = self.packages[name]
