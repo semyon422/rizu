@@ -137,12 +137,13 @@ function UserInterface:load()
 	Sounds.load(self.api.settings)
 	self.tooltip = Tooltip()
 	if self.api.fake then
+		self.main_menu = MainMenuV2(self)
 		self.song_select = SongSelect(self)
 		self.result = Result(self)
 		self.welcome = Welcome(self)
 		self.overlay = Overlay(self)
 		self.modal_manager = self.overlay.modal_manager
-		self.screen_manager:registerAll({self.song_select, self.result, self.welcome})
+		self.screen_manager:registerAll({self.main_menu, self.song_select, self.result, self.welcome})
 		self.screen_manager:setOverlay(self.overlay)
 	else
 		self.main_menu = MainMenuV2(self)
@@ -201,7 +202,7 @@ function UserInterface:load()
 	self:applyViewport(ww, wh)
 	if self.config:getBoolean(UiConfig.keys.show_welcome) then
 		self:setScreen(self.welcome)
-	elseif self.api.fake or self.api.settings:getBoolean(Settings.keys.select.open_on_startup) then
+	elseif self.api.settings:getBoolean(Settings.keys.select.open_on_startup) then
 		self:setScreen(self.song_select)
 	else
 		self:setScreen(self.main_menu)

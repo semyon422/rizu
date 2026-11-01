@@ -46,4 +46,24 @@ function test.fake_library_can_be_browsed(t)
 	t:eq(charts:canPlaySelectedChart(), false)
 end
 
+---@param t testing.T
+function test.fake_players_keep_coming_online(t)
+	local api = FakeGameApi()
+	local online = api.online
+	local joined = {} ---@type string[]
+	online:on("player_joined", function(player) joined[#joined + 1] = player.name end)
+	local first = online:getOnlinePlayers()[1].name
+	api:update(5)
+	t:eq(#joined, 0)
+	api:update(1)
+	t:eq(#joined, 1)
+	local players = online:getOnlinePlayers()
+	t:eq(players[1].name, joined[1], "the latest first")
+	t:eq(players[2].name, first)
+	t:eq(online:getOnlineCount(), 42, "one goes offline for each that comes")
+	for _ = 1, 20 do api:update(6) end
+	t:eq(#joined, 21, "the ones gone offline come back")
+	t:eq(online:getAvatar(players[1].avatar_url), nil, "no avatars without a window")
+end
+
 return test

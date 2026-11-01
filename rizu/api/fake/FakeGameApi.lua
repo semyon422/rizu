@@ -52,6 +52,7 @@ end
 function FakeGameApi:update(dt)
 	self.media:update(dt)
 	self.notifications:update(dt)
+	self.online:update(dt)
 end
 
 return FakeGameApi
