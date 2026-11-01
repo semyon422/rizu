@@ -3,7 +3,7 @@ local thread = require("thread")
 local ImageDataDecoder = require("ImageDataDecoder")
 
 ---@class rizu.online.AvatarCache.Entry
----@field state "pending"|"ready"
+---@field state "pending"|"ready"|"failed"
 ---@field image love.Image?
 
 ---@class rizu.online.AvatarCache
@@ -55,12 +55,9 @@ function AvatarCache:get(url)
 			if image then image:release() end
 			return
 		end
-		if image then
-			entry.state = "ready"
-			entry.image = image
-		else
-			self.entries[url] = nil
-		end
+		-- A failed url stays failed until clear(), so it is not downloaded again every frame.
+		entry.state = image and "ready" or "failed"
+		entry.image = image
 	end)()
 end
 
