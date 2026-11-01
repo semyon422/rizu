@@ -70,7 +70,10 @@ end
 function PlayerCard:load()
 	self.unsubscribe = self.ui.api.online:on("account_changed", function() self:updateAccount() end)
 	self:updateAccount()
-	-- Coming back from a play loads the menu again, so its score is counted.
+end
+
+---Asks for the local MSD again, so plays made since are counted.
+function PlayerCard:refreshRatings()
 	self.ui.api.scores:getTotalRatings(function(totals)
 		if not totals then return end
 		self.msd:setText(("%.2f"):format(totals.msd))

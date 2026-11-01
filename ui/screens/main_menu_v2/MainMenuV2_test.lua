@@ -3,8 +3,6 @@ local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
-local Screen = require("gui.Screen")
-local MenuRow = require("ui.screens.main_menu_v2.MenuRow")
 
 local test = {}
 
@@ -25,12 +23,17 @@ local function newScreen(online)
 			isAuthenticationResolved = function() return true end,
 			isLoggedIn = function() return true end,
 		},
-		scores = {getTotalRatings = function(_, f) f({pp = 4812, msd = 24.371}) end},
+		scores = {
+			getTotalRatings = function(_, f) f({pp = 4812, msd = 24.371}) end,
+			getSessionStart = function() return os.time() - 3725 end,
+			getSessionStats = function(_, f) f({plays = 2, firsts = 1, best_rating = 23.456, best_pp = 301, best_msd = 22}) end,
+		},
 	}}
 	for k, v in pairs(online or {}) do ui.api.online[k] = v end
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
 	screen:load()
 	screen:resize(1600, 900)
+	screen:enter() -- as setScreen() does
 	return screen
 end
 
@@ -152,40 +155,36 @@ function test.long_labels_shrink_then_truncate(t)
 end
 
 ---@param t testing.T
-function test.hover_reveals_a_label_inside_a_fixed_row(t)
+function test.session_panel_and_buttons_stack_above_play(t)
 	setup()
-	local screen = Screen()
-	local row = screen.root:add(MenuRow(10))
-	local buttons = {} ---@type ui.screens.main_menu_v2.MenuButton[]
-	for i, text in ipairs({"Multiplayer", "Editor", "DLC", "Library"}) do
-		buttons[i] = row:add(MenuButton(text, Resources.sprites.icon_gear, {1, 1, 1, 1}, function() end))
-	end
-	row:setSize(520, MenuButton.SIZE):setAlignment(1, 1)
-	screen:load()
-	screen:resize(1600, 900)
-
-	---@return number left, number right edges of the buttons, in the row
-	local function edges()
-		return buttons[1].x, buttons[4].x + buttons[4].width
-	end
-	-- Rounded edges make equal shares differ by a pixel.
-	t:assert(math.abs(buttons[1].width - buttons[2].width) <= 1, "equal at rest")
-	t:eq(select(2, edges()), 520)
-
-	buttons[1].mouse_over = true
-	for _ = 1, 60 do screen:update(1 / 60) end
+	local screen = newScreen()
+	screen:update(0)
 	screen:flush()
+	local play, buttons, panel = screen.play_button, screen.buttons, screen.session_panel
+	t:eq(buttons.y + buttons.height, play.y - 20)
+	t:eq(panel.y + panel.height, buttons.y - 16)
+	t:eq(buttons.x + buttons.width, play.x + play.width)
+	t:eq(#buttons.children, 5)
 
-	t:assert(math.abs(buttons[1].width - buttons[1].full_width) <= 1, "revealed to its label")
-	t:assert(buttons[2].width < buttons[1].width and buttons[2].width >= MenuButton.SIZE, "others narrow")
-	local left, right = edges()
-	t:eq(left, 0)
-	t:eq(right, 520)
+	t:eq(panel.stats.firsts, 1)
+	t:eq(panel.time_text, "1:02:05")
+	screen:draw()
+end
 
-	buttons[1].mouse_over = false
-	for _ = 1, 60 do screen:update(1 / 60) end
-	screen:flush()
-	t:assert(math.abs(buttons[1].width - buttons[2].width) <= 1, "equal again")
+---@param t testing.T
+function test.entering_again_counts_plays_made_since(t)
+	setup()
+	local screen = newScreen()
+	local scores = screen.ui.api.scores
+	scores.getSessionStats = function(_, f) f({plays = 3, firsts = 2}) end
+	scores.getTotalRatings = function(_, f) f({pp = 4900, msd = 24.5}) end
+
+	-- Off to song select and gameplay, then back: the screen is not loaded again.
+	screen:exit()
+	screen:enter()
+
+	t:eq(screen.session_panel.stats.plays, 3)
+	t:eq(screen.player_card.msd.text, "24.50")
 end
 
 return test

@@ -492,6 +492,13 @@ function Library:getTotalRatingsAsync()
 	return self.reader and self.reader:getTotalRatings()
 end
 
+---See rizu.library.Worker:getSessionStats(). Nil before the library is loaded.
+---@param since integer Unix time
+---@return rizu.api.Scores.SessionStats?
+function Library:getSessionStatsAsync(since)
+	return self.reader and self.reader:getSessionStats(since)
+end
+
 ---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
 ---@param ids integer[]
 ---@param timings integer
