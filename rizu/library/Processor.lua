@@ -198,6 +198,7 @@ function Processor:computeLocation(path, location_id)
 				iidx_song = song,
 			}
 		end
+		print("hashing", chartfile.path)
 		local start_time = self.timer:getTime()
 		local prepared, err = self.hashingTask:prepareChartfile(chartfile, location_prefix, context)
 		if not prepared then
