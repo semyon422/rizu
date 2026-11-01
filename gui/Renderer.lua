@@ -234,6 +234,8 @@ function Renderer:draw()
 					love.graphics.replaceTransform(composite.world_transform)
 				end
 				setScissor(composite.clip_rect, inverse, scale)
+				-- A canvas drawn at a fractional position resamples, and blurs, all text in it.
+				Painter.snapToPixel()
 				local opacity = composite.render_opacity
 				composite:drawUnderlay(opacity)
 				love.graphics.setColor(opacity, opacity, opacity, opacity)

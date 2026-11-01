@@ -77,10 +77,7 @@ function PlayerInfo:drawAvatar()
 	local scale = math.max(AVATAR_SIZE / image_width, AVATAR_SIZE / image_height)
 	local width, height = image_width * scale, image_height * scale
 	local graphics = love.graphics
-	local x, y = self.avatar_display.world_transform:transformPoint(0, 0)
-	self.avatar_shader:send("u_position", {x, y})
-	self.avatar_shader:send("u_size", {AVATAR_SIZE, AVATAR_SIZE})
-	self.avatar_shader:send("u_radius", 5)
+	AvatarShader.setRect(self.avatar_shader, 0, 0, AVATAR_SIZE, AVATAR_SIZE, 5)
 	Painter.setColorRgb(1, 1, 1)
 	graphics.setShader(self.avatar_shader)
 	graphics.draw(self.avatar_image, (AVATAR_SIZE - width) / 2, (AVATAR_SIZE - height) / 2, 0, scale)
