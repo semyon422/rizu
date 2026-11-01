@@ -729,6 +729,29 @@ function test.diagnostics_track_download_failures(t)
 end
 
 ---@param t testing.T
+function test.failing_coroutine_is_reported(t)
+	local network = NetworkService({
+		scheduler = {
+			update = function()
+				error("coroutine failed")
+			end,
+		} --[[@as any]],
+	})
+	local errors = {}
+	function network.on_error(err)
+		table.insert(errors, err)
+	end
+
+	local ok, err = network:update()
+
+	t:eq(ok, nil)
+	t:eq(#errors, 1)
+	t:eq(err, errors[1])
+	t:assert(errors[1]:find("coroutine failed", 1, true))
+	t:eq(network:getDiagnostics().scheduler_errors, 1)
+end
+
+---@param t testing.T
 function test.diagnostics_track_scheduler_errors(t)
 	local network = NetworkService({
 		scheduler = {

@@ -127,6 +127,36 @@ function GameNotifications.connectScreenshots(notifications, screenshots)
 	end)
 end
 
+---Posts the first line of err, the full traceback goes behind "Copy details".
+---@param notifications rizu.notifications.Notifications
+---@param type string
+---@param title string
+---@param err string
+---@param params table?
+function GameNotifications.postError(notifications, type, title, err, params)
+	notifications:post({
+		kind = "error",
+		type = type,
+		params = params,
+		title = title,
+		text = err:match("^[^\n]*"),
+		actions = {{id = "copy", label = "Copy details", run = function() love.system.setClipboardText(err) end}},
+	})
+end
+
+---Network coroutines and server calls that throw are aborted and posted instead of crashing the game.
+---@param notifications rizu.notifications.Notifications
+---@param network rizu.NetworkService
+---@param sea_client rizu.SeaClient
+function GameNotifications.connectNetwork(notifications, network, sea_client)
+	---@param err string
+	local function report(err)
+		GameNotifications.postError(notifications, "network_error", "Online error", err)
+	end
+	network.on_error = report
+	sea_client.on_error = report
+end
+
 ---A UI listener that throws becomes an error with the traceback behind "Copy details".
 ---@param notifications rizu.notifications.Notifications
 ---@param api rizu.api.GameApi
@@ -138,14 +168,7 @@ function GameNotifications.connectApi(notifications, api)
 		-- A failing listener of the notifications area itself would report forever.
 		if reporting then return end
 		reporting = true
-		notifications:post({
-			kind = "error",
-			type = "listener_error",
-			params = {event = event},
-			title = "Interface error",
-			text = err:match("^[^\n]*"),
-			actions = {{id = "copy", label = "Copy details", run = function() love.system.setClipboardText(err) end}},
-		})
+		GameNotifications.postError(notifications, "listener_error", "Interface error", err, {event = event})
 		reporting = false
 	end
 	for _, area in pairs(api) do ---@diagnostic disable-line: no-unknown
@@ -162,6 +185,7 @@ function GameNotifications.connect(game)
 	GameNotifications.connectOnline(notifications, game.online_client)
 	GameNotifications.connectScreenshots(notifications, game.app.screenshotModel)
 	GameNotifications.connectApi(notifications, game.api)
+	GameNotifications.connectNetwork(notifications, game.network, game.seaClient)
 end
 
 return GameNotifications

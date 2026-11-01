@@ -33,6 +33,12 @@ local http_util = require("web.http.util")
 ---@field proxy rizu.Socks5ProxyConfig?
 local NetworkService = class()
 
+---Called with the traceback of a network coroutine that failed and was aborted.
+---@param err string
+function NetworkService.on_error(err)
+	print("network coroutine failed", err)
+end
+
 ---@alias rizu.NetworkStatusState
 ---| "dns"
 ---| "connecting"
@@ -583,7 +589,13 @@ end
 ---@return boolean?
 ---@return string?
 function NetworkService:update()
-	local ok, err = self.scheduler:update(0)
+	-- a failing coroutine is aborted and reported, the game goes on
+	local caught, ok, err = xpcall(self.scheduler.update, debug.traceback, self.scheduler, 0)
+	if not caught then
+		local trace = tostring(ok)
+		self.on_error(trace)
+		ok, err = nil, trace
+	end
 	if not ok and err then
 		self.diagnostics:fail("scheduler_errors", err)
 	end

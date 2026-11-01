@@ -23,6 +23,12 @@ SeaClient.log = function(_, ...)
 	print("[online websocket]", ...)
 end
 
+---Called when handling a server call or reply fails; the call is dropped.
+---@param err string
+function SeaClient.on_error(err)
+	print("[online websocket] server call failed", err)
+end
+
 ---@param url string
 ---@return string
 local function safeUrl(url)
@@ -78,7 +84,11 @@ function SeaClient:new(client, client_remote, network)
 		if msg.ret then
 			table.insert(sea_client.pending_returns, msg)
 		else
-			task_handler:handle(server_peer, remote_context, msg)
+			-- a server newer than this client may call methods it does not know
+			local ok, err = pcall(task_handler.handle, task_handler, server_peer, remote_context, msg)
+			if not ok then
+				sea_client.on_error(tostring(err))
+			end
 		end
 	end
 
@@ -213,10 +223,17 @@ end
 function SeaClient:update()
 	local pending_returns = self.pending_returns
 	self.pending_returns = {}
+	-- a reply or timeout the waiting code cannot handle aborts that code only
 	for _, msg in ipairs(pending_returns) do
-		self.task_handler:handleReturn(msg)
+		local ok, err = pcall(self.task_handler.handleReturn, self.task_handler, msg)
+		if not ok then
+			self.on_error(tostring(err))
+		end
 	end
-	self.task_handler:update()
+	local ok, err = pcall(self.task_handler.update, self.task_handler)
+	if not ok then
+		self.on_error(tostring(err))
+	end
 end
 
 function SeaClient:unload()

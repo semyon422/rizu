@@ -90,4 +90,19 @@ function test.failing_listener_is_posted_once(t)
 	t:assert(n.notifications[1].text:find("boom", 1, true))
 end
 
+---@param t testing.T
+function test.network_errors_are_posted(t)
+	local n = Notifications()
+	local network, sea_client = {}, {}
+	GameNotifications.connectNetwork(n, network --[[@as any]], sea_client --[[@as any]])
+
+	network.on_error("a.lua:1: boom\nstack traceback:")
+	sea_client.on_error("a.lua:1: boom\nstack traceback:")
+
+	t:eq(#n.notifications, 1)
+	t:eq(n.notifications[1].type, "network_error")
+	t:eq(n.notifications[1].text, "a.lua:1: boom")
+	t:eq(n.notifications[1].count, 2)
+end
+
 return test

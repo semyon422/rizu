@@ -1,4 +1,5 @@
 local SeaClient = require("rizu.online.SeaClient")
+local Message = require("icc.Message")
 local delay = require("delay")
 local table_util = require("table_util")
 
@@ -458,6 +459,39 @@ function test.network_status_logs_dns_and_connect_route(t)
 		"dns host=example.test cached=true ip=203.0.113.10",
 		"transport connecting ip=203.0.113.10",
 	})
+end
+
+---@param t testing.T
+function test.unknown_server_call_is_reported(t)
+	local sea_client = SeaClient(new_client(), {client = {}}, new_network() --[[@as any]])
+	local errors = {}
+	function sea_client.on_error(err)
+		table.insert(errors, err)
+	end
+
+	local msg = Message(nil, nil, {"client", "methodFromNewerServer"}, true)
+	sea_client.protocol:text(sea_client.server_peer:encode(msg), true)
+
+	t:eq(#errors, 1)
+	t:assert(errors[1]:find("not whitelisted", 1, true))
+end
+
+---@param t testing.T
+function test.failing_reply_handler_is_reported(t)
+	local sea_client = SeaClient(new_client(), {}, new_network() --[[@as any]])
+	local errors = {}
+	function sea_client.on_error(err)
+		table.insert(errors, err)
+	end
+	sea_client.task_handler.callbacks[1] = function() error("bad reply") end
+	sea_client.task_handler.callbacks[2] = function() end
+	sea_client.pending_returns = {Message(1, true), Message(2, true)}
+
+	sea_client:update()
+
+	t:eq(#errors, 1)
+	t:assert(errors[1]:find("bad reply", 1, true))
+	t:eq(#sea_client.pending_returns, 0)
 end
 
 ---@param t testing.T
