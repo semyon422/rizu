@@ -13,9 +13,11 @@ local Resources = require("ui.Resources")
 ---@field on_dismiss fun(item: ui.modals.notifications.NotificationItem)?
 ---@field on_action fun(item: ui.modals.notifications.NotificationItem, index: integer)?
 ---@field on_click fun(item: ui.modals.notifications.NotificationItem)? A click outside the close button and actions.
+---@field on_right_click fun(item: ui.modals.notifications.NotificationItem)?
 ---@field color gui.Color
 ---@field icon gui.Sprite
 ---@field title string
+---@field title_lines string[]
 ---@field text_lines string[]
 ---@field action_labels string[]
 ---@field action_widths number[]
@@ -118,6 +120,9 @@ function NotificationItem:new(width, localization, notification, task, on_dismis
 	local key = "notifications.type." .. entry.type
 	self.title = translate(localization, key, entry.params, entry.title) --[[@as string]]
 	local text = translate(localization, key .. ".text", entry.params, entry.text)
+	-- The title stops short of the close button, which shows on hover.
+	local _, title_lines = self.title_font:getWrap(self.title, width - TEXT_X - CLOSE_SIZE - CLOSE_INSET)
+	self.title_lines = title_lines
 	self.text_lines = {}
 	if text then
 		local _, lines = self.text_font:getWrap(text, width - TEXT_X - PADDING)
@@ -134,7 +139,7 @@ end
 
 ---Places the rows. A task gets its count row once its size is known.
 function NotificationItem:layout()
-	local y = PADDING + self.title_font:getHeight()
+	local y = PADDING + #self.title_lines * self.title_font:getHeight()
 	if #self.text_lines > 0 then
 		y = y + 2 + #self.text_lines * self.text_font:getHeight()
 	end
@@ -219,6 +224,10 @@ end
 ---@param e gui.MouseClickEvent
 ---@return boolean? handled
 function NotificationItem:onMouseClick(e)
+	if e.button == 2 and self.on_right_click then
+		self.on_right_click(self)
+		return true
+	end
 	if e.button ~= 1 then return end
 	local x, y = self.world_transform:inverseTransformPoint(e.x, e.y)
 	local action = self:getActionAt(x, y)
@@ -255,16 +264,16 @@ function NotificationItem:draw()
 	Painter.snapToPixel()
 	Painter.setColorTable(Colors.text)
 	love.graphics.setFont(self.title_font)
-	love.graphics.print(self.title, TEXT_X, PADDING)
-	local notification = self.notification
-	if notification and notification.count > 1 then
-		Painter.setColorTable(Colors.muted)
-		love.graphics.print("×" .. notification.count, TEXT_X + self.title_font:getWidth(self.title) + 8, PADDING)
+	local line_y = PADDING
+	for _, line in ipairs(self.title_lines) do
+		love.graphics.print(line, TEXT_X, line_y)
+		line_y = line_y + self.title_font:getHeight()
 	end
+	local notification = self.notification
 
 	Painter.setColorTable(Colors.muted)
 	love.graphics.setFont(self.text_font)
-	local line_y = PADDING + self.title_font:getHeight() + 2
+	line_y = line_y + 2
 	for _, line in ipairs(self.text_lines) do
 		love.graphics.print(line, TEXT_X, line_y)
 		line_y = line_y + self.text_font:getHeight()
@@ -287,7 +296,9 @@ function NotificationItem:draw()
 		end
 		Painter.setColorTable(Colors.muted)
 		love.graphics.setFont(self.small_font)
-		love.graphics.print(formatAge(os.time() - notification.time, self.localization), TEXT_X, self.time_y)
+		local meta = formatAge(os.time() - notification.time, self.localization)
+		if notification.count > 1 then meta = meta .. " · ×" .. notification.count end
+		love.graphics.print(meta, TEXT_X, self.time_y)
 		if self.mouse_over then
 			local cx, cy = self:getCloseRect()
 			if mx and my and self:isOverClose(mx, my) then

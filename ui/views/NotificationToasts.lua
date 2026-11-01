@@ -1,13 +1,14 @@
 local FlowContainer = require("gui.layout.FlowContainer")
 local NotificationItem = require("ui.modals.notifications.NotificationItem")
 
----Running tasks and fresh notifications in a corner, for screens without a notifications button.
----Clicking a card opens the notification panel.
+---Running tasks and fresh notifications in a corner. Screens with a notifications button show only the notifications.
+---Clicking a card opens the notification panel, right clicking a notification hides its toast.
 ---@class ui.views.NotificationToasts : gui.layout.FlowContainer
 ---@operator call: ui.views.NotificationToasts
 ---@field api rizu.api.Notifications
 ---@field localization ui.localization.Localization
 ---@field is_allowed fun(): boolean
+---@field show_tasks fun(): boolean
 ---@field on_open fun()
 ---@field toasts {[ui.modals.notifications.NotificationItem]: number} Seconds left on screen.
 ---@field private unsubscribe fun()
@@ -22,13 +23,15 @@ local function noop() end
 
 ---@param api rizu.api.Notifications
 ---@param localization ui.localization.Localization
----@param is_allowed fun(): boolean False hides everything: during gameplay, or where a bell already shows it.
+---@param is_allowed fun(): boolean False hides everything: during gameplay, or while the panel is open.
+---@param show_tasks fun(): boolean False hides the task cards, as where a bell already shows them.
 ---@param on_open fun()
-function NotificationToasts:new(api, localization, is_allowed, on_open)
+function NotificationToasts:new(api, localization, is_allowed, show_tasks, on_open)
 	FlowContainer.new(self, {direction = "column", gap = 10, layout_transition = GLIDE})
 	self.api = api
 	self.localization = localization
 	self.is_allowed = is_allowed
+	self.show_tasks = show_tasks
 	self.on_open = on_open
 	self.toasts = {}
 	self:setWidth(WIDTH)
@@ -50,6 +53,7 @@ function NotificationToasts:createItem(notification, task)
 		function(item) self:hideItem(item) end,
 		function(item, index) self.api:runAction(item.notification.id, index) end)
 	item.on_click = function() self.on_open() end
+	item.on_right_click = function() if item.notification then self:hideItem(item) end end
 	item:setOffset(40, 0):setOpacity(0)
 	item:moveTo(0, 0, 0.3, "OutQuint")
 	item:fadeIn(0.3, "OutCubic")
@@ -86,12 +90,13 @@ function NotificationToasts:clearAll()
 	self:clear()
 end
 
----Keeps one card per running task above the toasts.
+---Keeps one card per running task above the toasts, or none when tasks are hidden.
 ---@private
 function NotificationToasts:syncTasks()
 	local api = self.api
+	local task_count = self.show_tasks() and api:getTaskCount() or 0
 	local live, shown = {}, {} ---@type {[rizu.api.Task]: true}, {[rizu.api.Task]: true}
-	for i = 1, api:getTaskCount() do
+	for i = 1, task_count do
 		local task = api:getTask(i) --[[@as rizu.api.Task]]
 		live[task] = true
 	end
@@ -105,7 +110,7 @@ function NotificationToasts:syncTasks()
 			index = index + 1
 		end
 	end
-	for i = 1, api:getTaskCount() do
+	for i = 1, task_count do
 		local task = api:getTask(i) --[[@as rizu.api.Task]]
 		if not shown[task] then
 			index = index + 1
