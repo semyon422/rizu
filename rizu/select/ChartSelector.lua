@@ -250,7 +250,7 @@ function ChartSelector:findChartmeta(hash, index)
 			end
 			self:emitChanged({type = "chartmeta_found", hash = hash, index = index})
 		end
-	end, TaskRunner.priority.high)
+	end, TaskRunner.priority.query)
 end
 
 ---@return string?
@@ -338,7 +338,8 @@ function ChartSelector:chartExists()
 end
 
 function ChartSelector:debounceRefresh(...)
-	delay.debounce(self, "refreshDebounce", self.debounceTime, self.refresh, self, ...)
+	-- Through the task queue, so it never runs alongside another refresh.
+	delay.debounce(self, "refreshDebounce", self.debounceTime, self.noDebounceRefresh, self, ...)
 end
 
 function ChartSelector:noDebounceRefresh(...)
@@ -349,7 +350,7 @@ function ChartSelector:noDebounceRefresh(...)
 		if chartview then
 			self:setConfig(chartview)
 		end
-	end, TaskRunner.priority.high)
+	end, TaskRunner.priority.query)
 end
 
 ---@param sortFunctionName string

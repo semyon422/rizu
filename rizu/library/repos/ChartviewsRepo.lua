@@ -115,14 +115,10 @@ end
 ---@param options rdb.Options
 ---@return rizu.library.ChartviewsRepo.PackedQueryResult
 function ChartviewsRepo:_fetchResult(model, where, options)
-	local count_options = {
-		columns = {"1"},
-		group = options.group,
-	}
-	local count = model:count(where, count_options)
-
+	-- Grown while reading: a COUNT first would run the whole grouped query twice.
+	local capacity = 1024
 	---@type rizu.library.ChartviewStructArray
-	local struct_array = ffi.new("chartview_struct[?]", count)
+	local struct_array = ffi.new("chartview_struct[?]", capacity)
 	---@type {[integer]: integer}
 	local chartfile_id_to_global_index = {}
 	---@type {[integer]: integer}
@@ -141,6 +137,12 @@ function ChartviewsRepo:_fetchResult(model, where, options)
 	---@type integer
 	local c = 0
 	for i, row in model:select_iter(where, options) do
+		if c == capacity then
+			capacity = capacity * 2
+			local grown = ffi.new("chartview_struct[?]", capacity)
+			ffi.copy(grown, struct_array, ffi.sizeof("chartview_struct") * c)
+			struct_array = grown
+		end
 		local entry = struct_array[c]
 		entry.chartfile_id = row.chartfile_id
 		entry.chartfile_set_id = row.chartfile_set_id

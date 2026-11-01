@@ -20,6 +20,7 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field padding_left? number
 ---@field padding_right? number
 ---@field on_click? fun()
+---@field click_sound? string Defaults to "click".
 
 ---A rounded button with an icon, a label and an optional count badge. Its width follows the content.
 ---@class ui.views.IconTextButton : gui.View
@@ -31,6 +32,7 @@ local SpringValue = require("gui.anim.SpringValue")
 ---@field badge string?
 ---@field preferred_width number
 ---@field on_click fun()?
+---@field click_sound string
 local IconTextButton = View + {}
 
 IconTextButton.HEIGHT = 56
@@ -57,6 +59,7 @@ function IconTextButton:new(config)
 	self.padding_left = config.padding_left or 18
 	self.padding_right = config.padding_right or 22
 	self.on_click = config.on_click
+	self.click_sound = config.click_sound or "click"
 	self.font = Resources.getFont("bold", config.font_size or 16)
 	self.badge_font = Resources.getFont("bold", 14)
 	self.background = NineSliceUsage(Resources.nine_slices["icon_text_button_" .. variant])
@@ -115,7 +118,7 @@ function IconTextButton:onMouseClick(e)
 	if self.on_click then
 		self.on_click()
 	end
-	Sounds.play("click")
+	Sounds.play(self.click_sound)
 	return true
 end
 

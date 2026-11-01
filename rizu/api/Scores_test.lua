@@ -118,4 +118,24 @@ function test.normalscore_without_rescoring(t)
 	t:eq(scores:getAccuracySystem(), nil)
 end
 
+---@param t testing.T
+function test.session_stats(t)
+	local scores, selector = createScores()
+	local since ---@type integer?
+	selector.library = {
+		getSessionStatsAsync = function(_, time)
+			since = time
+			return {plays = 3, best_rating = 23.5, firsts = 1}
+		end,
+	}
+	local stats ---@type rizu.api.Scores.SessionStats?
+	scores:getSessionStats(function(s) stats = s end)
+	t:eq(since, scores:getSessionStart())
+	t:tdeq(stats, {plays = 3, best_rating = 23.5, firsts = 1})
+
+	selector.library.getSessionStatsAsync = function() end
+	scores:getSessionStats(function(s) stats = s end)
+	t:eq(stats, nil, "library not loaded")
+end
+
 return test

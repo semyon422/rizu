@@ -7,7 +7,7 @@ local ChartMutators = require("ui.modals.chart_mutators.ChartMutators")
 local CollectionSelector = require("ui.modals.collections.CollectionSelector")
 local NeedleToolRegistry = require("rizu.ai.NeedleToolRegistry")
 local OverlayBackground = require("ui.views.OverlayBackground")
-local Config = require("ui.modals.config.Config")
+local Config = require("ui.modals.config.ConfigV2")
 local Mapperatorinator = require("ui.modals.mapperatorinator.Mapperatorinator")
 local Input = require("ui.modals.input.Input")
 local Modifiers = require("ui.modals.modifiers.Modifiers")
@@ -21,6 +21,7 @@ local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
 local Login = require("ui.modals.login.Login")
 local VideoExport = require("ui.modals.video_export.VideoExport")
+local NotificationPanel = require("ui.modals.notifications.NotificationPanel")
 local UiActions = require("ui.UiActions")
 
 ---@class ui.ModalManager : gui.View
@@ -28,7 +29,7 @@ local UiActions = require("ui.UiActions")
 ---@field ui ui.UserInterface
 ---@field palette ui.modals.command_palette.CommandPalette
 ---@field ai_chat ui.modals.ai_chat.AiChat?
----@field config ui.modals.config.Config
+---@field config ui.modals.config.ConfigV2
 ---@field external_link ui.modals.ExternalLink
 ---@field mapperatorinator ui.modals.mapperatorinator.Mapperatorinator
 ---@field input ui.modals.input.Input
@@ -45,6 +46,7 @@ local UiActions = require("ui.UiActions")
 ---@field create_room ui.modals.lobby.CreateRoom
 ---@field login ui.modals.login.Login
 ---@field video_export ui.modals.video_export.VideoExport
+---@field notifications ui.modals.notifications.NotificationPanel
 ---@field active_view ui.ModalView?
 ---@field popup_container ui.views.PopupContainer
 local ModalManager = View + {}
@@ -131,6 +133,9 @@ function ModalManager:new(ui, popup_container)
 	end))
 	self.login = self:addModal(Login(ui, function() self:hideModal(self.login) end))
 	self.video_export = self:addModal(VideoExport(ui.api, function() self:hideModal(self.video_export) end))
+	self.notifications = self:addModal(NotificationPanel(ui.api.notifications, localization, function()
+		self:hideModal(self.notifications)
+	end))
 	if game then
 		self.create_room = self:addModal(CreateRoom(ui))
 		if game.aiChatModel then
@@ -381,6 +386,11 @@ function ModalManager:attachCollectionSelector(options, value, on_change)
 	if self.active_view == self.collection_selector then return false end
 	self.collection_selector:open(options, value, on_change)
 	return self:showModal(self.collection_selector)
+end
+
+---@return boolean attached
+function ModalManager:attachNotifications()
+	return self:showModal(self.notifications)
 end
 
 ---@return boolean attached

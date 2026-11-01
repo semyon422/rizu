@@ -365,6 +365,18 @@ function ChartsRepo:getBestChartplaysByRating(user_id, rating_column, limit)
 end
 
 ---@param user_id integer
+---@param since integer Unix time
+---@return sea.Chartplay[] chartplays Oldest first
+function ChartsRepo:getChartplaysSince(user_id, since)
+	return self.models.chartplays:select({
+		user_id = assert(user_id),
+		created_at__gte = since,
+	}, {
+		order = {"created_at ASC"},
+	})
+end
+
+---@param user_id integer
 ---@param limit integer
 ---@return sea.Chartplay[]
 function ChartsRepo:getRecentChartplays(user_id, limit)

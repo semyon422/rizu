@@ -323,12 +323,7 @@ function ScoreList:draw()
 		local image_width, image_height = avatar.image:getDimensions()
 		local scale = math.max(AVATAR_SIZE / image_width, AVATAR_SIZE / image_height)
 		local width, height = image_width * scale, image_height * scale
-		local x, y = self.world_transform:transformPoint(AVATAR_PADDING, avatar.y + AVATAR_PADDING)
-		self.avatar_shader:send("u_position", {x, y})
-		-- The shader works in drawable pixels; the position above already is, the size must be too.
-		local ui_scale = assert(self.screen).ui_scale
-		self.avatar_shader:send("u_size", {AVATAR_SIZE * ui_scale, AVATAR_SIZE * ui_scale})
-		self.avatar_shader:send("u_radius", 5 * ui_scale)
+		AvatarShader.setRect(self.avatar_shader, AVATAR_PADDING, avatar.y + AVATAR_PADDING, AVATAR_SIZE, AVATAR_SIZE, 5)
 		Painter.setColorRgb(1, 1, 1)
 		Painter.setOpacity(avatar.opacity or 1)
 		lg.setShader(self.avatar_shader)

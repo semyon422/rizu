@@ -82,6 +82,28 @@ function test.remote_location_is_not_scanned(t)
 end
 
 ---@param t testing.T
+function test.location_with_missing_folder_keeps_its_charts(t)
+	local fs = FakeFilesystem()
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+
+	local processor = Processor(onChartsChanged, db, fs, "/fake/root", timer)
+	local location = processor.locationsRepo:insertLocation({
+		path = "unplugged/songs", name = "drive", is_relative = true, is_internal = false,
+	})
+	processor.chartfilesRepo:insertChartfileSet({
+		dir = nil, name = "set", modified_at = 0, is_file = false, location_id = location.id,
+	})
+
+	local ok, err = pcall(processor.computeLocation, processor, nil, location.id)
+	t:eq(ok, false)
+	t:assert(tostring(err):find("Folder not found: unplugged/songs", 1, true), tostring(err))
+	t:eq(processor.chartfilesRepo:countChartfileSets({location_id = location.id}), 1)
+
+	db:unload()
+end
+
+---@param t testing.T
 function test.getChartsByHash(t)
 	local fs = FakeFilesystem()
 	local db = Database(LinuxFilesystem())

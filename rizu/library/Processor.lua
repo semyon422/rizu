@@ -148,6 +148,10 @@ function Processor:computeLocation(path, location_id)
 	end
 
 	local location_prefix = self.locations:getPrefix(location)
+	-- An unplugged drive or a moved folder looks like every chart was deleted, so the scan would remove them.
+	if not self.fs:getInfo(location_prefix) then
+		error(("Folder not found: %s"):format(location.path))
+	end
 	local is_iidx_location = IidxCatalog.isLocation(self.fs, location_prefix)
 	print("location type", is_iidx_location and "iidx" or "regular", location_prefix)
 

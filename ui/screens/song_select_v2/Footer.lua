@@ -7,6 +7,8 @@ local Label = require("ui.views.Label")
 local IconTextButton = require("ui.views.IconTextButton")
 local ResultMutators = require("ui.screens.result_v2.ResultMutators")
 local RateFormatter = require("ui.formatters.RateFormatter")
+local Sounds = require("ui.Sounds")
+local ChartviewFormatter = require("ui.formatters.ChartviewFormatter")
 
 -- Layout follows result_design/select.html (1920x1080 logical).
 local HEIGHT = IconTextButton.HEIGHT
@@ -15,6 +17,7 @@ local OPTION_GAP = 10
 local RATE_GAP = 28
 local RATE_WIDTH = 140
 local MUTATORS_WIDTH = 420
+local START_SOUNDS = {"chart_start_aero"}
 
 ---@class ui.screens.song_select_v2.Footer : gui.View
 ---@operator call: ui.screens.song_select_v2.Footer
@@ -27,6 +30,7 @@ local MUTATORS_WIDTH = 420
 ---@field play_button ui.views.IconTextButton
 ---@field rate ui.views.Label
 ---@field mutators ui.screens.result_v2.ResultMutators
+---@field chartview_formatter ui.formatters.ChartviewFormatter
 local Footer = View + {}
 
 Footer.HEIGHT = HEIGHT
@@ -35,6 +39,7 @@ Footer.HEIGHT = HEIGHT
 function Footer:new(ui)
 	View.new(self)
 	self.ui = ui
+	self.chartview_formatter = ChartviewFormatter(nil, ui.api.settings)
 	local localization = ui.localization
 
 	self.back_button = self:add(IconTextButton({
@@ -87,8 +92,15 @@ function Footer:new(ui)
 		gap = 14,
 		padding_left = 44,
 		padding_right = 34,
+		click_sound = "impact",
 		on_click = function()
 			if ui.api.charts:canPlaySelectedChart() then
+				self.chartview_formatter:setChartview(ui.api.charts:getSelectedChart())
+				if self.chartview_formatter:isDan() then
+					Sounds.play("chart_start_dan_shimmer_dread")
+				else
+					Sounds.play(START_SOUNDS[math.random(#START_SOUNDS)])
+				end
 				ui:loadSelectedChart(false, false, true)
 			end
 		end,

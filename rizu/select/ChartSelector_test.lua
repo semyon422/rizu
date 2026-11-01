@@ -573,4 +573,42 @@ function test.chart_of_a_remote_location_is_playable_before_it_is_downloaded(t)
 	library:unload()
 end
 
+---@param t testing.T
+function test.filter_change_during_refresh_is_not_lost(t)
+	local library = tlf:create()
+	tlf:populate(library, {
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h_4k", index = 1, inputmode = "4key"},
+		{chartfile_set_id = 2, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "h_7k", index = 1, inputmode = "7key"},
+	})
+	local selector = ChartSelector(createMockConfigModel(), createSettings(), library, {}, {getSelectedItem = function() end}, timer)
+	selector:load()
+	t:eq(selector.stores[1]:count(), 2)
+
+	-- Queries wait like the worker does, until resumed.
+	local queryAsync = library.queryAsync
+	---@type thread?
+	local paused
+	library.queryAsync = function(self, params)
+		local result = queryAsync(self, params)
+		paused = coroutine.running()
+		coroutine.yield()
+		return result
+	end
+
+	local filterModel = selector.filterModel
+	filterModel:setInputModes("original input mode", {"7K"})
+	filterModel:commit()
+	local first = assert(paused)
+	filterModel:setInputModes("original input mode", {"4K"})
+	filterModel:commit()
+
+	coroutine.resume(first)
+	t:ne(paused, first, "the refresh for the latest filters is still queued")
+	coroutine.resume(assert(paused))
+
+	t:eq(selector.stores[1]:count(), 1)
+	t:eq(selector.stores[1]:get(1).chartfile_set_id, 1)
+	library:unload()
+end
+
 return test

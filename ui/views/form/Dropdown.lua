@@ -32,6 +32,8 @@ local Resources = require("ui.Resources")
 ---@field form ui.views.form.Form?
 ---@field popup_container ui.views.PopupContainer
 ---@field opened boolean
+---@field popup_source gui.View Where the options open; they take its width.
+---@field popup_label boolean Repeat the label above the options.
 local Dropdown = FormControl + {}
 
 local HEIGHT = 65
@@ -63,6 +65,8 @@ function Dropdown:new(params)
 	self.form = params.form
 	self.popup_container = params.popup_container
 	self.opened = false
+	self.popup_source = self
+	self.popup_label = true
 	self.handles_mouse_input = true
 	self:setSize(params.width or 300, HEIGHT)
 end
@@ -97,11 +101,12 @@ function Dropdown:open()
 		form:activateDropdown(self)
 	end
 
+	local source = self.popup_source
 	local items = DropdownItems(
 		self,
 		self.options,
 		self.format,
-		self.width,
+		source.width,
 		self.row_height,
 		function(value)
 			self:setValue(value, true)
@@ -113,8 +118,8 @@ function Dropdown:open()
 	)
 	items:setValue(self.value)
 	local items_height = items:getAuthoredHeight()
-	items:setSize(self.width, items_height)
-	self.popup_container:open(self, items, self)
+	items:setSize(source.width, items_height)
+	self.popup_container:open(self, items, source)
 
 	self.items = items
 	self.opened = true

@@ -48,4 +48,36 @@ function test.fixed_scale_at_one_draws_without_transform_changes(t)
 	t:tdeq(calls, {{100, 50}})
 end
 
+---@param t testing.T
+function test.open_edges_repeat_the_middle_row(t)
+	local sprites = {}
+	for i = 1, 9 do
+		sprites[i] = {i = i, getDimensions = function() return 10, 10 end}
+	end
+	local added = {}
+	local usage = setmetatable({sprites = sprites, left_width = 10, center_width = 10, right_width = 10,
+		top_height = 10, center_height = 10, bottom_height = 10, open_top = false, open_bottom = false,
+		batch = {
+			clear = function() added = {} end,
+			add = function(_, sprite, x, y, r, sx, sy) added[#added + 1] = {sprite.i, y, sy} end,
+			flush = function() end,
+		},
+	}, {__index = NineSliceUsage})
+
+	usage:resize(30, 40)
+	t:tdeq(added, {
+		{1, 0, 1}, {2, 0, 1}, {3, 0, 1},
+		{4, 10, 2}, {5, 10, 2}, {6, 10, 2},
+		{7, 30, 1}, {8, 30, 1}, {9, 30, 1},
+	})
+
+	usage:setOpenEdges(true, false)
+	t:tdeq(added[1], {4, 0, 1})
+	t:tdeq(added[7], {7, 30, 1})
+
+	usage:setOpenEdges(false, true)
+	t:tdeq(added[1], {1, 0, 1})
+	t:tdeq(added[9], {6, 30, 1})
+end
+
 return test

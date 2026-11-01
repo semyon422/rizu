@@ -92,6 +92,10 @@ end
 
 ---@param v number
 function Resources.setFontScale(v)
+	-- Every resize sets it; reloading each font with its CJK fallback costs about 14ms a size.
+	if v == Resources.font_scale then
+		return
+	end
 	Resources.font_scale = v
 	Resources.fonts = {}
 end

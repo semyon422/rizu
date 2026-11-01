@@ -73,14 +73,21 @@ function Slider:setValue(value, notify)
 	end
 end
 
+---Where the thumb center travels, in local units.
+---@return number start
+---@return number travel
+function Slider:getTrack()
+	local thumb_radius = self.thumb:getWidth() / 2
+	return thumb_radius, math.max(self.width - thumb_radius * 2, 0)
+end
+
 ---@param screen_x number
 ---@param screen_y number
 function Slider:setValueAt(screen_x, screen_y)
 	local local_x = self.world_transform:inverseTransformPoint(screen_x, screen_y)
-	local thumb_radius = self.thumb:getWidth() / 2
-	local travel = math.max(self.width - thumb_radius * 2, 0)
+	local start, travel = self:getTrack()
 	local position = travel > 0
-		and math.max(0, math.min(1, (local_x - thumb_radius) / travel))
+		and math.max(0, math.min(1, (local_x - start) / travel))
 		or 0
 	local value = self.min + (self.max - self.min) * position
 	if self.step then

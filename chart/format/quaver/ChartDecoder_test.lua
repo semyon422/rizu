@@ -43,4 +43,25 @@ function test.basic(t)
 	dec:decode(test_chart)
 end
 
+function test.hold_end_and_tap_at_same_time(t)
+	local s = test_chart:gsub("HitObjects:.*", [[
+HitObjects:
+- StartTime: 100
+  Lane: 3
+  EndTime: 200
+  KeySounds: []
+- StartTime: 200
+  Lane: 3
+  KeySounds: []
+]])
+	local res = ChartDecoder():decode(s)
+	local count = 0
+	for _, note in ipairs(res[1].chart.notes:getLinkedNotes()) do
+		if note:getColumn() == "key3" then
+			count = count + 1
+		end
+	end
+	t:eq(count, 2)
+end
+
 return test

@@ -20,4 +20,22 @@ function AvatarShader.new()
 	return love.graphics.newShader(shader_code)
 end
 
+---Clips to a rounded rect given in the current local space. The shader works in pixels of the
+---target being drawn to, which inside a composite canvas are not screen pixels, so it goes
+---through the current transform rather than a view's world transform.
+---@param shader love.Shader
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param radius number
+function AvatarShader.setRect(shader, x, y, width, height, radius)
+	local x1, y1 = love.graphics.transformPoint(x, y)
+	local x2, y2 = love.graphics.transformPoint(x + width, y + height)
+	local scale = (x2 - x1) / width
+	shader:send("u_position", {x1, y1})
+	shader:send("u_size", {x2 - x1, y2 - y1})
+	shader:send("u_radius", radius * scale)
+end
+
 return AvatarShader

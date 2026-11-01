@@ -8,6 +8,8 @@ local SpriteBatch = require("gui.SpriteBatch")
 ---@field sprites gui.NineSliceSprites
 ---@field width number
 ---@field height number
+---@field open_top boolean
+---@field open_bottom boolean
 local NineSliceUsage = class()
 
 ---@param actual number
@@ -52,6 +54,8 @@ function NineSliceUsage:new(sprites)
 	self.top_height = top_height
 	self.center_height = center_height
 	self.bottom_height = bottom_height
+	self.open_top = false
+	self.open_bottom = false
 	self:resize(left_width + center_width + right_width, top_height + center_height + bottom_height)
 end
 
@@ -70,17 +74,32 @@ function NineSliceUsage:resize(width, height)
 	local bottom_y = self.top_height + center_height
 	local sprites = self.sprites
 
+	-- An open edge repeats the middle row, so stacked pieces share one rounded outline.
+	local top = self.open_top and 3 or 0
+	local bottom = self.open_bottom and 3 or 6
+	local top_scale = self.open_top and self.top_height / self.center_height or 1
+	local bottom_scale = self.open_bottom and self.bottom_height / self.center_height or 1
+
 	self.batch:clear()
-	self.batch:add(sprites[1], 0, 0)
-	self.batch:add(sprites[2], self.left_width, 0, 0, center_scale_x, 1)
-	self.batch:add(sprites[3], right_x, 0)
+	self.batch:add(sprites[top + 1], 0, 0, 0, 1, top_scale)
+	self.batch:add(sprites[top + 2], self.left_width, 0, 0, center_scale_x, top_scale)
+	self.batch:add(sprites[top + 3], right_x, 0, 0, 1, top_scale)
 	self.batch:add(sprites[4], 0, self.top_height, 0, 1, center_scale_y)
 	self.batch:add(sprites[5], self.left_width, self.top_height, 0, center_scale_x, center_scale_y)
 	self.batch:add(sprites[6], right_x, self.top_height, 0, 1, center_scale_y)
-	self.batch:add(sprites[7], 0, bottom_y)
-	self.batch:add(sprites[8], self.left_width, bottom_y, 0, center_scale_x, 1)
-	self.batch:add(sprites[9], right_x, bottom_y)
+	self.batch:add(sprites[bottom + 1], 0, bottom_y, 0, 1, bottom_scale)
+	self.batch:add(sprites[bottom + 2], self.left_width, bottom_y, 0, center_scale_x, bottom_scale)
+	self.batch:add(sprites[bottom + 3], right_x, bottom_y, 0, 1, bottom_scale)
 	self.batch:flush()
+end
+
+---Replaces the top or bottom row with the middle row: square corners and no stroke on that edge.
+---@param top boolean
+---@param bottom boolean
+function NineSliceUsage:setOpenEdges(top, bottom)
+	if top == self.open_top and bottom == self.open_bottom then return end
+	self.open_top, self.open_bottom = top, bottom
+	self:resize(self.width, self.height)
 end
 
 ---@param width number

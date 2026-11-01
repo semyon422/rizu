@@ -1,7 +1,7 @@
 local RizuUserInterface = require("rizu.app.UserInterface")
 local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
-local MainMenu = require("ui.screens.main_menu.MainMenu")
+local MainMenuV2 = require("ui.screens.main_menu_v2.MainMenuV2")
 local SongSelect = require("ui.screens.song_select_v2.SongSelectV2")
 local ChartLoading = require("ui.screens.chart_loading.ChartLoading")
 local Gameplay = require("ui.screens.gameplay.Gameplay")
@@ -46,7 +46,7 @@ local TARGET_HEIGHT = 1080
 
 ---@class ui.UserInterface : rizu.app.UserInterface
 ---@operator call: ui.UserInterface
----@field main_menu ui.screens.main_menu.MainMenu
+---@field main_menu ui.screens.main_menu_v2.MainMenuV2
 ---@field song_select ui.screens.song_select_v2.SongSelectV2
 ---@field chart_loading ui.screens.chart_loading.ChartLoading
 ---@field gameplay ui.screens.gameplay.Gameplay
@@ -69,6 +69,7 @@ local TARGET_HEIGHT = 1080
 ---@field mapperatorinator_workflow rizu.mapperatorinator.Workflow
 ---@field localization ui.localization.Localization
 ---@field skin_editor boolean
+---@field welcome_transition_shown boolean? The main menu played its welcome transition this session
 ---@field play_options rizu.api.Play.StartOptions? What ChartLoading starts, set by loadSelectedChart()
 ---@field private prev_w number
 ---@field private prev_h number
@@ -144,7 +145,7 @@ function UserInterface:load()
 		self.screen_manager:registerAll({self.song_select, self.result, self.welcome})
 		self.screen_manager:setOverlay(self.overlay)
 	else
-		self.main_menu = MainMenu(self)
+		self.main_menu = MainMenuV2(self)
 		self.song_select = SongSelect(self)
 		self.chart_loading = ChartLoading(self)
 		self.gameplay = Gameplay(self)

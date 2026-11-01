@@ -8,15 +8,22 @@ local lg = love.graphics
 ---@class ui.screens.song_select_v2.Scrim : gui.View
 ---@operator call: ui.screens.song_select_v2.Scrim
 ---@field mesh love.Mesh?
+---@field stops [number, number][]
 local Scrim = View + {}
 
 -- {position 0..1 from the top, opacity}
 local STOPS = {{0, 0.84}, {0.22, 0.72}, {0.7, 0.72}, {1, 0.92}}
 
+---@param stops [number, number][]? {position 0..1 from the top, opacity}, from the top down
+function Scrim:new(stops)
+	View.new(self)
+	self.stops = stops or STOPS
+end
+
 function Scrim:load()
 	local r, g, b = Colors.background[1], Colors.background[2], Colors.background[3]
 	local vertices = {} ---@type number[][]
-	for _, stop in ipairs(STOPS) do
+	for _, stop in ipairs(self.stops) do
 		vertices[#vertices + 1] = {0, stop[1], 0, 0, r, g, b, stop[2]}
 		vertices[#vertices + 1] = {1, stop[1], 0, 0, r, g, b, stop[2]}
 	end

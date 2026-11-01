@@ -7,7 +7,9 @@ local MainMenuButton = require("ui.screens.main_menu.MainMenuButton")
 local MainMenuBackground = require("ui.screens.main_menu.MainMenuBackground")
 local Label = require("ui.views.Label")
 local Colors = require("ui.Colors")
+local Sounds = require("ui.Sounds")
 local UiActions = require("ui.UiActions")
+local WelcomeTransition = require("ui.screens.main_menu.WelcomeTransition")
 
 ---@class ui.screens.main_menu.MainMenu : gui.Screen
 ---@operator call: ui.screens.main_menu.MainMenu
@@ -21,6 +23,7 @@ local UiActions = require("ui.UiActions")
 ---@field stat_columns gui.layout.FlowContainer[]
 ---@field pp_label ui.views.Label
 ---@field msd_label ui.views.Label
+---@field play_button ui.screens.main_menu.MainMenuButton
 local MainMenu = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -83,15 +86,32 @@ end
 ---@param inputs gui.Inputs
 function MainMenu:onHandleInputs(inputs)
 	if inputs:consumeActionJustPressed(UiActions.accept) then
-		self.ui:setScreen(self.ui.song_select, true)
+		self:play()
 	end
+end
+
+function MainMenu:play()
+	Sounds.play("menu_transition")
+	local ui = self.ui
+	if ui.welcome_transition_shown then
+		ui:setScreen(ui.song_select, true)
+		return
+	end
+	-- The first Play of a session goes through the welcome transition; song select takes over under its tiles.
+	ui.welcome_transition_shown = true
+	local x, y, w, h = self.play_button:getWorldBounds()
+	local transition = WelcomeTransition(function()
+		ui:setScreen(ui.song_select)
+	end, ui.localization:get("welcome.transition_band"), x + w / 2, y + h / 2)
+	ui.overlay.root:insert(1, transition)
+	transition:anchorFill(0, 0, 0, 0)
 end
 
 function MainMenu:createButtons()
 	local actions = FlowContainer({direction = "column", gap = 14, align = 0.5})
 
 	local play = actions:add(MainMenuButton(self.ui.localization:get("main_menu.play"), function()
-		self.ui:setScreen(self.ui.song_select, true)
+		self:play()
 	end, {
 		variant = "play",
 		font_size = 30,
@@ -105,6 +125,7 @@ function MainMenu:createButtons()
 		end,
 	}))
 	play:setSize(380, 88)
+	self.play_button = play
 
 	local utility = actions:add(FlowContainer({direction = "row", gap = 12, align = 0.5}))
 	local settings = utility:add(MainMenuButton(self.ui.localization:get("main_menu.settings"), function()

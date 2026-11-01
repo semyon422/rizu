@@ -1,6 +1,7 @@
 local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
+local Sounds = require("ui.Sounds")
 local TextboxModel = require("ui.helpers.TextboxModel")
 local UiActions = require("ui.UiActions")
 local View = require("gui.View")
@@ -136,6 +137,12 @@ function Textbox:onMouseClick(e)
 	return false
 end
 
+local TYPE_SOUND_COUNT = 4
+
+local function playTypeSound()
+	Sounds.play("type_" .. math.random(TYPE_SOUND_COUNT))
+end
+
 ---@param e gui.TextInputEvent
 ---@return boolean?
 function Textbox:onTextInput(e)
@@ -144,6 +151,7 @@ function Textbox:onTextInput(e)
 	end
 	self.model:insert(e.text or "")
 	self:notifyChange()
+	playTypeSound()
 	return true
 end
 
@@ -156,6 +164,7 @@ function Textbox:onKeyDown(e)
 	if e.control_pressed and e.key == "v" then
 		self.model:insert(utf8validate(love.system.getClipboardText()))
 		self:notifyChange()
+		playTypeSound()
 		return true
 	end
 end
@@ -191,6 +200,7 @@ function Textbox:onHandleInputs(inputs)
 	end
 	if changed then
 		self:notifyChange()
+		playTypeSound()
 	end
 end
 

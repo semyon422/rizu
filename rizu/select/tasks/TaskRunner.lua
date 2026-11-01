@@ -12,8 +12,10 @@ local thread = require("thread")
 local TaskRunner = class()
 
 TaskRunner.priority = {
-	high = 1,
-	low = 2,
+	-- Requeries the whole list and pulls the selection after, so a pullLevel must not replace it.
+	query = 1,
+	high = 2,
+	low = 3,
 }
 
 function TaskRunner:new()

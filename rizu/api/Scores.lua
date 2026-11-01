@@ -34,6 +34,13 @@ The list follows the selected chart by itself.
 ---@field user_avatar string? Online scores only. A url for `ui.api.online:getAvatar()`.
 ---@field rescored_accuracy number? Internal, use `rizu.api.Scores:getAccuracy()`.
 
+---@class rizu.api.Scores.SessionStats
+---@field plays integer
+---@field firsts integer Charts where one of the plays is #1 of the local leaderboard.
+---@field best_rating number? ENPS-based, `rizu.api.Score.rating`.
+---@field best_pp number? osu! PP.
+---@field best_msd number? Etterna MSD.
+
 ---@alias rizu.api.Scores.Source
 ---| "local" # Scores set on this computer.
 ---| "online" # The server's leaderboard for the chart.
@@ -46,6 +53,7 @@ The list follows the selected chart by itself.
 ---@field on fun(self: rizu.api.Scores, event: rizu.api.Scores.Event, f: function): fun()
 ---@field private selector rizu.select.ScoreSelector
 ---@field private result_controller sphere.ResultController
+---@field private session_start integer
 local Scores = Events + {}
 
 ---@param selector rizu.select.ScoreSelector
@@ -54,6 +62,7 @@ function Scores:new(selector, result_controller)
 	Events.new(self)
 	self.selector = selector
 	self.result_controller = result_controller
+	self.session_start = os.time()
 	selector:onChanged(function(event)
 		if event.type == "score_items_changed" then
 			self:emit("scores_changed", event.loading and true or false)
@@ -142,6 +151,24 @@ function Scores:getTotalRatings(f)
 			print("failed to get total ratings:", totals)
 		end
 		f(ok and totals or nil)
+	end)()
+end
+
+---Unix time the game started at.
+---@return integer
+function Scores:getSessionStart() return self.session_start end
+
+---The local plays since the game started: how many, on how many charts one of them is the local #1, and the
+---best ratings of the passed ones, nil before the first pass. In the background: f gets nil before the library
+---is loaded.
+---@param f fun(stats: rizu.api.Scores.SessionStats?)
+function Scores:getSessionStats(f)
+	thread.coro(function()
+		local ok, stats = pcall(self.selector.library.getSessionStatsAsync, self.selector.library, self.session_start)
+		if not ok then
+			print("failed to get session stats:", stats)
+		end
+		f(ok and stats or nil)
 	end)()
 end
 

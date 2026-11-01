@@ -64,6 +64,11 @@ function Worker:stopTask()
 	self.needStop = true
 end
 
+function Worker:clearStop()
+	self.needStop = false
+	self.processor.needStop = false
+end
+
 ---@param path string?
 ---@param location_id integer
 function Worker:computeLocation(path, location_id)
@@ -163,6 +168,33 @@ function Worker:getTotalRatings()
 	pp:calc(repo:getBestChartplaysByRating(1, "rating_pp", 100) --[[@as sea.Chartplayview[] ]])
 	msd:calc(repo:getBestChartplaysByRating(1, "rating_msd", 100) --[[@as sea.Chartplayview[] ]])
 	return {pp = pp.rating_pp, msd = msd.rating_msd}
+end
+
+---The local player's plays since a time: how many, the best ratings of the passed ones (nil before the first
+---pass), and on how many charts one of them is #1 of the local leaderboard, which is sorted by rating.
+---@param since integer Unix time
+---@return rizu.api.Scores.SessionStats
+function Worker:getSessionStats(since)
+	local repo = ChartsRepo(self.db.models)
+	local chartplays = repo:getChartplaysSince(1, since)
+	local stats = {plays = #chartplays, firsts = 0} ---@type rizu.api.Scores.SessionStats
+	local seen = {} ---@type {[string]: true}
+	for _, chartplay in ipairs(chartplays) do
+		if chartplay.pass then
+			stats.best_rating = math.max(stats.best_rating or -math.huge, chartplay.rating)
+			stats.best_pp = math.max(stats.best_pp or -math.huge, chartplay.rating_pp)
+			stats.best_msd = math.max(stats.best_msd or -math.huge, chartplay.rating_msd)
+		end
+		local key = chartplay.hash .. ":" .. chartplay.index
+		if not seen[key] then
+			seen[key] = true
+			local first = repo:getChartplaysForChartmeta(chartplay)[1]
+			if first and first.created_at >= since then
+				stats.firsts = stats.firsts + 1
+			end
+		end
+	end
+	return stats
 end
 
 ---@param ids integer[]

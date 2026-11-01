@@ -7,6 +7,7 @@ local Resources = require("ui.Resources")
 ---@operator call: ui.screens.song_select_v2.HeaderButton
 ---@field icon gui.Sprite
 ---@field on_click fun()?
+---@field color gui.Color? Icon color that ignores hover
 local HeaderButton = View + {}
 
 local WIDTH = 42
@@ -39,7 +40,7 @@ function HeaderButton:draw()
 		Resources.sprites.pixel:draw(0, 0, 0, WIDTH, HEIGHT)
 	end
 
-	Painter.setColorTable(self.mouse_over and Colors.text or Colors.muted)
+	Painter.setColorTable(self.color or self.mouse_over and Colors.text or Colors.muted)
 	local icon_width, icon_height = self.icon:getDimensions()
 	local scale = math.min(ICON_SIZE / icon_width, ICON_SIZE / icon_height)
 	self.icon:draw(

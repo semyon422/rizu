@@ -16,6 +16,7 @@ local View = require("gui.View")
 ---@field focused_display_index integer?
 ---@field on_select fun(value: any, index: integer)
 ---@field dropdown ui.views.form.Dropdown
+---@field body_y number
 local DropdownItems = View + {}
 
 local BODY_Y = 25
@@ -37,8 +38,9 @@ function DropdownItems:new(dropdown, options, format, width, row_height, on_sele
 	self.chevron = Resources.sprites.icon_chevron
 	self.selected_index = nil
 	self.focused_display_index = nil
+	self.body_y = dropdown.popup_label and BODY_Y or 0
 	self.handles_mouse_input = true
-	self:setSize(width, BODY_Y + row_height * #options)
+	self:setSize(width, self.body_y + row_height * #options)
 	self:setLayoutIgnore(true)
 end
 
@@ -108,8 +110,8 @@ function DropdownItems:focusMousePosition(mouse_x, mouse_y)
 		return false
 	end
 	local _, y = self.world_transform:inverseTransformPoint(mouse_x, mouse_y)
-	local display_index = math.floor((y - BODY_Y) / self.row_height) + 1
-	if y < BODY_Y or display_index > #self.options then
+	local display_index = math.floor((y - self.body_y) / self.row_height) + 1
+	if y < self.body_y or display_index > #self.options then
 		return false
 	end
 	self:focusDisplayIndex(display_index)
@@ -135,8 +137,8 @@ function DropdownItems:onMouseDown(e)
 	end
 	self.dropdown:disableFormNavigation()
 	local _, y = self.world_transform:inverseTransformPoint(e.x, e.y)
-	local display_index = math.floor((y - BODY_Y) / self.row_height) + 1
-	if y >= BODY_Y and display_index <= #self.options then
+	local display_index = math.floor((y - self.body_y) / self.row_height) + 1
+	if y >= self.body_y and display_index <= #self.options then
 		self:focusDisplayIndex(display_index)
 		self:selectFocused()
 	end
@@ -147,18 +149,20 @@ function DropdownItems:draw()
 	Painter.snapToPixel()
 	local lg = love.graphics
 	local _, mouse_y = self.world_transform:inverseTransformPoint(love.mouse.getPosition())
-	local hover_index = self.mouse_over and mouse_y >= BODY_Y
-		and math.floor((mouse_y - BODY_Y) / self.row_height) + 1 or nil
-	local body_height = self.height - BODY_Y
+	local hover_index = self.mouse_over and mouse_y >= self.body_y
+		and math.floor((mouse_y - self.body_y) / self.row_height) + 1 or nil
+	local body_height = self.height - self.body_y
 
 	lg.setColor(Colors.background)
-	lg.rectangle("fill", 0, BODY_Y, self.width, body_height, 8, 8)
+	lg.rectangle("fill", 0, self.body_y, self.width, body_height, 8, 8)
 	lg.setFont(self.font)
 	lg.setColor(Colors.text)
-	lg.print(self.dropdown.label_text, 0, 0)
+	if self.dropdown.popup_label then
+		lg.print(self.dropdown.label_text, 0, 0)
+	end
 	for display_index = 1, #self.options do
 		local value = self:getDisplayOption(display_index)
-		local y = BODY_Y + (display_index - 1) * self.row_height
+		local y = self.body_y + (display_index - 1) * self.row_height
 		if display_index == hover_index or display_index == self.focused_display_index then
 			lg.setColor(Colors.surface_raised)
 			lg.rectangle("fill", 1, y, self.width - 1, self.row_height)
@@ -168,10 +172,10 @@ function DropdownItems:draw()
 	end
 
 	lg.setColor(Colors.text)
-	self.chevron:draw(self.width - 8, BODY_Y + self.row_height - 8, math.pi)
+	self.chevron:draw(self.width - 8, self.body_y + self.row_height - 8, math.pi)
 	lg.setLineWidth(2)
 	lg.setColor(Colors.outline)
-	lg.rectangle("line", 0, BODY_Y, self.width, body_height, 8, 8)
+	lg.rectangle("line", 0, self.body_y, self.width, body_height, 8, 8)
 end
 
 return DropdownItems

@@ -295,6 +295,20 @@ function test.drag_release_flings(t)
 end
 
 ---@param t testing.T
+function test.scroll_to_cancels_fling(t)
+	local _, scroll_view = createScrollView()
+	scroll_view.scroll_current = 50
+	scroll_view.scroll_target = 50
+	scroll_view.scroll_velocity = 500
+	scroll_view:scrollTo(0)
+	scroll_view:update(0.1)
+
+	t:eq(scroll_view.scroll_velocity, 0)
+	t:assert(scroll_view.scroll_current < 50)
+	t:eq(scroll_view.scroll_target, 0)
+end
+
+---@param t testing.T
 function test.drag_release_after_stopping_does_not_fling(t)
 	local screen, scroll_view = createScrollView()
 	local inputs = Inputs()

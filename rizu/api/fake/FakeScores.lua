@@ -64,6 +64,10 @@ function FakeScores:getGrade(score) return normalscore:getGrade(score.accuracy),
 ---There is no game to replay the score: `rizu.api.fake.FakeResult` shows the same play for every score.
 function FakeScores:getTotalRatings(f) f({pp = 1234.5, msd = 25.3}) end
 
+FakeScores.session_start = os.time()
+function FakeScores:getSessionStart() return self.session_start end
+function FakeScores:getSessionStats(f) f({plays = 6, firsts = 2, best_rating = 24.12, best_pp = 312.4, best_msd = 23.81}) end
+
 function FakeScores:loadSelectedResult(f) f(self.selected ~= nil) end
 
 return FakeScores

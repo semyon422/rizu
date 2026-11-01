@@ -18,11 +18,12 @@ Where the chart files are: the folders ("locations") the game scans, and the sca
 
 Adding, changing or deleting a location lists the charts again by itself.
 Scanning a location is slow and goes on in the background: follow it with getCacheStatus().
+Scans run one at a time, the others wait in a queue: see getLocationScan().
 ]]
 
 ---@alias rizu.api.Library.Event
 ---| "locations_changed" # A location was added, changed or deleted. No arguments.
----| "cache_status_changed" # The scan moved on, started or ended. Arguments: status, a rizu.api.CacheStatus.
+---| "cache_status_changed" # The scan moved on, was queued, started, cancelled or ended. Arguments: status, a rizu.api.CacheStatus.
 
 ---A folder with charts. The game's own table: read it, do not change it.
 ---@class rizu.api.Location
@@ -76,6 +77,9 @@ function Library:new(game)
 	self.game = game
 	game.library.onStatusChanged:add(function(status)
 		self:emit("cache_status_changed", toCacheStatus(status))
+	end)
+	game.library.onScansChanged:add(function()
+		self:emit("cache_status_changed", toCacheStatus(game.library.status))
 	end)
 end
 
@@ -199,9 +203,14 @@ end
 
 -- Scanning
 
----Scans the location for charts and adds them to the library. While a scan is running, stops it instead.
+---Queues a scan of the location for charts, which adds them to the library.
+---When the location is already queued, takes it out of the queue, and when it is being scanned, stops it.
 ---@param location rizu.api.Location
 function Library:toggleCacheUpdate(location) self.game.selectionActions:updateCacheLocation(location.id) end
+
+---@param location rizu.api.Location
+---@return "running"|"queued"|nil scan nil when the location is neither being scanned nor waiting for it.
+function Library:getLocationScan(location) return self.game.library:getLocationScan(location.id) end
 
 ---@return rizu.api.CacheStatus
 function Library:getCacheStatus() return toCacheStatus(self.game.library.status) end

@@ -22,6 +22,8 @@ local DifftablesRepo = require("sea.difftables.repos.DifftablesRepo")
 ---@class rizu.library.LibraryTask
 ---@field f fun()
 ---@field co thread?
+---@field location_id integer? The location this task scans whole.
+---@field stopped boolean? Stopped by cancelLocationScan().
 
 ---@return thread
 local function getCurrentTaskCoroutine()
@@ -41,6 +43,10 @@ end
 ---@operator call: rizu.library.Library
 ---@field onStatusChanged util.Observable
 ---@field onChartsChanged util.Observable
+---@field onScansChanged util.Observable A location scan was queued, started, cancelled or ended. Sends an empty table.
+---@field onLocationScanned util.Observable A location scan ended. Sends {location_id: integer, stopped: boolean, failed: boolean}.
+---@field onTaskFailed util.Observable A task threw. Sends {location_id: integer?, error: string}.
+---@field task rizu.library.LibraryTask? The running task.
 local Library = class()
 
 ---@param fs fs.IFilesystem
@@ -61,6 +67,9 @@ function Library:new(fs, workingDirectory, timer)
 	self.onStatusChanged = Observable()
 	-- Emitted after chart-processing batches commit queryable data.
 	self.onChartsChanged = Observable()
+	self.onScansChanged = Observable()
+	self.onLocationScanned = Observable()
+	self.onTaskFailed = Observable()
 
 	---@type rizu.library.TaskStatus
 	self.status = {
@@ -220,10 +229,14 @@ end
 
 ---@param f fun()
 ---@param async boolean?
-function Library:addTask(f, async)
+---@param location_id integer?
+function Library:addTask(f, async, location_id)
 	---@type rizu.library.LibraryTask
-	local task = {f = f}
+	local task = {f = f, location_id = location_id}
 	table.insert(self.tasks, task)
+	if location_id then
+		self.onScansChanged:send({})
+	end
 
 	if async then
 		task.co = getCurrentTaskCoroutine()
@@ -231,12 +244,49 @@ function Library:addTask(f, async)
 	end
 end
 
----@param path string?
+---Queues a scan. A whole location already queued or being scanned is not queued again.
+---@param path string? nil for the whole location.
 ---@param location_id integer
 function Library:computeLocation(path, location_id)
+	if not path and self:getLocationScan(location_id) then
+		return
+	end
 	self:addTask(function()
 		self.worker:computeLocation(path, location_id)
-	end)
+	end, false, not path and location_id or nil)
+end
+
+---@param location_id integer
+---@return "running"|"queued"|nil
+function Library:getLocationScan(location_id)
+	local task = self.task
+	if task and task.location_id == location_id and not task.stopped then
+		return "running"
+	end
+	for _, queued in ipairs(self.tasks) do
+		if queued.location_id == location_id then
+			return "queued"
+		end
+	end
+end
+
+---Takes the whole-location scan out of the queue, or stops it if it is running.
+---@param location_id integer
+function Library:cancelLocationScan(location_id)
+	local task = self.task
+	if task and task.location_id == location_id and not task.stopped then
+		task.stopped = true
+		self:stopTask()
+		self.onScansChanged:send({})
+		return
+	end
+	for i, queued in ipairs(self.tasks) do
+		if queued.location_id == location_id then
+			table.remove(self.tasks, i)
+			self.onScansChanged:send({})
+			return
+		end
+	end
 end
 
 ---@param path string?
@@ -442,6 +492,13 @@ function Library:getTotalRatingsAsync()
 	return self.reader and self.reader:getTotalRatings()
 end
 
+---See rizu.library.Worker:getSessionStats(). Nil before the library is loaded.
+---@param since integer Unix time
+---@return rizu.api.Scores.SessionStats?
+function Library:getSessionStatsAsync(since)
+	return self.reader and self.reader:getSessionStats(since)
+end
+
 ---Accuracies of chartplays in another system, see ChartplayHitsRepo:getAccuracies().
 ---@param ids integer[]
 ---@param timings integer
@@ -476,7 +533,28 @@ function Library:process()
 	---@type rizu.library.LibraryTask?
 	local task = table.remove(tasks, 1)
 	while task do
-		task.f()
+		self.task = task
+		local location_id = task.location_id
+		if location_id then self.onScansChanged:send({}) end
+		-- A failed task must not stop the queue, or nothing would run until the game restarts.
+		local ok, err = xpcall(function()
+			-- A stop sent after the previous task ended must not stop this one.
+			self.worker:clearStop()
+			task.f()
+		end, debug.traceback)
+		self.task = nil
+		if not ok then
+			print("Library task failed: " .. tostring(err))
+			-- The worker did not get to report the end of its stage.
+			if self.status.stage ~= "idle" then
+				self:updateProgress({stage = "idle", current = 0, total = 0, errorCount = 0}, {})
+			end
+			self.onTaskFailed:send({location_id = location_id, error = tostring(err)})
+		end
+		if location_id then
+			self.onScansChanged:send({})
+			self.onLocationScanned:send({location_id = location_id, stopped = task.stopped == true, failed = not ok})
+		end
 		if task.co then
 			resumeTaskCoroutine(task.co)
 		end

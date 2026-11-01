@@ -43,12 +43,15 @@ end
 
 function ChartLoading:enter()
 	local song_select = self.ui.song_select
+	local fade_duration = 0.3
 	if self.ui.screen_manager:getVisibleIndex(song_select) then
 		song_select:zoomOut()
+		-- Covering the content sooner would cut its zoom short.
+		fade_duration = song_select.ZOOM_FADE_DURATION
 	end
 	self.failed = false
 	self.error_view:setVisible(false)
-	self.root:fadeIn(0.3, "OutQuart")
+	self.root:fadeIn(fade_duration, "OutQuart")
 	self.ui.api.play:start(self.ui.play_options or {}, function(ok, err)
 		if ok then
 			-- Let a few frames pass after the main-thread stall, so the
