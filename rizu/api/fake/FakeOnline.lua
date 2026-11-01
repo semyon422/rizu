@@ -19,6 +19,13 @@ function FakeOnline:getOnlinePlayers()
 	end
 	return players
 end
+function FakeOnline:getRecentScores()
+	local scores = {} ---@type rizu.api.Online.RecentScore[]
+	for i = 1, 10 do
+		scores[i] = {player_name = "Player " .. i, title = "Song " .. i, difficulty = "4K Hard", accuracy = 1 - i / 100}
+	end
+	return scores
+end
 function FakeOnline:getAvatar(url) return nil end
 function FakeOnline:login(email, password, f) f(true) end
 function FakeOnline:logout() end

@@ -73,6 +73,15 @@ function test.online(t)
 	t:tdeq(online:getOnlinePlayers(), {}, "no list while offline")
 	client:setConnected(true)
 
+	local scores = 0
+	online:on("recent_scores_changed", function() scores = scores + 1 end)
+	client:setRecentScores({{user_name = "Aqua", title = "Song", chart_name = "4K Hard", accuracy = 0.97}})
+	t:eq(scores, 1)
+	t:tdeq(online:getRecentScores(), {{player_name = "Aqua", title = "Song", difficulty = "4K Hard", accuracy = 0.97}})
+	client:setConnected(false)
+	t:tdeq(online:getRecentScores(), {}, "no scores while offline")
+	client:setConnected(true)
+
 	local results = {}
 	online:login("a@b", "pw", function(ok, err) results[#results + 1] = {ok, err} end)
 	online:login("c@d", "pw", function(ok, err) results[#results + 1] = {ok, err} end)

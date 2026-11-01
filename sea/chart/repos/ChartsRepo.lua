@@ -388,6 +388,34 @@ function ChartsRepo:getRecentChartplays(user_id, limit)
 	})
 end
 
+---The newest valid chartplays of all players, newest first, with the player's name and the chart's title.
+---@param limit integer
+---@return {chartplay: sea.Chartplay, user_name: string?, chartmeta: sea.Chartmeta?}[]
+function ChartsRepo:getRecentChartplaysAll(limit)
+	-- Ids grow with submission, and ordering by the primary key needs no index.
+	local chartplays = self.models.chartplays_list:select({compute_state = "valid"}, {
+		order = {"id DESC"},
+		limit = limit,
+	})
+	local chartmeta_ids = {}
+	for _, chartplay in ipairs(chartplays) do
+		table.insert(chartmeta_ids, chartplay.chartmeta_id) -- nil for a chart the server does not know
+	end
+	local chartmetas = {} ---@type {[integer]: sea.Chartmeta}
+	for _, chartmeta in ipairs(self.models.chartmetas:select({id__in = chartmeta_ids})) do
+		chartmetas[chartmeta.id] = chartmeta
+	end
+	local recent = {}
+	for i, chartplay in ipairs(chartplays) do
+		recent[i] = {
+			chartplay = chartplay,
+			user_name = chartplay.user_name,
+			chartmeta = chartmetas[chartplay.chartmeta_id],
+		}
+	end
+	return recent
+end
+
 ---@param user_id integer
 ---@return integer
 function ChartsRepo:getUserChartplaysCount(user_id)

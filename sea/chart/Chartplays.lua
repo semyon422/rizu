@@ -83,6 +83,30 @@ function Chartplays:getBestChartplaysForChartmeta(user, chartmeta_key)
 	return self.charts_repo:getBestChartplaysForChartmeta(chartmeta_key)
 end
 
+---A score in the main menu's feed of recent plays.
+---@class sea.RecentScore
+---@field user_name string
+---@field title string
+---@field chart_name string difficulty name
+---@field accuracy number normalized, 0..1
+
+---The newest valid plays of all players, newest first, for every connected client.
+---@param limit integer
+---@return sea.RecentScore[]
+function Chartplays:getRecentScores(limit)
+	local scores = {} ---@type sea.RecentScore[]
+	for _, row in ipairs(self.charts_repo:getRecentChartplaysAll(limit)) do
+		local chartmeta = row.chartmeta
+		table.insert(scores, {
+			user_name = row.user_name or "?",
+			title = chartmeta and chartmeta.title or "?",
+			chart_name = chartmeta and chartmeta.name or "",
+			accuracy = row.chartplay:getNormAccuracy(),
+		})
+	end
+	return scores
+end
+
 ---@param user sea.User
 ---@param chartdiff_key sea.ChartdiffKey
 ---@return sea.Chartplay[]?

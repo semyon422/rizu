@@ -29,4 +29,9 @@ function OnlineClientRemote:chartplaySubmissionCompleted(chartplay_id)
 	self.online_client:chartplaySubmissionCompleted(chartplay_id)
 end
 
+---@param scores sea.RecentScore[]
+function OnlineClientRemote:setRecentScores(scores)
+	self.online_client:setRecentScores(scores)
+end
+
 return OnlineClientRemote

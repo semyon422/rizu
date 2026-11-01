@@ -33,6 +33,9 @@ local ExternalRanked = require("sea.difftables.ExternalRanked")
 local UserConnections = require("sea.app.UserConnections")
 local Multiplayer = require("sea.app.Multiplayer")
 
+-- How many scores the clients' feed of recent plays shows.
+local RECENT_SCORES = 10
+
 ---@class sea.Domain
 ---@field multiplayer sea.Multiplayer
 ---@operator call: sea.Domain
@@ -81,6 +84,7 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 		function(chartplay)
 			if self.user_connections.nats_factory then
 				self.user_connections:broadcastUser(chartplay.user_id).client:chartplaySubmissionCompleted(chartplay.id)
+				self.user_connections:broadcastAll().client:setRecentScores(self.chartplays:getRecentScores(RECENT_SCORES))
 			end
 		end
 	)
@@ -145,6 +149,7 @@ end
 function Domain:onConnect(peer)
 	self.user_connections:onConnect(peer.peer_id, peer.user.id)
 	self.multiplayer:connected(peer)
+	peer.remote_no_return.client:setRecentScores(self.chartplays:getRecentScores(RECENT_SCORES))
 end
 
 ---@param peer sea.Peer

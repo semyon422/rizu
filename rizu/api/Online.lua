@@ -13,6 +13,7 @@ The player's account and the connection to the server.
 ---| "account_changed" # The player logged in or out, or the connection went up or down. No arguments.
 ---| "online_count_changed" # getOnlineCount() has a new answer. No arguments.
 ---| "online_players_changed" # getOnlinePlayers() has a new answer. No arguments.
+---| "recent_scores_changed" # getRecentScores() has a new answer. No arguments.
 
 ---@class rizu.api.Online.Player
 ---@field name string
@@ -20,6 +21,12 @@ The player's account and the connection to the server.
 ---@field role "admin"|"donator"? admin also means the owner
 ---@field chartplays_count integer
 ---@field play_time number seconds
+
+---@class rizu.api.Online.RecentScore
+---@field player_name string
+---@field title string
+---@field difficulty string the chart's difficulty name, may be empty
+---@field accuracy number 0..1
 
 ---@class rizu.api.Online : rizu.api.Events
 ---@operator call: rizu.api.Online
@@ -40,6 +47,8 @@ function Online:new(game)
 	client:onChanged(function(event)
 		if event.type == "online_count_changed" then
 			self:emit("online_count_changed")
+		elseif event.type == "recent_scores_changed" then
+			self:emit("recent_scores_changed")
 		elseif event.type == "user_changed" or event.type == "connection_changed"
 			or event.type == "authentication_resolved"
 		then
@@ -117,6 +126,21 @@ function Online:getOnlinePlayers()
 		}
 	end
 	return players
+end
+
+---@return rizu.api.Online.RecentScore[] scores The newest scores submitted by any player, newest first. Empty while offline.
+function Online:getRecentScores()
+	local scores = {} ---@type rizu.api.Online.RecentScore[]
+	if not self.client:isConnected() then return scores end
+	for i, score in ipairs(self.client.recent_scores) do
+		scores[i] = {
+			player_name = score.user_name,
+			title = score.title,
+			difficulty = score.chart_name,
+			accuracy = score.accuracy,
+		}
+	end
+	return scores
 end
 
 ---Any player's avatar. The first call for a url starts the download and returns nil; keep asking

@@ -2,6 +2,10 @@ local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
+local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
+local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
+local Chartplays = require("sea.chart.Chartplays")
+local UserInsecure = require("sea.access.UserInsecure")
 
 local test = {}
 
@@ -64,6 +68,51 @@ function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	t:eq(by_msd[2].rating_msd, 20, "each rating takes its own best play of a chart")
 	t:eq(#repo:getBestChartplaysByRating(1, "rating_pp", 1), 1)
 	t:eq(#repo:getBestChartplaysByRating(2, "rating_pp", 100), 0)
+end
+
+---@param t testing.T
+function test.recent_chartplays_all_are_valid_newest_first_with_names_and_titles(t)
+	local db = ServerSqliteDatabase(LjsqliteDatabase())
+	db.path = ":memory:"
+	db:open()
+	local repo = ChartsRepo(db.models)
+	local factory = TestChartFactory()
+	local user = UserInsecure()
+	user.name, user.email, user.password, user.latest_activity, user.created_at = "Aqua", "a@b", "", 0, 0
+	db.models.users:create(user)
+	local chartmeta = factory:createChartmeta({hash = "a", title = "Song A"})
+	chartmeta.name = "4K Hard"
+	repo:createChartmeta(chartmeta)
+	---@param id integer
+	---@param hash string
+	---@param state sea.ComputeState
+	local function add(id, hash, state)
+		repo:createChartplay(factory:createChartplay({
+			id = id, user_id = 1, hash = hash, replay_hash = tostring(id), compute_state = state,
+		}))
+	end
+	add(1, "a", "valid")
+	add(2, "a", "invalid")
+	add(3, "unknown", "valid")
+	add(4, "a", "valid")
+
+	local recent = repo:getRecentChartplaysAll(10)
+	t:eq(#recent, 3, "an invalid play is left out")
+	t:eq(recent[1].chartplay.id, 4)
+	t:eq(recent[2].chartplay.id, 3)
+	t:eq(recent[3].chartplay.id, 1)
+	t:eq(recent[1].user_name, "Aqua")
+	t:eq(recent[1].chartmeta.title, "Song A")
+	t:eq(recent[2].chartmeta, nil, "a chart the server does not know")
+	t:eq(#repo:getRecentChartplaysAll(1), 1)
+
+	local scores = Chartplays.getRecentScores({charts_repo = repo} --[[@as sea.Chartplays]], 10)
+	t:eq(scores[1].user_name, "Aqua")
+	t:eq(scores[1].title, "Song A")
+	t:eq(scores[1].chart_name, "4K Hard")
+	t:eq(scores[2].title, "?")
+	t:eq(type(scores[1].accuracy), "number")
+	db:close()
 end
 
 return test

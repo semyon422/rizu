@@ -32,7 +32,10 @@ local Observable = require("Observable")
 ---@field type "chartplay_submitted"
 ---@field chartplay_id integer
 
----@alias rizu.online.Event rizu.online.ChartplaySubmittedEvent|rizu.online.OnlineCountChangedEvent|rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
+---@class rizu.online.RecentScoresChangedEvent
+---@field type "recent_scores_changed"
+
+---@alias rizu.online.Event rizu.online.RecentScoresChangedEvent|rizu.online.ChartplaySubmittedEvent|rizu.online.OnlineCountChangedEvent|rizu.online.UserChangedEvent|rizu.online.ConnectionChangedEvent|rizu.online.AuthenticationResolvedEvent|rizu.online.LoginStartedEvent|rizu.online.LoginSucceededEvent|rizu.online.LoginFailedEvent
 ---@alias rizu.online.EventObserver {receive: fun(self: table, event: rizu.online.Event)}
 ---@alias rizu.online.EventReceiver fun(event: rizu.online.Event)
 
@@ -44,6 +47,7 @@ local Observable = require("Observable")
 ---@field observable util.Observable
 ---@field leaderboards sea.Leaderboard[]
 ---@field leaderboard_users sea.LeaderboardUser[]
+---@field recent_scores sea.RecentScore[] newest first, from the server
 local OnlineClient = class()
 
 function OnlineClient:new()
@@ -53,6 +57,7 @@ function OnlineClient:new()
 	self.leaderboards = {}
 	self.leaderboards_users = {}
 	self.completed_chartplay_ids = {}
+	self.recent_scores = {}
 end
 
 ---@param user sea.User?
@@ -153,6 +158,12 @@ end
 function OnlineClient:chartplaySubmissionCompleted(chartplay_id)
 	table.insert(self.completed_chartplay_ids, chartplay_id)
 	self.observable:send({type = "chartplay_submitted", chartplay_id = chartplay_id})
+end
+
+---@param scores sea.RecentScore[]
+function OnlineClient:setRecentScores(scores)
+	self.recent_scores = scores
+	self.observable:send({type = "recent_scores_changed"})
 end
 
 ---@param lb_id integer

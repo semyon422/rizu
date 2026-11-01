@@ -31,6 +31,19 @@ function OnlineClientRemoteValidation:chartplaySubmissionCompleted(chartplay_id)
 	self.remote:chartplaySubmissionCompleted(chartplay_id)
 end
 
+---@param scores sea.RecentScore[]
+function OnlineClientRemoteValidation:setRecentScores(scores)
+	assert(type(scores) == "table")
+	for _, score in ipairs(scores) do
+		assert(type(score) == "table")
+		assert(type(score.user_name) == "string")
+		assert(type(score.title) == "string")
+		assert(type(score.chart_name) == "string")
+		assert(type(score.accuracy) == "number" and score.accuracy == score.accuracy)
+	end
+	self.remote:setRecentScores(scores)
+end
+
 ---@param leaderboards_users sea.LeaderboardUser[]
 function OnlineClientRemoteValidation:setLeaderboardUsers(leaderboards_users)
 	assert(type(leaderboards_users) == "table")
