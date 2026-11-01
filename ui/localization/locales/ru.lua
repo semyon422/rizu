@@ -466,6 +466,7 @@ return {
 	["notifications.type.logged_in.text"] = "С возвращением, {name}!",
 	["notifications.type.login_failed"] = "Не удалось войти",
 	["notifications.type.score_submitted"] = "Результат отправлен",
+	["notifications.type.editor_not_implemented"] = "Редактор ещё не реализован",
 	["notifications.type.library_errors"] = "Не удалось загрузить карт: {count}",
 	["notifications.type.listener_error"] = "Ошибка интерфейса",
 	["notifications.type.server_message"] = "Сообщение сервера",

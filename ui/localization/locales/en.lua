@@ -501,6 +501,7 @@ return {
 	["notifications.type.logged_in.text"] = "Welcome back, {name}!",
 	["notifications.type.login_failed"] = "Login failed",
 	["notifications.type.score_submitted"] = "Score submitted",
+	["notifications.type.editor_not_implemented"] = "The editor is not implemented yet",
 	["notifications.type.library_errors"] = "Charts failed to load: {count}",
 	["notifications.type.listener_error"] = "Interface error",
 	["notifications.type.server_message"] = "Server message",

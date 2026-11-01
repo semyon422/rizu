@@ -98,6 +98,15 @@ function Notifications:dismiss(id) self.core:dismiss(id) end
 
 function Notifications:clear() self.core:clear() end
 
+---Posts a notification from the UI. title and text are English, for UIs that do not translate type.
+---@param kind "info"|"success"|"error"
+---@param type string
+---@param title string
+---@param text string?
+function Notifications:post(kind, type, title, text)
+	self.core:post({kind = kind, type = type, title = title, text = text})
+end
+
 ---@param id integer The notification's id.
 ---@param index integer Index in its actions.
 function Notifications:runAction(id, index) self.core:runAction(id, index) end
