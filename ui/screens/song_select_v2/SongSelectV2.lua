@@ -71,6 +71,9 @@ local ZOOM_ROTATION = math.rad(-2)
 
 local ENTER_SCALE = 0.97
 
+-- Chart loading fades in over the same time, covering the content.
+SongSelectV2.ZOOM_FADE_DURATION = 0.5
+
 ---Rotates the finished content canvas, following the zoom. The view itself stays unrotated:
 ---clipped views such as the carousel cannot be composed under a rotated parent.
 ---@param content gui.CompositeView
@@ -261,15 +264,15 @@ function SongSelectV2:exit()
 end
 
 ---Replaces the content fade of exit() on the way into chart loading: the content also flies
----towards the viewer. Ends together with the backdrop fade.
+---towards the viewer. Follows the start sound: a burst, then a long exhale.
 function SongSelectV2:zoomOut()
 	-- The whole content zooms instead of exit()'s parts flying apart.
 	for _, part in ipairs(self.parts) do
 		part.view:clearTransforms():setOffset(0, 0):setOpacity(1)
 	end
 	self.content:clearTransforms():setScale(1, 1)
-	self.content:fadeOut(0.3, "OutQuad")
-	self.content:scaleTo(ZOOM_SCALE, ZOOM_SCALE, 0.4, "OutCubic")
+	self.content:fadeOut(SongSelectV2.ZOOM_FADE_DURATION, "OutQuad")
+	self.content:scaleTo(ZOOM_SCALE, ZOOM_SCALE, 0.8, "OutExpo")
 	rawset(self.content, "drawUnderlay", tiltContent)
 end
 
