@@ -5,6 +5,7 @@ local Gameplay = require("rizu.api.Gameplay")
 local Input = require("rizu.api.Input")
 local Skins = require("rizu.api.Skins")
 local OnlineClient = require("rizu.online.OnlineClient")
+local MultiplayerClient = require("sea.multi.MultiplayerClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local GameApi = require("rizu.api.GameApi")
@@ -17,9 +18,11 @@ local test = {}
 ---@param t testing.T
 function test.online(t)
 	local client = OnlineClient()
+	local multiplayer = MultiplayerClient()
 	local logins = {}
 	local game = {
 		online_client = client,
+		multiplayer_client = multiplayer,
 		avatar_cache = {get = function(_, url) return url and "image of " .. url end},
 		onlineModel = {authManager = {
 			login = function(_, email, password) logins[#logins + 1] = email .. ":" .. password end,
@@ -45,6 +48,30 @@ function test.online(t)
 	t:eq(online:getAvatarUrl(), "a.png")
 	t:eq(online:getOnlineCount(), 7)
 	t:eq(online:getAvatar("a.png"), "image of a.png")
+
+	local players = 0
+	online:on("online_players_changed", function() players = players + 1 end)
+	local now = os.time()
+	multiplayer:setUsers({
+		{name = "Nimue", avatar = "n.png", chartplays_count = 12, play_time = 3600, user_roles = {
+			{role = "donator", started_at = 0, total_time = 0},
+			{role = "owner", started_at = 0, total_time = 0},
+		}},
+		{name = "Aqua", avatar = "", chartplays_count = 0, play_time = 0, user_roles = {
+			{role = "admin", started_at = 0, expires_at = now - 1, total_time = 0},
+			{role = "donator", started_at = 0, expires_at = now + 3600, total_time = 0},
+		}},
+		{name = "Bob", avatar = "", chartplays_count = 1, play_time = 60, user_roles = {{role = "moderator"}}},
+	} --[[@as any]])
+	t:eq(players, 1)
+	t:tdeq(online:getOnlinePlayers(), {
+		{name = "Nimue", avatar_url = "n.png", role = "admin", chartplays_count = 12, play_time = 3600},
+		{name = "Aqua", avatar_url = "", role = "donator", chartplays_count = 0, play_time = 0},
+		{name = "Bob", avatar_url = "", chartplays_count = 1, play_time = 60},
+	}, "an owner shows as admin, an expired role is ignored")
+	client:setConnected(false)
+	t:tdeq(online:getOnlinePlayers(), {}, "no list while offline")
+	client:setConnected(true)
 
 	local results = {}
 	online:login("a@b", "pw", function(ok, err) results[#results + 1] = {ok, err} end)

@@ -91,11 +91,15 @@ end
 function test.player_card_offers_login_until_logged_in(t)
 	setup()
 	local logged_in = false
-	local on_account_changed ---@type fun()
+	local listeners = {} ---@type fun()[]
+	local function on_account_changed() for _, f in ipairs(listeners) do f() end end
 	local screen = newScreen({
 		isLoggedIn = function() return logged_in end,
 		getUsername = function() return logged_in and "nimue" or nil end,
-		on = function(_, _, f) on_account_changed = f return function() end end,
+		on = function(_, event, f)
+			if event == "account_changed" then listeners[#listeners + 1] = f end
+			return function() end
+		end,
 	})
 	local card = screen.player_card
 	t:eq(card.children[1], card.account)
@@ -153,6 +157,46 @@ function test.session_panel_and_buttons_stack_above_play(t)
 	t:eq(panel.stats.firsts, 2)
 	t:eq(panel.time_text, "1:02:05")
 	screen:draw()
+end
+
+---@param t testing.T
+function test.online_panel_lists_players_in_the_bottom_left(t)
+	setup()
+	local players = {
+		{name = "nimue", avatar_url = "n.png", role = "admin", chartplays_count = 1234, play_time = 3 * 3600 + 25 * 60},
+		{name = "aqua", chartplays_count = 0, play_time = 0},
+	}
+	local on_players_changed ---@type fun()
+	local screen = newScreen({
+		getOnlinePlayers = function() return players end,
+		on = function(_, event, f)
+			if event == "online_players_changed" then on_players_changed = f end
+			return function() end
+		end,
+	})
+	screen:update(0)
+	screen:flush()
+	local panel, content = screen.online_panel, screen.content
+	t:eq(panel.x, 40)
+	t:eq(panel.y + panel.height, content.height - 40)
+	t:eq(panel.title, "ONLINE: 42")
+	t:eq(panel.grid:getRowCount(), 21) -- 2 real and 40 fake players
+	screen.root:finishTransforms() -- past the fade-in, which starts at opacity 0
+	screen:draw()
+	t:eq(panel.grid.fitted[1].stats, "1234 plays · 3h 25m")
+
+	players = {}
+	for i = 1, 100 do
+		players[i] = {name = ("player_with_a_very_long_name_%d"):format(i), chartplays_count = i, play_time = i}
+	end
+	on_players_changed()
+	t:eq(panel.grid:getRowCount(), 70)
+	local first, last = panel.grid:getVisibleRowRange()
+	t:eq(first, 1)
+	t:assert(last < 70, "only the rows on screen are drawn")
+	screen:draw()
+	t:assert(panel.grid.fitted[1].name:sub(-3) == "…", "long names are cut to the card")
+	t:eq(panel.grid.fitted[2 * last + 1], nil)
 end
 
 ---@param t testing.T

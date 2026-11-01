@@ -31,6 +31,7 @@ return {
 	["main_menu.session_best_enps"] = "лучший ENPS",
 	["main_menu.session_best_msd"] = "лучший MSD",
 	["main_menu.session_firsts"] = "локальных #1",
+	["main_menu.player_stats"] = "{plays} игр · {hours} ч {minutes} мин",
 	["main_menu.music_player"] = "Плеер",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Папки с картами",

@@ -10,6 +10,7 @@ local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local SessionPanel = require("ui.screens.main_menu_v2.SessionPanel")
 local PlayerCard = require("ui.screens.main_menu_v2.PlayerCard")
+local OnlinePanel = require("ui.screens.main_menu_v2.OnlinePanel")
 local Scrim = require("ui.screens.song_select_v2.Scrim")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -44,6 +45,7 @@ local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 ---@field clock ui.views.Label
 ---@field buttons gui.layout.FlowContainer
 ---@field session_panel ui.screens.main_menu_v2.SessionPanel
+---@field online_panel ui.screens.main_menu_v2.OnlinePanel
 local MainMenuV2 = Screen + {}
 
 ---@param ui ui.UserInterface
@@ -74,6 +76,8 @@ function MainMenuV2:new(ui)
 	self:createTopBar()
 	self.player_card = self.content:add(PlayerCard(ui))
 	self.player_card:setAlignment(0, 0):addPosition(EDGE, EDGE)
+	self.online_panel = self.content:add(OnlinePanel(ui))
+	self.online_panel:setAlignment(0, 1):addPosition(EDGE, -EDGE)
 end
 
 ---@private

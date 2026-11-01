@@ -12,11 +12,20 @@ The player's account and the connection to the server.
 ---@alias rizu.api.Online.Event
 ---| "account_changed" # The player logged in or out, or the connection went up or down. No arguments.
 ---| "online_count_changed" # getOnlineCount() has a new answer. No arguments.
+---| "online_players_changed" # getOnlinePlayers() has a new answer. No arguments.
+
+---@class rizu.api.Online.Player
+---@field name string
+---@field avatar_url string? for getAvatar()
+---@field role "admin"|"donator"? admin also means the owner
+---@field chartplays_count integer
+---@field play_time number seconds
 
 ---@class rizu.api.Online : rizu.api.Events
 ---@operator call: rizu.api.Online
 ---@field on fun(self: rizu.api.Online, event: rizu.api.Online.Event, f: function): fun()
 ---@field private client rizu.OnlineClient
+---@field private multiplayer sea.MultiplayerClient
 ---@field private avatars rizu.online.AvatarCache
 ---@field private auth rizu.AuthManager
 local Online = Events + {}
@@ -35,6 +44,13 @@ function Online:new(game)
 			or event.type == "authentication_resolved"
 		then
 			self:emit("account_changed")
+		end
+	end)
+	self.multiplayer = game.multiplayer_client
+	-- The server pushes the whole list whenever a player connects, logs in or leaves.
+	self.multiplayer:onChanged(function(event)
+		if event.type == "users_changed" then
+			self:emit("online_players_changed")
 		end
 	end)
 end
@@ -70,6 +86,37 @@ end
 ---@return integer? count Players online. nil while offline.
 function Online:getOnlineCount()
 	return self.client:isConnected() and self.client:getOnlineCount() or nil
+end
+
+---Plain tables from the server, so the role is read here instead of with sea.User:hasRole().
+---@param user sea.User
+---@return "admin"|"donator"?
+local function getRole(user)
+	local time = os.time()
+	local donator = false
+	for _, user_role in ipairs(user.user_roles or {}) do
+		if not (user_role.expires_at and user_role.expires_at < time) then
+			if user_role.role == "owner" or user_role.role == "admin" then return "admin" end
+			donator = donator or user_role.role == "donator"
+		end
+	end
+	return donator and "donator" or nil
+end
+
+---@return rizu.api.Online.Player[] players Logged in players on the server, oldest account first. Empty while offline.
+function Online:getOnlinePlayers()
+	local players = {} ---@type rizu.api.Online.Player[]
+	if not self.client:isConnected() then return players end
+	for i, user in ipairs(self.multiplayer.users) do
+		players[i] = {
+			name = user.name,
+			avatar_url = user.avatar,
+			role = getRole(user),
+			chartplays_count = user.chartplays_count or 0,
+			play_time = user.play_time or 0,
+		}
+	end
+	return players
 end
 
 ---Any player's avatar. The first call for a url starts the download and returns nil; keep asking

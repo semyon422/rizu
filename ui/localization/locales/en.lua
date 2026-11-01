@@ -31,6 +31,7 @@ return {
 	["main_menu.session_best_enps"] = "best ENPS",
 	["main_menu.session_best_msd"] = "best MSD",
 	["main_menu.session_firsts"] = "local #1",
+	["main_menu.player_stats"] = "{plays} plays · {hours}h {minutes}m",
 	["main_menu.music_player"] = "Music Player",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Locations",
