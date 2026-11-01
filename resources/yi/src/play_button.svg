@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="160" viewBox="0 0 560 160">
+	<!-- Main menu Play button background; dots are drawn over it by ui/screens/main_menu_v2/PlayButton.lua -->
+	<defs>
+		<linearGradient id="g" x1="0" y1="0.41" x2="1" y2="0.59">
+			<stop offset="0" stop-color="#7DB435"/>
+			<stop offset="1" stop-color="#5E9A22"/>
+		</linearGradient>
+	</defs>
+	<polygon points="40,0 560,0 560,160 0,160" fill="url(#g)"/>
+</svg>
