@@ -153,6 +153,7 @@ if arg[2] == "test" then
 	}
 
 	local testing = Testing(tio)
+	testing.file_pattern = "_lovetest%.lua$"
 
 	local file_pattern, method_pattern = arg[3], arg[4]
 	testing:test(file_pattern, method_pattern)

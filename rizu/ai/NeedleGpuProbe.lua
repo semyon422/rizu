@@ -130,9 +130,6 @@ end
 local function log(message)
 	local line = "[Needle GPU] " .. message
 	print(line)
-	if love and love.filesystem then
-		pcall(love.filesystem.append, "needle_gpu_probe.log", line .. "\n")
-	end
 end
 
 function NeedleGpuProbe:release()

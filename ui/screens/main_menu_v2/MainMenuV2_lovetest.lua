@@ -3,33 +3,17 @@ local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
 local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
+local FakeGameApi = require("rizu.api.fake.FakeGameApi")
 
 local test = {}
 
 ---@param online {[string]: function}? Overrides for the fake online api
 ---@return ui.screens.main_menu_v2.MainMenuV2
 local function newScreen(online)
-	local ui = {localization = Localization(), api = {
-		notifications = {getTaskCount = function() return 0 end, getUnreadCount = function() return 0 end},
-		media = {getBeat = function() end},
-		charts = {getSelectedChart = function() end},
-		online = {
-			on = function() return function() end end,
-			getUsername = function() return "nimue" end,
-			getAvatarUrl = function() end,
-			getAvatar = function() end,
-			getOnlineCount = function() return 128 end,
-			isConnected = function() return true end,
-			isAuthenticationResolved = function() return true end,
-			isLoggedIn = function() return true end,
-		},
-		scores = {
-			getTotalRatings = function(_, f) f({pp = 4812, msd = 24.371}) end,
-			getSessionStart = function() return os.time() - 3725 end,
-			getSessionStats = function(_, f) f({plays = 2, firsts = 1, best_rating = 23.456, best_pp = 301, best_msd = 22}) end,
-		},
-	}}
-	for k, v in pairs(online or {}) do ui.api.online[k] = v end
+	local api = FakeGameApi()
+	api.scores.session_start = os.time() - 3725
+	for k, v in pairs(online or {}) do api.online[k] = v end
+	local ui = {localization = Localization(), api = api}
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
 	screen:load()
 	screen:resize(1600, 900)
@@ -95,8 +79,8 @@ function test.player_card_shows_the_name_and_local_msd(t)
 	setup()
 	local screen = newScreen()
 	local card = screen.player_card
-	t:eq(card.name.text, "nimue")
-	t:eq(card.msd.text, "24.37")
+	t:eq(card.name.text, "Player")
+	t:eq(card.msd.text, "25.30")
 	-- Refitted to the new MSD, so the card hugs its content.
 	t:eq(card.width, card.msd_column.x + card.msd_column.width)
 	screen:update(0)
@@ -116,7 +100,7 @@ function test.player_card_offers_login_until_logged_in(t)
 	local card = screen.player_card
 	t:eq(card.children[1], card.account)
 	t:assert(not card.profile.parent, "profile hidden")
-	t:eq(card.msd.text, "24.37")
+	t:eq(card.msd.text, "25.30")
 
 	logged_in = true
 	on_account_changed()
@@ -166,7 +150,7 @@ function test.session_panel_and_buttons_stack_above_play(t)
 	t:eq(buttons.x + buttons.width, play.x + play.width)
 	t:eq(#buttons.children, 5)
 
-	t:eq(panel.stats.firsts, 1)
+	t:eq(panel.stats.firsts, 2)
 	t:eq(panel.time_text, "1:02:05")
 	screen:draw()
 end

@@ -1,5 +1,9 @@
 #!/bin/bash
-rm -f luacov.stats.out
+# Runs the headless suite (the same one the VPS runs), then the `*_lovetest.lua` files under real LÖVE.
 cd "$(dirname "$0")"
+./test "$@"
+status=$?
+rm -f luacov.stats.out
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}/usr/lib:$PWD/bin/linux64"
-APPIMAGE_EXTRACT_AND_RUN=1 ./bin/linux64/love-linux-X64.AppImage . test "$@"
+APPIMAGE_EXTRACT_AND_RUN=1 ./bin/linux64/love-linux-X64.AppImage . test "$@" || status=$?
+exit $status

@@ -85,9 +85,10 @@ local class = require("aqua.class") -- incorrect
 
 ## Tests
 
-- Run `./test-love` for modules that require LÖVE.
-- Run `./test` for simple LuaJIT modules that do not depend on LÖVE.
-- Only files ending in `_test.lua` are tests.
+- `*_test.lua` files run headless under `./test`, with the stub `love` from `aqua/testing/FakeLove.lua`. The deploy VPS runs exactly this suite, so they must not need a window, a GPU or real LÖVE functions.
+- `*_lovetest.lua` files need real LÖVE (window, graphics, filesystem mounts) and run only under `./test-love`. The VPS never runs them.
+- `./test-love` runs `./test` first, then the `*_lovetest.lua` files, so one command covers both locally.
+- In UI tests, take the game API from `rizu/api/fake/FakeGameApi` and override single methods, instead of building nested `api` tables by hand.
 
 ## Lua Language Server Diagnostics
 

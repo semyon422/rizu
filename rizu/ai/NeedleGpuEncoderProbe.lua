@@ -172,7 +172,6 @@ end
 local function log(message)
 	local line = "[Needle GPU encoder] " .. message
 	print(line)
-	if love and love.filesystem then pcall(love.filesystem.append, "needle_gpu_probe.log", line .. "\n") end
 end
 
 ---@param value integer

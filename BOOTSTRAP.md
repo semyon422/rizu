@@ -222,8 +222,8 @@ Run tests with an optional file and method pattern:
 Other test entry points are specialized:
 
 - `./bench` runs benchmarks separately from the correctness test suite.
-- `./test-love` runs tests inside the bundled Linux LÖVE AppImage.
-- `./test-macos` runs tests with `/Applications/love.app`.
+- `./test-love` runs `./test`, then the `*_lovetest.lua` files (tests that need a real window) inside the bundled Linux LÖVE AppImage.
+- `./test-macos` runs the `*_lovetest.lua` files with `/Applications/love.app`.
 - `./game-macos` runs the project-local app produced by `./rizu/build/make.lua package` with auto-update disabled for checkout safety.
 - `./test-resty` runs tests through OpenResty's `resty` executable.
 
