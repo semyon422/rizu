@@ -98,6 +98,11 @@ If LuaLS is missing, install the pinned release into `build/lua-language-server`
 
 A check without the daemon starts LuaLS for the whole workspace and takes about 10 seconds. For repeated checks, start the daemon with `luajit scripts/luals.lua start`. It returns once LuaLS has diagnosed the whole workspace, about a minute, and checks then take a fraction of a second; `check` uses the daemon automatically. Use `--server-mode required` to require it or `--server-mode off` to force a one-shot check. The daemon picks up edited, added and removed files before each check. Stop it with `luajit scripts/luals.lua stop`; `status` reports whether it runs. All commands accept `--project <directory>` for another LuaLS-configured project.
 
+## Errors
+
+- Don't scatter `assert`/`error` and leave them unhandled. An error the player can cause or the network can cause (offline, server rejection, bad file) is caught where the UI or API calls it, and shown with a notification (`api.notifications:post("error", ...)`). The API passes such results back, e.g. through `f(ok, err)` callbacks, and never throws into the UI.
+- Assert only where a crash is the correct outcome: broken invariants in the engine and gameplay, where carrying on could produce wrong results, such as a broken score that gets submitted.
+
 ## Before you write
 
 Read the task and the code it touches. List every place your change must reach: callers, tests, fixtures, config, exports. Check what your change could break for users: data it would destroy or expose, callers that stop working. That is scope. Extra features are not.
