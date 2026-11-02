@@ -160,7 +160,7 @@ local function help(commands)
 	print("Usage: ./rizu/build/make.lua <command> [arg]")
 	print("")
 	print("Commands:")
-	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "prefetch", "repo", "package", "release", "status", "clean", "help"}
+	local order = {"setup", "luajit", "setup_macos_toolchain", "build_target", "prefetch", "update_love", "repo", "package", "release", "status", "clean", "help"}
 	for _, name in ipairs(order) do
 		if name == "help" then
 			print("  help                   Show this help")
@@ -211,6 +211,16 @@ local function createCommands(ctx, runner, target_arg, scope_arg)
 					end
 				else
 					runner:run("prefetch_deps_" .. target)
+				end
+			end,
+		},
+		update_love = {
+			help = "Refresh LÖVE nightly only: update_love <" .. target_help .. "|all> (default: all)",
+			run = function()
+				local target = getTargetOrAllArg(target_arg, "all")
+				local targets = target == "all" and BuildConfig.TARGETS or {target}
+				for _, t in ipairs(targets) do
+					runner:run("update_love_" .. t)
 				end
 			end,
 		},

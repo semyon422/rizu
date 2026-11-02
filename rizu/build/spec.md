@@ -12,6 +12,7 @@ The system is optimized for local development and CI usage on Linux hosts while 
 - One entry point: `./rizu/build/make.lua`.
 - One target command: `build_target <linux|windows|macos>` (runs LuaJIT setup steps automatically).
 - Optional `luajit <linux|windows>` to build only the LuaJIT SDK under `tree/`.
+- `update_love [linux|windows|macos|all]` (default `all`) refreshes only LÖVE nightly, bypassing its archive cache and installed-output checks. It reuses `LoveArtifactsSpec` and the action executor, has no build/toolchain dependencies, and leaves unrelated dependencies alone. Downloads use the existing atomic downloader before any install actions; failed downloads keep the previous runtime and cached archive. Linux and Windows runtimes are reinstalled; macOS refreshes the archive consumed by packaging. No repository assembly, packaging, or publication is triggered.
 - Clear packaging separation:
   - `repo` assembles repository content and update metadata.
   - `package` builds archives from the assembled repository.
@@ -59,6 +60,7 @@ This avoids duplicated side effects and makes task dependencies explicit.
 
 CLI mapping:
 - `luajit` -> `setup_luajit_<linux|windows>`
+- `update_love` -> standalone `update_love_<target>` tasks
 - `repo` -> `assemble_repo`
 - `package` -> `zip_repo` + `package_macos`
 - `release` -> `package_release`

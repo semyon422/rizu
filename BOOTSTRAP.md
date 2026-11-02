@@ -53,6 +53,7 @@ Useful build commands:
 ./rizu/build/make.lua help
 ./rizu/build/make.lua status all
 ./rizu/build/make.lua prefetch all
+./rizu/build/make.lua update_love all
 ./rizu/build/make.lua luajit linux
 ./rizu/build/make.lua build_target linux
 ./rizu/build/make.lua build_target windows
@@ -60,6 +61,8 @@ Useful build commands:
 ./rizu/build/make.lua repo
 ./rizu/build/make.lua package
 ```
+
+`update_love [linux|windows|macos|all]` defaults to `all` and always downloads fresh LÖVE nightly archives, even when cached archives and installed binaries exist. It reinstalls the Linux and Windows runtimes without rebuilding other dependencies. For macOS it refreshes `build/downloads/love-macos.zip`; run `package` to rebuild the app bundle. It does not assemble, package, or publish a release.
 
 See [rizu/build/spec.md](rizu/build/spec.md) for the build graph and output layout. `clean` removes generated output, so inspect its scopes with `help` before using it.
 
