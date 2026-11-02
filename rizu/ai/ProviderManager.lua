@@ -1,5 +1,6 @@
 local class = require("class")
 local OpenAiClient = require("ai.openai.Client")
+local ResponsesClient = require("ai.openai.ResponsesClient")
 local SubscriptionAuth = require("ai.openai.SubscriptionAuth")
 local SubscriptionClient = require("ai.openai.SubscriptionClient")
 
@@ -24,7 +25,7 @@ local SubscriptionClient = require("ai.openai.SubscriptionClient")
 ---@field config sphere.AiConfig
 ---@field options rizu.ai.ModelOption[]
 ---@field selected_index integer
----@field clients {[string]: openai.Client|openai.SubscriptionClient}
+---@field clients {[string]: openai.CompletionClient}
 ---@field auth openai.SubscriptionAuth?
 local ProviderManager = class()
 
@@ -70,7 +71,7 @@ function ProviderManager:new(options)
 	self.options = {}
 	for _, provider_id in ipairs(provider_ids) do
 		local provider = self.config.providers[provider_id]
-		assert(provider.type == "openai_compatible" or provider.type == "openai_subscription", "invalid AI provider: " .. provider_id)
+		assert(provider.type == "openai_compatible" or provider.type == "openai_responses" or provider.type == "openai_subscription", "invalid AI provider: " .. provider_id)
 		assert(type(provider.name) == "string" and provider.name ~= "", "AI provider has no name: " .. provider_id)
 		assert(type(provider.models) == "table" and #provider.models > 0, "AI provider has no models: " .. provider_id)
 		for _, model in ipairs(provider.models) do
@@ -110,7 +111,7 @@ function ProviderManager:getOptionAuth(model_option)
 end
 
 ---@param model_option rizu.ai.ModelOption
----@return openai.Client|openai.SubscriptionClient
+---@return openai.CompletionClient
 function ProviderManager:createClient(model_option)
 	local provider = self.config.providers[model_option.provider_id]
 	if provider.type == "openai_subscription" then
@@ -118,6 +119,17 @@ function ProviderManager:createClient(model_option)
 			auth = assert(self:getOptionAuth(model_option)),
 			model = model_option.model,
 			reasoning_effort = assert(provider.reasoning_effort),
+			timeout = assert(provider.timeout),
+			open_stream = self.open_stream,
+		})
+	end
+	if provider.type == "openai_responses" then
+		return ResponsesClient({
+			base_url = assert(provider.base_url),
+			api_key = provider.api_key or self.config.api_key,
+			model = model_option.model,
+			reasoning_effort = provider.reasoning_effort,
+			verbosity = provider.verbosity,
 			timeout = assert(provider.timeout),
 			open_stream = self.open_stream,
 		})
@@ -143,7 +155,7 @@ function ProviderManager:getSelectedOption()
 	return assert(self.options[self.selected_index], "no AI models configured")
 end
 
----@return openai.Client|openai.SubscriptionClient
+---@return openai.CompletionClient
 function ProviderManager:getClient()
 	local model_option = self:getSelectedOption()
 	local key = model_option.provider_id .. "\0" .. model_option.model
@@ -157,7 +169,7 @@ function ProviderManager:getAuth()
 end
 
 ---@param index integer
----@return openai.Client|openai.SubscriptionClient
+---@return openai.CompletionClient
 ---@return openai.SubscriptionAuth?
 function ProviderManager:select(index)
 	assert(self.options[index], "invalid AI model index")

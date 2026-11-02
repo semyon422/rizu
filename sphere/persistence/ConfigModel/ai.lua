@@ -1,5 +1,6 @@
----@alias sphere.AiProviderType "openai_compatible"|"openai_subscription"
+---@alias sphere.AiProviderType "openai_compatible"|"openai_responses"|"openai_subscription"
 ---@alias sphere.AiReasoningEffort "none"|"low"|"medium"|"high"|"xhigh"|"max"
+---@alias sphere.AiVerbosity "low"|"medium"|"high"
 
 ---@class sphere.AiProviderConfig
 ---@field name string
@@ -11,6 +12,7 @@
 ---@field max_tokens integer?
 ---@field timeout number
 ---@field reasoning_effort sphere.AiReasoningEffort?
+---@field verbosity sphere.AiVerbosity?
 
 ---@class sphere.AiConfig
 ---@field active_provider string
