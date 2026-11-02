@@ -202,6 +202,8 @@ function MainMenuV2:enter()
 	-- Screens are loaded once, so a play made since the last visit is fetched here.
 	self.player_card:refreshRatings()
 	self.session_panel:refresh()
+	self.ui.api.media:setPreviewModes("start", "random_chart")
+	self.ui.api.media:startPreview()
 	-- Starts from where exit() would leave it: a screen hidden right away never steps its exit animation.
 	self.root:setOpacity(0):setScale(0.95, 0.95)
 	self.root:scaleTo(1, 1, 0.4, "OutQuart")
@@ -210,6 +212,7 @@ end
 
 function MainMenuV2:exit()
 	Screen.exit(self)
+	self.ui.api.media:setPreviewModes("chart", "loop")
 	self.background_panel:close()
 	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
