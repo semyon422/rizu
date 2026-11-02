@@ -45,10 +45,12 @@ function test.enter_animates_again_after_an_exit_that_never_stepped(t)
 	screen:exit()
 	screen:enter()
 
-	t:eq(screen.root.scale_x, 0.95)
+	t:eq(screen.background.scale_x, 1.18)
 	t:eq(screen.root.opacity, 0)
 	screen.root:finishTransforms()
-	t:eq(screen.root.scale_x, 1)
+	screen.background:finishTransforms()
+	t:eq(screen.background.scale_x, 1)
+	t:eq(screen.background.rotation, 0)
 	t:eq(screen.root.opacity, 1)
 end
 
