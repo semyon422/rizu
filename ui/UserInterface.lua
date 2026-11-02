@@ -24,6 +24,7 @@ local UiConfig = require("ui.UiConfig")
 local Settings = require("rizu.config.Settings")
 local Localization = require("ui.localization.Localization")
 local UiActions = require("ui.UiActions")
+local Extensions = require("ui.Extensions")
 local MapperatorinatorConfig = require("rizu.mapperatorinator.Config")
 local MapperatorinatorWorkflow = require("rizu.mapperatorinator.Workflow")
 local GlobalCommands = require("rizu.commands.GlobalCommands")
@@ -192,6 +193,14 @@ function UserInterface:load()
 		registry:pushContext("ui_global", self.ui_global_commands)
 		registry:pushContext("ui_result", self.ui_result_commands)
 		registry:pushContext("ui_select", self.ui_select_commands)
+
+		for _, extend in ipairs(Extensions.list) do
+			local ok, err = xpcall(extend, debug.traceback, self)
+			if not ok then
+				print(err)
+				self.api.notifications:post("error", "plugin_ui_failed", "A plugin failed to extend the interface", tostring(err))
+			end
+		end
 	end
 	-- The default user interface plays the previews on every screen but gameplay.
 	self.api.media:startPreview()
