@@ -7,7 +7,7 @@ local AvatarShader = require("ui.views.AvatarShader")
 local lg = love.graphics
 
 local HEIGHT = 44
-local PADDING = 40 -- the menu's edge, so the title lines up with the music strip
+local TITLE_MARGIN = 24 -- on both sides of the title, inside the area that covers the scrolling scores
 local TITLE_GAP = 16
 local LIVE_DOT = 8
 local PART_GAP = 10 -- between the parts of an item
@@ -74,7 +74,7 @@ end
 ---Takes the scores again. Players coming online still pass by.
 function StatusLine:refresh()
 	local name_font, chart_font = Resources.getFont("cjk_bold", 15), Resources.getFont("cjk_regular", 14)
-	local accuracy_font = Resources.getFont("medium", 15)
+	local accuracy_font = name_font
 	local items = {} ---@type ui.screens.main_menu_v2.StatusLine.Item[]
 	for _, item in ipairs(self.items) do
 		if item.once then table.insert(items, item) end
@@ -92,8 +92,8 @@ end
 
 ---@return number x where the items start, after the title
 function StatusLine:getItemsX()
-	local font = Resources.getFont("medium", 13)
-	return PADDING + LIVE_DOT + 10 + font:getWidth(self.ui.localization:get("main_menu.recent_scores")) + TITLE_GAP * 2
+	local font = Resources.getFont("cjk_bold", 15)
+	return TITLE_MARGIN + LIVE_DOT + 10 + font:getWidth(self.ui.localization:get("main_menu.recent_scores")) + TITLE_MARGIN + TITLE_GAP
 end
 
 ---Puts a player coming online right after the items on screen, so it shows up next.
@@ -103,7 +103,7 @@ function StatusLine:addJoin(player)
 	local item = newItem({
 		{avatar_url = player.avatar_url or ""},
 		{text = player.name, font = Resources.getFont("cjk_bold", 15), color = Colors.success},
-		{text = text, font = Resources.getFont("regular", 14), color = Colors.success},
+		{text = text, font = Resources.getFont("cjk_regular", 14), color = Colors.success},
 	}, true)
 	local x = self:getItemsX() + self.offset
 	for i, other in ipairs(self.items) do
@@ -160,8 +160,8 @@ function StatusLine:draw()
 	lg.rectangle("fill", 0, 0, self.width, self.height)
 
 	local title = self.ui.localization:get("main_menu.recent_scores")
-	local title_font = Resources.getFont("medium", 13)
-	local title_x = PADDING + LIVE_DOT + 10
+	local title_font = Resources.getFont("cjk_bold", 15)
+	local title_x = TITLE_MARGIN + LIVE_DOT + 10
 	local run_x = self:getItemsX()
 
 	-- When the items are shorter than the line, they follow themselves around until it is full.
@@ -179,7 +179,7 @@ function StatusLine:draw()
 	Painter.setColorTable(Colors.panel)
 	lg.rectangle("fill", 0, 0, run_x - TITLE_GAP, self.height)
 	Painter.setColorTable(Colors.yellow)
-	lg.circle("fill", PADDING + LIVE_DOT / 2, HEIGHT / 2, LIVE_DOT / 2, 16)
+	lg.circle("fill", TITLE_MARGIN + LIVE_DOT / 2, HEIGHT / 2, LIVE_DOT / 2, 16)
 	Painter.setColorTable(Colors.muted)
 	lg.setFont(title_font)
 	lg.print(title, title_x, math.floor((HEIGHT - title_font:getHeight()) / 2))
