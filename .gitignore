@@ -19,6 +19,7 @@ userdata/hitsounds
 userdata/testcharts
 !userdata/hitsounds/midi
 calc/
+userdata/main_menu_background/
 
 userdata/main.log
 userdata/input.lua
