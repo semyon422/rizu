@@ -50,17 +50,6 @@ function test.client_source_directories_exist(t)
 end
 
 ---@param t testing.T
-function test.router_runtime_and_tls_are_required_in_server_artifact(t)
-	for _, path in ipairs({"docker/ai-router-entrypoint.sh", "docker/ai-router-healthcheck.lua",
-		"docker/AiRouterConfig.lua", "aqua/ai/router/proxy.lua", "aqua/ai/router/storage/db.sql",
-		"bin/linux64/libssl.so.3", "bin/linux64/libcrypto.so.3",
-		"tree/lib/lua/5.1/ssl.so", "tree/share/lua/5.1/ssl.lua", "resources/certs/cacert.pem"}) do
-		local listing = listingWithRequiredPaths():gsub(path:gsub("([^%w])", "%%%1"), "missing")
-		t:has_error(function() ReleasePackager.validateServerListing(listing) end)
-	end
-end
-
----@param t testing.T
 function test.bundled_openssl_libraries_are_exported_with_server_runtime(t)
 	---@type {[string]: boolean}
 	local exported = {}

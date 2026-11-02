@@ -31,11 +31,6 @@ ReleasePackager.SERVER_RUNTIME_PATHS = {
 ReleasePackager.SERVER_REQUIRED_PATHS = {
 	"sea/app/handler.lua",
 	"docker/entrypoint.sh",
-	"docker/ai-router-entrypoint.sh",
-	"docker/ai-router-healthcheck.lua",
-	"docker/AiRouterConfig.lua",
-	"aqua/ai/router/proxy.lua",
-	"aqua/ai/router/storage/db.sql",
 	"compose.yaml",
 	"luajit",
 	"luajit.lua",

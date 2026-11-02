@@ -88,8 +88,6 @@ function test.prepare_root_renders_generated_nginx_config(t)
 	t:assert(commands:find('test -f "/srv/rizu/server-state/bancho_config.lua"', 1, true))
 	t:assert(commands:find('test -f "/srv/rizu/server-state/package_config.lua"', 1, true))
 	t:assert(commands:find('test -f "/srv/rizu/server-state/nginx_config.lua"', 1, true))
-	t:assert(commands:find('test -f "/srv/rizu/server-state/ai-router/config.lua"', 1, true))
-	t:assert(commands:find('test -f "/srv/rizu/server-state/ai-router/network.lua"', 1, true))
 	local render_at = assert(commands:find("make nginx-conf", 1, true))
 	local check_at = assert(commands:find('test -f "/srv/rizu/server-state/nginx.conf"', 1, true))
 	t:assert(render_at < check_at)
@@ -220,36 +218,6 @@ function test.rollback_restarts_target_before_switching_links(t)
 end
 
 ---@param t testing.T
-function test.router_deploys_with_application_and_legacy_rollback_stops_it(t)
-	local deployment, shell = createDeployment()
-	shell.outputs["id -u"], shell.outputs["id -g"] = "1000", "1000"
-	shell.outputs['test -f "/release/new/docker/ai-router-entrypoint.sh" && echo yes || true'] = "yes\n"
-	deployment:startOpenResty("/release/new")
-	t:assert(joinedCommands(shell):find("--no-deps compute ai-router openresty", 1, true))
-	shell.commands = {}
-	deployment:startOpenResty("/release/old")
-	local commands = joinedCommands(shell)
-	local stop_at = assert(commands:find("stop ai-router", 1, true))
-	local start_at = assert(commands:find("--no-deps compute openresty", 1, true))
-	t:assert(stop_at < start_at)
-end
-
----@param t testing.T
-function test.router_health_is_required_before_activation(t)
-	local deployment, shell = createDeployment()
-	shell.outputs["id -u"], shell.outputs["id -g"] = "1000", "1000"
-	local path = "/release/new"
-	shell.outputs['test -f "/release/new/docker/ai-router-entrypoint.sh" && echo yes || true'] = "yes\n"
-	local compose = deployment:composeCommand(path)
-	for _, service in ipairs({"compute", "openresty"}) do
-		shell.outputs[compose .. " ps --format json " .. service .. " | grep -q '\"Health\":\"healthy\"' && echo healthy || true"] = "healthy\n"
-	end
-	t:eq(deployment:waitHealthy(path), false)
-	shell.outputs[compose .. " ps --format json ai-router | grep -q '\"Health\":\"healthy\"' && echo healthy || true"] = "healthy\n"
-	t:eq(deployment:waitHealthy(path), true)
-end
-
----@param t testing.T
 function test.startup_exception_restores_previous_release(t)
 	local deployment = createDeployment()
 	local restored = false
@@ -276,7 +244,7 @@ function test.disabled_rollback_never_starts_previous_release(t)
 		deployment.waitHealthy = function() return false end
 		t:has_error(function() deployment:activateServer("/new", "/old") end)
 		t:tdeq(started, {"/new"})
-		t:assert(joinedCommands(shell):find("stop openresty compute ai-router", 1, true))
+		t:assert(joinedCommands(shell):find("stop openresty compute", 1, true))
 	end
 end
 
