@@ -325,7 +325,7 @@ function SongSelectV2:onHandleInputs(inputs)
 	elseif inputs:consumeActionJustPressed(UiActions.cancel) then
 		self.ui:setScreen(self.ui.main_menu, true)
 	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.accept) then
-		self.ui:loadSelectedChart(false, false, true)
+		self.footer.play_button:onMouseClick({button = 1})
 	elseif charts:canPlaySelectedChart() and inputs:consumeActionJustPressed(UiActions.select_autoplay) then
 		self.ui:loadSelectedChart(true, false, true)
 	end
