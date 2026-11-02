@@ -39,6 +39,9 @@ local SEPARATOR_HEIGHT = 26
 local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
 local LOCATIONS_COLOR = {0xD4 / 255, 0x87 / 255, 0x3E / 255, 1}
 local SETTINGS_COLOR = {0x6B / 255, 0x68 / 255, 0x80 / 255, 1}
+-- The background settles from this zoom and tilt (radians) on enter.
+local BACKGROUND_ZOOM = 1.18
+local BACKGROUND_TILT = -0.05
 -- Below the player card.
 local BACKGROUND_PANEL_TOP = 132
 -- Darkens the top so the player card and top bar read on any background.
@@ -51,6 +54,7 @@ local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 ---@field background_layers ui.screens.main_menu_v2.BackgroundLayers
 ---@field background_panel ui.screens.main_menu_v2.BackgroundPanel
 ---@field content gui.ShadowCompositeView
+---@field parts {view: gui.View, x: number, y: number, delay: number}[] Content that slides in from its edge
 ---@field play_button ui.screens.main_menu_v2.PlayButton
 ---@field top_bar gui.layout.FlowContainer
 ---@field player_card ui.screens.main_menu_v2.PlayerCard
@@ -67,11 +71,10 @@ function MainMenuV2:new(ui)
 	Screen.new(self)
 	self.ui = ui
 
-	self.root:setPivot(0.5, 0.5)
-
 	self.background_layers = BackgroundLayers(ui.config)
 	self.background = self.root:add(MainMenuBackground(Resources.images.main_menu_bg))
 	self.background:anchorFill(0, 0, 0, 0)
+	self.background:setPivot(0.5, 0.5)
 	self:refreshBackground()
 	ui.config:subscribeAll(function(_, _, key)
 		if key:find("^main_menu_") then
@@ -105,6 +108,19 @@ function MainMenuV2:new(ui)
 	-- Over the content, but outside its shadow pass.
 	self.background_panel = self.root:add(BackgroundPanel(self.background_layers, ui.localization, ui.api.notifications))
 	self.background_panel:setAlignment(0, 0):addPosition(EDGE, BACKGROUND_PANEL_TOP)
+
+	local SLIDE = 70
+	self.parts = {
+		{view = self.top_bar, x = 0, y = -SLIDE / 2, delay = 0.1},
+		{view = self.player_card, x = -SLIDE, y = 0, delay = 0.1},
+		{view = self.status_line, x = 0, y = SLIDE / 2, delay = 0.1},
+		{view = self.music_strip, x = -SLIDE, y = 0, delay = 0.25},
+		{view = self.session_panel, x = SLIDE, y = 0, delay = 0.1 + #self.buttons.children * 0.05},
+		{view = self.play_button, x = SLIDE, y = 0, delay = 0},
+	}
+	for i, button in ipairs(self.buttons.children) do
+		self.parts[#self.parts + 1] = {view = button, x = SLIDE, y = 0, delay = 0.1 + (#self.buttons.children - i) * 0.05}
+	end
 end
 
 function MainMenuV2:refreshBackground()
@@ -205,17 +221,26 @@ function MainMenuV2:enter()
 	self.ui.api.media:setPreviewModes("start", "random_chart")
 	self.ui.api.media:startPreview()
 	-- Starts from where exit() would leave it: a screen hidden right away never steps its exit animation.
-	self.root:setOpacity(0):setScale(0.95, 0.95)
-	self.root:scaleTo(1, 1, 0.4, "OutQuart")
-	self.root:fadeIn(0.4, "OutQuart")
+	self.root:setOpacity(0)
+	self.root:fadeIn(0.5, "OutQuart")
+	for _, part in ipairs(self.parts) do
+		part.view:clearTransforms():setOffset(part.x, part.y):setOpacity(0)
+		part.view:delay(part.delay):moveTo(0, 0, 0.6, "OutQuint"):fadeIn(0.4, "OutCubic")
+	end
+	-- The zoom covers the corners the tilt uncovers: scale >= 1 + 16/9 * |rotation| holds all the way down.
+	self.background:setScale(BACKGROUND_ZOOM, BACKGROUND_ZOOM):setRotation(BACKGROUND_TILT)
+	self.background:scaleTo(1, 1, 1.2, "OutQuart")
+	self.background:rotateTo(0, 1.2, "OutQuart")
 end
 
 function MainMenuV2:exit()
 	Screen.exit(self)
 	self.ui.api.media:setPreviewModes("chart", "loop")
 	self.background_panel:close()
-	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
+	for _, part in ipairs(self.parts) do
+		part.view:clearTransforms():moveTo(part.x * 0.5, part.y * 0.5, 0.25, "InQuad"):fadeOut(0.25, "OutCubic")
+	end
 	return true
 end
 
