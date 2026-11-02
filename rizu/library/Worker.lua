@@ -79,6 +79,10 @@ function Worker:computeChartdiffs()
 	self.processor:computeChartdiffs()
 end
 
+function Worker:computeCalculators()
+	self.processor:computeCalculators()
+end
+
 ---@param prefer_preview boolean
 function Worker:computeIncompleteChartdiffs(prefer_preview)
 	self.processor:computeIncompleteChartdiffs(prefer_preview)

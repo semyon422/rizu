@@ -59,7 +59,13 @@ function ChartviewFormatter:getDifficulty()
 		return {value = "—", postfix = "EXPERIMENTAL", color = {0.6, 0.8, 1, 1}}
 	end
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-	local num = self.chartview[diff_column] or 0
+	-- A plugin calculator's value comes as the query's difficulty column.
+	local calc = diff_column:match("^calc:(.+)$")
+	local num = self.chartview[diff_column] or self.chartview.difficulty ---@type number?
+	if not num and calc then
+		return {value = "—", postfix = calc:upper(), color = {1, 1, 1, 1}}
+	end
+	num = num or 0
 
 	if diff_column == "msd_diff" then
 		local rates = self.chartview.msd_diff_rates
@@ -70,7 +76,7 @@ function ChartviewFormatter:getDifficulty()
 		num = num * self.time_rate
 	end
 
-	local postfix = "USER"
+	local postfix = calc and calc:upper() or "USER"
 
 	if diff_column == "osu_diff" then
 		postfix = "★"

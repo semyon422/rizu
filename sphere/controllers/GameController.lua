@@ -283,6 +283,8 @@ function GameController:load()
 	self.library:updateScores(self.settings)
 	-- Scores saved before their hits were stored get them in the background.
 	self.library:updateHits(self.settings)
+	-- Plugin calculators rate new charts, and all of them after a version change.
+	self.library:computeCalculators()
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai

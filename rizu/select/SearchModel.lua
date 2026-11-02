@@ -230,7 +230,8 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 				else
 					value = tonumber(value)
 				end
-				if value then
+				-- shortcut: the lamp query skips plugin calculators, which aren't chartdiffs columns; join chart_difficulties there when someone needs it.
+				if value and not field:find("^calc:") then
 					cond[field .. "__" .. operator] = value
 				end
 			end

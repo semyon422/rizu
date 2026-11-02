@@ -151,6 +151,18 @@ QueryFragments.COND_CHARTPLAY_BY_MODE = QueryFragments.COND_CHARTPLAY_BY_MODS ..
 AND chartdiffs.mode = chartplays.mode
 ]]
 
+---The SQL of a select.diff_column choice: a chartdiffs column, or "calc:<name>", a plugin calculator's value.
+---@param diff_column string
+---@return string
+function QueryFragments.getDifficultyField(diff_column)
+	local name = diff_column:match("^calc:([%w_]+)$")
+	if not name then
+		return diff_column
+	end
+	return ([[(SELECT value / 100.0 FROM chart_difficulties WHERE chart_id = chartmetas.id AND rate = 1000
+AND calc_id = (SELECT id FROM calculators WHERE name = '%s'))]]):format(name)
+end
+
 ---@param conditions rdb.Conditions
 ---@param aggregate boolean?
 ---@return string

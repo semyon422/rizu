@@ -303,6 +303,13 @@ function Library:computeChartdiffs()
 	end)
 end
 
+---Values of plugin calculators that charts miss, see rizu.library.Calculators. Scans compute them too.
+function Library:computeCalculators()
+	self:addTask(function()
+		self.worker:computeCalculators()
+	end)
+end
+
 ---@param prefer_preview boolean
 function Library:computeIncompleteChartdiffs(prefer_preview)
 	self:addTask(function()

@@ -20,6 +20,8 @@ local ReplayComputer = require("sea.compute.ReplayComputer")
 local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
+local CalculatorTask = require("rizu.library.tasks.CalculatorTask")
+local Calculators = require("rizu.library.Calculators")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local HitsTask = require("rizu.library.tasks.HitsTask")
 local TaskContext = require("rizu.library.tasks.TaskContext")
@@ -67,6 +69,9 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 
 	self.hashingTask = HashingTask(self.fs, self.chartmetaGenerator, self.chartdiffGenerator, self.taskContext)
 	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo, self.taskContext, timer, function(hash)
+		return self:getChartsByHash(hash)
+	end)
+	self.calculatorTask = CalculatorTask(Calculators.list, self.db.models, self.chartsRepo, self.taskContext, timer, function(hash)
 		return self:getChartsByHash(hash)
 	end)
 
@@ -219,6 +224,8 @@ function Processor:computeLocation(path, location_id)
 	end)
 	print("caching complete", path, location_id)
 
+	self.calculatorTask:computeMissing()
+
 	self.taskContext:finish()
 end
 
@@ -265,6 +272,12 @@ end
 
 function Processor:computeChartdiffs()
 	self.difficultyTask:computeMissing()
+	self.calculatorTask:computeMissing()
+end
+
+---Values of plugin calculators that charts miss, see rizu.library.Calculators.
+function Processor:computeCalculators()
+	self.calculatorTask:computeMissing()
 end
 
 ---@param prefer_preview boolean

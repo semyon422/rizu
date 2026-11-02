@@ -17,7 +17,7 @@ local function formatDifficulty(value)
 		osu_diff = "osu!",
 		msd_diff = "MSD",
 		user_diff = "User",
-	})[value]
+	})[value] or value:match("^calc:(.+)$")
 end
 
 ---@param value string

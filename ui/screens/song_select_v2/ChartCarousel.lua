@@ -328,7 +328,7 @@ function ChartCarousel:addSet(index, content_y)
 	local is_selected = index == self.charts:getSelectedSetIndex()
 	local is_hovered = self.hover_kind == "set" and self.hover_set == index
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-	local diff = cv[diff_column] ---@type number?
+	local diff = cv[diff_column] or cv.difficulty ---@type number?
 	local diff_color = self.diff_color
 	if diff then
 		Color.diffToColor(diff_column, diff, diff_color)

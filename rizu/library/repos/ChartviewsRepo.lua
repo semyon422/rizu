@@ -242,7 +242,7 @@ function ChartviewsRepo:_buildViewSubquery(params, mode, use_preview)
 	end
 
 	if params.difficulty then
-		table.insert(columns, params.difficulty .. " AS difficulty")
+		table.insert(columns, QueryFragments.getDifficultyField(params.difficulty) .. " AS difficulty")
 	end
 
 	local sql = "SELECT " .. table.concat(columns, ", ")

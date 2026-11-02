@@ -1,3 +1,7 @@
+## Status
+
+`calculators` and `chart_difficulties` exist (migration 13), for plugin calculators only, see `docs/plugins.md` and `rizu/library/tasks/CalculatorTask.lua`. They differ from the design below: no `key` column, since a calculator with several outputs keeps the rest in its own storage; no `custom_user_id`; `value` is NULL when the calculator doesn't rate the chart; only rate 1000 is filled. Built-in calculators still write `chartdiffs`, and `chart_patterns` doesn't exist yet.
+
 ## Goal
 
 Move difficulty values out of `chartdiffs` columns and blobs into dedicated tables, so that:
