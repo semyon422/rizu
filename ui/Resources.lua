@@ -56,6 +56,9 @@ function Resources.load()
 
 	Resources.images = {
 		main_menu_bg = love.graphics.newImage(Resources.images_dir .. "/main_menu_bg.jpg"),
+		-- Full screen, so outside images_dir: everything there is packed into the atlas.
+		main_menu_bokeh = love.graphics.newImage("resources/yi/main_menu/bokeh.png"),
+		main_menu_petals = love.graphics.newImage("resources/yi/main_menu/petals.png"),
 	}
 
 	local packer = ImageAtlasPacker()

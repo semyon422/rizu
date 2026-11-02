@@ -5,6 +5,8 @@ local Resources = require("ui.Resources")
 local Sounds = require("ui.Sounds")
 local UiActions = require("ui.UiActions")
 local MainMenuBackground = require("ui.screens.main_menu.MainMenuBackground")
+local BackgroundLayers = require("ui.screens.main_menu_v2.BackgroundLayers")
+local BackgroundPanel = require("ui.screens.main_menu_v2.BackgroundPanel")
 local WelcomeTransition = require("ui.screens.main_menu.WelcomeTransition")
 local PlayButton = require("ui.screens.main_menu_v2.PlayButton")
 local MenuButton = require("ui.screens.main_menu_v2.MenuButton")
@@ -37,12 +39,17 @@ local SEPARATOR_HEIGHT = 26
 local MULTIPLAYER_COLOR = {0x3E / 255, 0xAE / 255, 0xCB / 255, 1}
 local LOCATIONS_COLOR = {0xD4 / 255, 0x87 / 255, 0x3E / 255, 1}
 local SETTINGS_COLOR = {0x6B / 255, 0x68 / 255, 0x80 / 255, 1}
+-- Below the player card.
+local BACKGROUND_PANEL_TOP = 132
 -- Darkens the top so the player card and top bar read on any background.
 local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 
 ---@class ui.screens.main_menu_v2.MainMenuV2 : gui.Screen
 ---@operator call: ui.screens.main_menu_v2.MainMenuV2
 ---@field ui ui.UserInterface
+---@field background ui.screens.main_menu.MainMenuBackground
+---@field background_layers ui.screens.main_menu_v2.BackgroundLayers
+---@field background_panel ui.screens.main_menu_v2.BackgroundPanel
 ---@field content gui.ShadowCompositeView
 ---@field play_button ui.screens.main_menu_v2.PlayButton
 ---@field top_bar gui.layout.FlowContainer
@@ -62,8 +69,15 @@ function MainMenuV2:new(ui)
 
 	self.root:setPivot(0.5, 0.5)
 
-	local background = self.root:add(MainMenuBackground(Resources.images.main_menu_bg))
-	background:anchorFill(0, 0, 0, 0)
+	self.background_layers = BackgroundLayers(ui.config)
+	self.background = self.root:add(MainMenuBackground(Resources.images.main_menu_bg))
+	self.background:anchorFill(0, 0, 0, 0)
+	self:refreshBackground()
+	ui.config:subscribeAll(function(_, _, key)
+		if key:find("^main_menu_") then
+			self:refreshBackground()
+		end
+	end)
 	self.root:add(Scrim(TOP_SCRIM)):anchorFill(0, 0, 0, 0)
 
 	-- Everything above the background casts a soft shadow, like on the result screen.
@@ -87,6 +101,15 @@ function MainMenuV2:new(ui)
 	self.music_strip:setAlignment(0, 1):addPosition(EDGE, -BOTTOM)
 	self.status_line = self.content:add(StatusLine(ui))
 	self.status_line:setSize(0, StatusLine.HEIGHT):setAlignment(0, 1):fillWidth(0, 0)
+
+	-- Over the content, but outside its shadow pass.
+	self.background_panel = self.root:add(BackgroundPanel(self.background_layers, ui.localization, ui.api.notifications))
+	self.background_panel:setAlignment(0, 0):addPosition(EDGE, BACKGROUND_PANEL_TOP)
+end
+
+function MainMenuV2:refreshBackground()
+	local layers = self.background_layers
+	self.background:setLayers(layers:getLayers(), layers:getStrength())
 end
 
 ---@private
@@ -107,6 +130,9 @@ function MainMenuV2:createTopBar()
 	end)
 	bar:add(self:separator())
 	local sprites = Resources.sprites
+	bar:add(HeaderButton(sprites.icon_image, function()
+		self.background_panel:toggle()
+	end))
 	bar:add(HeaderButton(sprites.icon_music, function()
 		ui:setScreen(ui.music_player, true)
 	end))
@@ -184,6 +210,7 @@ end
 
 function MainMenuV2:exit()
 	Screen.exit(self)
+	self.background_panel:close()
 	self.root:scaleTo(0.95, 0.95, 0.2)
 	self.root:fadeOut(0.3, "OutCubic")
 	return true
@@ -191,6 +218,7 @@ end
 
 ---@param inputs gui.Inputs
 function MainMenuV2:onHandleInputs(inputs)
+	if self.background_panel.is_open then return end
 	if inputs:consumeActionJustPressed(UiActions.accept) then
 		self:play()
 	end

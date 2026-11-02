@@ -5,6 +5,10 @@ local Localization = require("ui.localization.Localization")
 local Resources = require("ui.Resources")
 local FakeGameApi = require("rizu.api.fake.FakeGameApi")
 local PopupContainer = require("ui.views.PopupContainer")
+local BackgroundLayers = require("ui.screens.main_menu_v2.BackgroundLayers")
+local LayerRow = require("ui.screens.main_menu_v2.LayerRow")
+local FakeFilesystem = require("fs.FakeFilesystem")
+local UiConfig = require("ui.UiConfig")
 
 local test = {}
 
@@ -15,7 +19,8 @@ local function newScreen(online)
 	api.scores.session_start = os.time() - 3725
 	for k, v in pairs(online or {}) do api.online[k] = v end
 	local popup_container = PopupContainer()
-	local ui = {localization = Localization(), api = api, overlay = {popup_container = popup_container}}
+	local ui = {localization = Localization(), api = api, overlay = {popup_container = popup_container},
+		config = UiConfig(FakeFilesystem(), "ui.json")}
 	local screen = MainMenuV2(ui --[[@as ui.UserInterface]]) ---@diagnostic disable-line: missing-fields
 	screen.root:add(popup_container) -- the overlay's, over the screen
 	screen:load()
@@ -343,6 +348,58 @@ function test.entering_again_counts_plays_made_since(t)
 
 	t:eq(screen.session_panel.stats.plays, 3)
 	t:eq(screen.player_card.msd.text, "24.50")
+end
+
+---@param t testing.T
+function test.a_picked_image_becomes_a_parallax_layer(t)
+	setup()
+	local directory = BackgroundLayers.directory
+	BackgroundLayers.directory = "test_main_menu_background"
+	local screen = newScreen()
+	local layers, panel = screen.background_layers, screen.background_panel
+	love.filesystem.write("test_bg_source.png", love.image.newImageData(4, 2):encode("png"):getString())
+	love.filesystem.write("test_bg_source.txt", "not an image")
+	local save = love.filesystem.getRealDirectory("test_bg_source.png") -- an absolute path, as the dialog gives
+	t:eq(#screen.background.layers, 3, "the default art")
+	t:eq(screen.background.layers[3].image, Resources.images.main_menu_petals)
+
+	-- The panel picks the front layer through the file dialog.
+	panel.file_picker = {open = function(_, _, _, callback) callback(save .. "/test_bg_source.png") end} ---@diagnostic disable-line: assign-type-mismatch
+	panel:open()
+	panel:pick("front") ---@diagnostic disable-line: invisible
+	local path = "test_main_menu_background/front/test_bg_source.png"
+	t:eq(layers:getPath("front"), path)
+	t:assert(love.filesystem.getInfo(path), "copied into the save directory")
+	t:eq(#screen.background.layers, 3)
+	t:eq(screen.background.layers[3].image:getWidth(), 4)
+	screen:update(0)
+	local front_row ---@type ui.screens.main_menu_v2.LayerRow?
+	for _, row in ipairs(panel.form.rows.children) do
+		---@cast row ui.screens.main_menu_v2.LayerRow
+		if LayerRow * row and row.file_name == "test_bg_source.png" then front_row = row end
+	end
+	t:assert(front_row and #front_row.buttons == 3, "a picked layer can go back to the default or be removed")
+	screen:flush()
+	screen:draw()
+	love.graphics.present()
+
+	local ok, err = layers:import("front", save .. "/test_bg_source.txt")
+	t:assert(not ok and err, "a file that is not an image is refused")
+	t:eq(layers:getPath("front"), path, "and keeps the working image")
+
+	layers:remove("front")
+	t:assert(not love.filesystem.getInfo(path), "the copy is deleted")
+	t:eq(#screen.background.layers, 2, "an empty layer is not drawn")
+	layers:reset("front")
+	t:eq(screen.background.layers[3].image, Resources.images.main_menu_petals)
+
+	panel:close()
+	t:eq(panel.is_open, false)
+	love.filesystem.remove("test_bg_source.png")
+	love.filesystem.remove("test_bg_source.txt")
+	love.filesystem.remove("test_main_menu_background/front")
+	love.filesystem.remove("test_main_menu_background")
+	BackgroundLayers.directory = directory
 end
 
 return test

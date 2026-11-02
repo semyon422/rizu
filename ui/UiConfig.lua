@@ -8,6 +8,16 @@ local keys = {
 	select_background_brightness = "select_background_brightness",
 	result_background_brightness = "result_background_brightness",
 	gameplay_background_brightness = "gameplay_background_brightness",
+	main_menu_parallax = "main_menu_parallax",
+	main_menu_back_image = "main_menu_back_image",
+	main_menu_back_depth = "main_menu_back_depth",
+	main_menu_back_fit = "main_menu_back_fit",
+	main_menu_middle_image = "main_menu_middle_image",
+	main_menu_middle_depth = "main_menu_middle_depth",
+	main_menu_middle_fit = "main_menu_middle_fit",
+	main_menu_front_image = "main_menu_front_image",
+	main_menu_front_depth = "main_menu_front_depth",
+	main_menu_front_fit = "main_menu_front_fit",
 	gameplay_viewport_x = "gameplay_viewport_x",
 	gameplay_viewport_y = "gameplay_viewport_y",
 	gameplay_viewport_sx = "gameplay_viewport_sx",
@@ -62,6 +72,17 @@ function UiConfig:new(fs, path)
 	self:setDefaultNumber(keys.select_background_brightness, 1, 0, 1, 0.01)
 	self:setDefaultNumber(keys.result_background_brightness, 1, 0, 1, 0.01)
 	self:setDefaultNumber(keys.gameplay_background_brightness, 0.3, 0, 1, 0.01)
+	-- Main menu background layers: an image in the save directory, "" for the default art, "none" for no image.
+	self:setDefaultNumber(keys.main_menu_parallax, 10, 0, 40, 1)
+	self:setDefaultString(keys.main_menu_back_image, "")
+	self:setDefaultNumber(keys.main_menu_back_depth, 1, 0, 3, 0.1)
+	self:setDefaultChoice(keys.main_menu_back_fit, "fill", {"fill", "bottom"})
+	self:setDefaultString(keys.main_menu_middle_image, "")
+	self:setDefaultNumber(keys.main_menu_middle_depth, 1.5, 0, 3, 0.1)
+	self:setDefaultChoice(keys.main_menu_middle_fit, "fill", {"fill", "bottom"})
+	self:setDefaultString(keys.main_menu_front_image, "")
+	self:setDefaultNumber(keys.main_menu_front_depth, 2, 0, 3, 0.1)
+	self:setDefaultChoice(keys.main_menu_front_fit, "fill", {"fill", "bottom"})
 	self:setDefaultKeyBindings(keys.command_palette_bindings, {{key = ";", shift = true}})
 	self:setDefaultKeyBindings(keys.open_config_bindings, {{key = "o", control = true}})
 	self:setDefaultKeyBindings(keys.accept_bindings, {{key = "return"}, {key = "kpenter"}})

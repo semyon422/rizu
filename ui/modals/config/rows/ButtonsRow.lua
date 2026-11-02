@@ -17,6 +17,7 @@ local ButtonsRow = ButtonRow + {}
 local BUTTON_HEIGHT = 30
 local BUTTON_PADDING_X = 14
 local GAP = 6
+ButtonsRow.GAP = GAP
 
 ---@param params ui.views.form.ButtonRow.Params
 function ButtonsRow:new(params)
@@ -30,6 +31,11 @@ function ButtonsRow:new(params)
 	self:setSize(SettingRow.WIDTH, SettingRow.HEIGHT)
 end
 
+---@return number x Left edge of the first button.
+function ButtonsRow:getButtonsX()
+	return SettingRow.PADDING_X
+end
+
 ---@param screen_x number
 ---@param screen_y number
 ---@return integer? index
@@ -39,7 +45,7 @@ function ButtonsRow:getIndexAt(screen_x, screen_y)
 	if y < top or y > top + BUTTON_HEIGHT then
 		return
 	end
-	local left = SettingRow.PADDING_X
+	local left = self:getButtonsX()
 	for index, width in ipairs(self.button_widths) do
 		if x >= left and x <= left + width then
 			return index
@@ -86,7 +92,7 @@ function ButtonsRow:draw()
 	local y = math.floor((self.height - BUTTON_HEIGHT) / 2)
 	local text_y = math.floor(y + (BUTTON_HEIGHT - self.font:getHeight()) / 2)
 	love.graphics.setFont(self.font)
-	local x = SettingRow.PADDING_X
+	local x = self:getButtonsX()
 	for index, button in ipairs(self.buttons) do
 		local width = self.button_widths[index]
 		local active = index == hovered or index == cursor
