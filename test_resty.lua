@@ -26,6 +26,7 @@ tio.blacklist = {
 	".kilo",
 	"3rd-deps",
 	"tree",
+	"tmp/",
 	"userdata",
 	"build/deps",
 	"releases",

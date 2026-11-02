@@ -163,6 +163,11 @@ function test.session_panel_and_buttons_stack_above_play(t)
 	t:eq(#buttons.children, 5)
 
 	t:eq(panel.stats.firsts, 2)
+	local time = os.time
+	os.time = function() return screen.ui.api.scores:getSessionStart() + 3725 end ---@diagnostic disable-line: duplicate-set-field
+	local ok, err = pcall(panel.update, panel, 0)
+	os.time = time
+	assert(ok, err)
 	t:eq(panel.time_text, "1:02:05")
 	screen:draw()
 end
