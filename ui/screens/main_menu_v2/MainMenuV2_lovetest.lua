@@ -190,7 +190,7 @@ function test.music_strip_follows_the_selection_and_the_pause(t)
 	local screen = newScreen()
 	local strip, api = screen.music_strip, screen.ui.api
 	screen:flush()
-	local next_button, pause, previous = strip.children[1], strip.children[2], strip.children[3]
+	local next_button, pause, previous = strip.children[2], strip.children[3], strip.children[4]
 	t:eq(next_button.x + next_button.width, strip.width - 8)
 	t:eq(pause.x + pause.width, next_button.x)
 	t:eq(previous.x + previous.width, pause.x)
