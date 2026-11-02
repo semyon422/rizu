@@ -1,5 +1,12 @@
 local pkg = require("aqua.pkg")
 
+-- A LÖVE thread (no arg) shares the require path with the main thread, which adds package folders to it.
+if love and love.filesystem and not arg then
+	pkg.import_love()
+	pkg.export_lua()
+	return
+end
+
 -- Common paths
 pkg.addc()
 pkg.addc("3rd-deps/lib")
