@@ -37,6 +37,8 @@ function FakeOnline:isLoggedIn() return true end
 function FakeOnline:isAuthenticationResolved() return true end
 function FakeOnline:getUsername() return "Player" end
 function FakeOnline:getAvatarUrl() return nil end
+function FakeOnline:getChatMessages() return {} end
+function FakeOnline:sendChatMessage(text, f) f(true) end
 function FakeOnline:getOnlineCount() return #self.players end
 function FakeOnline:getOnlinePlayers()
 	local players = {} ---@type rizu.api.Online.Player[]

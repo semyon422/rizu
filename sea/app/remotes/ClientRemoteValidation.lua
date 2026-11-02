@@ -2,9 +2,11 @@ local class = require("class")
 local OnlineClientRemoteValidation = require("rizu.online.remotes.OnlineClientRemoteValidation")
 local ComputeDataProviderRemoteValidation = require("sea.compute.remotes.ComputeDataProviderRemoteValidation")
 local MultiplayerClientRemoteValidation = require("sea.multi.remotes.MultiplayerClientRemoteValidation")
+local ChatClientRemoteValidation = require("sea.chat.remotes.ChatClientRemoteValidation")
 
 ---@class sea.ClientRemoteValidation: sea.ClientRemote
 ---@field multiplayer sea.MultiplayerClientRemoteValidation
+---@field chat sea.chat.remotes.ChatClientRemoteValidation
 ---@operator call: sea.ClientRemoteValidation
 local ClientRemoteValidation = class()
 
@@ -23,6 +25,9 @@ function ClientRemoteValidation:__index(k)
 	elseif k == "multiplayer" then
 		self.multiplayer = MultiplayerClientRemoteValidation(self.remote.multiplayer)
 		return self.multiplayer
+	elseif k == "chat" then
+		self.chat = ChatClientRemoteValidation(self.remote.chat)
+		return self.chat
 	elseif k == "compute_data_provider" then
 		self.compute_data_provider = ComputeDataProviderRemoteValidation(self.remote.compute_data_provider)
 		return self.compute_data_provider

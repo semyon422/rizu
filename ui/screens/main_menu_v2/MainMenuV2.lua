@@ -15,6 +15,7 @@ local PlayerCard = require("ui.screens.main_menu_v2.PlayerCard")
 local MusicStrip = require("ui.screens.main_menu_v2.MusicStrip")
 local StatusLine = require("ui.screens.main_menu_v2.StatusLine")
 local PresenceButton = require("ui.screens.main_menu_v2.PresenceButton")
+local ChatBox = require("ui.screens.main_menu_v2.ChatBox")
 local Scrim = require("ui.screens.song_select_v2.Scrim")
 local View = require("gui.View")
 local FlowContainer = require("gui.layout.FlowContainer")
@@ -63,6 +64,7 @@ local TOP_SCRIM = {{0, 0.85}, {0.1, 0.7}, {0.24, 0}, {1, 0}}
 ---@field buttons gui.layout.FlowContainer
 ---@field session_panel ui.screens.main_menu_v2.SessionPanel
 ---@field music_strip ui.screens.main_menu_v2.MusicStrip
+---@field chat_box ui.screens.main_menu_v2.ChatBox
 ---@field status_line ui.screens.main_menu_v2.StatusLine
 local MainMenuV2 = Screen + {}
 
@@ -102,6 +104,8 @@ function MainMenuV2:new(ui)
 	self.player_card:setAlignment(0, 0):addPosition(EDGE, EDGE)
 	self.music_strip = self.content:add(MusicStrip(ui))
 	self.music_strip:setAlignment(0, 1):addPosition(EDGE, -BOTTOM)
+	self.chat_box = self.content:add(ChatBox(ui.api.online, ui.api.notifications, ui.localization))
+	self.chat_box:setSize(400, 260):setAlignment(0, 1):addPosition(EDGE, -BOTTOM - 140)
 	self.status_line = self.content:add(StatusLine(ui))
 	self.status_line:setSize(0, StatusLine.HEIGHT):setAlignment(0, 1):fillWidth(0, 0)
 
@@ -246,7 +250,7 @@ end
 
 ---@param inputs gui.Inputs
 function MainMenuV2:onHandleInputs(inputs)
-	if self.background_panel.is_open then return end
+	if self.background_panel.is_open or self.chat_box.input.focused then return end
 	if inputs:consumeActionJustPressed(UiActions.accept) then
 		self:play()
 	end

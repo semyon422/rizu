@@ -52,6 +52,7 @@ return {
 	["main_menu.background_empty"] = "No image",
 	["main_menu.background_dialog_title"] = "Choose a background image",
 	["main_menu.background_load_failed"] = "Could not load the image",
+	["main_menu.chat_send_failed"] = "Message not sent",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Locations",
 	["main_menu.settings"] = "Settings",

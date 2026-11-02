@@ -52,6 +52,7 @@ return {
 	["main_menu.background_empty"] = "Нет картинки",
 	["main_menu.background_dialog_title"] = "Выберите картинку для фона",
 	["main_menu.background_load_failed"] = "Не удалось загрузить картинку",
+	["main_menu.chat_send_failed"] = "Сообщение не отправлено",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "Папки с картами",
 	["main_menu.settings"] = "Настройки",

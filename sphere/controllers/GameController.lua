@@ -87,6 +87,7 @@ local Gamemodes = require("rizu.gameplay.Gamemodes")
 local GlobalTimer = require("rizu.game.GlobalTimer")
 
 local MultiplayerClient = require("sea.multi.MultiplayerClient")
+local ChatClient = require("sea.chat.ChatClient")
 
 local DlcManager = require("rizu.dlc.DlcManager")
 
@@ -129,7 +130,8 @@ function GameController:new()
 
 	self.online_client = OnlineClient()
 	self.multiplayer_client = MultiplayerClient()
-	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client))
+	self.chat_client = ChatClient()
+	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client, self.chat_client))
 	self.seaClient = SeaClient(self.online_client, self.client_remote, self.network)
 	self.difftables_sync = DifftablesSync(self.seaClient.remote.difftables, self.persistence.library.difftablesRepo)
 	self.online_wrapper = OnlineWrapper(self.online_client, self.seaClient.remote)
@@ -137,6 +139,7 @@ function GameController:new()
 	self.onlineModel = OnlineModel(self.persistence.configModel, self.seaClient)
 
 	self.multiplayer_client.server_remote = self.seaClient.remote
+	self.chat_client.server_remote = self.seaClient.remote
 
 	self.skinRegistry = SkinRegistry(self.fs, self.settings)
 	self.inputModel = InputModel(self.persistence.configModel)

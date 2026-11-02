@@ -32,6 +32,7 @@ local OsuBeatmaps = require("sea.osu.OsuBeatmaps")
 local ExternalRanked = require("sea.difftables.ExternalRanked")
 local UserConnections = require("sea.app.UserConnections")
 local Multiplayer = require("sea.app.Multiplayer")
+local Chat = require("sea.chat.Chat")
 
 -- How many scores the clients' feed of recent plays shows.
 local RECENT_SCORES = 10
@@ -127,6 +128,7 @@ function Domain:new(repos, app_config, fs, replay_computer, compute_version)
 
 	self.user_connections = UserConnections(repos.user_connections_repo, repos.users_repo)
 	self.multiplayer = Multiplayer(repos.multiplayer_repo, self.user_connections)
+	self.chat = Chat(self.user_connections)
 end
 
 ---@param f function

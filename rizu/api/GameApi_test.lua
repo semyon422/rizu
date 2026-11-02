@@ -6,6 +6,7 @@ local Input = require("rizu.api.Input")
 local Skins = require("rizu.api.Skins")
 local OnlineClient = require("rizu.online.OnlineClient")
 local MultiplayerClient = require("sea.multi.MultiplayerClient")
+local ChatClient = require("sea.chat.ChatClient")
 local TimeRateModel = require("sphere.models.TimeRateModel")
 local ModifierSelectModel = require("sphere.models.ModifierSelectModel")
 local GameApi = require("rizu.api.GameApi")
@@ -23,6 +24,7 @@ function test.online(t)
 	local game = {
 		online_client = client,
 		multiplayer_client = multiplayer,
+		chat_client = ChatClient(),
 		avatar_cache = {get = function(_, url) return url and "image of " .. url end},
 		onlineModel = {authManager = {
 			login = function(_, email, password) logins[#logins + 1] = email .. ":" .. password end,
@@ -107,6 +109,29 @@ function test.online(t)
 	t:eq(#results, 2, "a login that has ended does not hear the next one")
 	online:logout()
 	t:tdeq(logins, {"a@b:pw", "c@d:pw", "logout"})
+end
+
+---@param t testing.T
+function test.online_chat_send(t)
+	local chat = ChatClient()
+	local game = {
+		online_client = OnlineClient(),
+		multiplayer_client = MultiplayerClient(),
+		chat_client = chat,
+		onlineModel = {authManager = {}},
+	}
+	local online = Online(game --[[@as any]])
+	local results = {}
+	local function record(ok, err) results[#results + 1] = {ok, err} end
+
+	chat.server_remote = {chat = {sendMessage = function() error("aqua/coext.lua:66: [client] not connected", 0) end}} --[[@as any]]
+	online:sendChatMessage("hi", record)
+	chat.server_remote = {chat = {sendMessage = function() return nil, "not logged in" end}} --[[@as any]]
+	online:sendChatMessage("hi", record)
+	chat.server_remote = {chat = {sendMessage = function() return true end}} --[[@as any]]
+	online:sendChatMessage("hi", record)
+
+	t:tdeq(results, {{false, "[client] not connected"}, {false, "not logged in"}, {true}})
 end
 
 ---@param t testing.T

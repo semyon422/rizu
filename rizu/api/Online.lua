@@ -1,4 +1,5 @@
 local Events = require("rizu.api.Events")
+local icc_co = require("icc.co")
 
 --[[
 The player's account and the connection to the server.
@@ -14,6 +15,7 @@ The player's account and the connection to the server.
 ---| "online_count_changed" # getOnlineCount() has a new answer. No arguments.
 ---| "online_players_changed" # getOnlinePlayers() has a new answer. No arguments.
 ---| "recent_scores_changed" # getRecentScores() has a new answer. No arguments.
+---| "chat_message" # A message arrived in the chat. Arguments: sea.chat.ChatMessage.
 ---| "player_joined" # Another player came online while the game was connected. Arguments: rizu.api.Online.Player.
 
 ---@class rizu.api.Online.Player
@@ -34,6 +36,7 @@ The player's account and the connection to the server.
 ---@field on fun(self: rizu.api.Online, event: rizu.api.Online.Event, f: function): fun()
 ---@field private client rizu.OnlineClient
 ---@field private multiplayer sea.MultiplayerClient
+---@field private chat sea.chat.ChatClient
 ---@field private avatars rizu.online.AvatarCache
 ---@field private auth rizu.AuthManager
 ---@field private arrivals {[string]: integer} order in which the online players came, by name, latest highest
@@ -119,6 +122,10 @@ function Online:new(game)
 		then
 			self:emit("account_changed")
 		end
+	end)
+	self.chat = game.chat_client
+	self.chat:onChanged(function(event)
+		self:emit("chat_message", event.message)
 	end)
 	self.multiplayer = game.multiplayer_client
 	-- The server pushes the whole list whenever a player connects, logs in or leaves.
@@ -218,6 +225,24 @@ function Online:login(email, password, f)
 		end
 	end)
 	self.auth:login(email, password)
+end
+
+---@return sea.chat.ChatMessage[]
+function Online:getChatMessages() return self.chat.messages end
+
+---Sends to the global chat. f gets true when the server took it, otherwise false and the reason,
+---such as being offline. The message itself comes back as "chat_message".
+---@param text string
+---@param f fun(ok: boolean, err: string?)
+function Online:sendChatMessage(text, f)
+	icc_co.pwrap(function() return self.chat:sendMessageAsync(text) end, function(ok, sent, err)
+		if not ok then
+			-- A thrown error, such as "aqua/coext.lua:66: [client] not connected": drop the position.
+			f(false, (tostring(sent):gsub("^[^:]+:%d+: ", "")))
+			return
+		end
+		f(sent == true, err)
+	end)()
 end
 
 function Online:logout() self.auth:logout() end

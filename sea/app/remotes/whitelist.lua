@@ -43,6 +43,9 @@ local whitelist = {
 		startMatch = true,
 		stopMatch = true,
 	},
+	chat = {
+		sendMessage = true,
+	},
 	getUser = true,
 	getSession = true,
 	heartbeat = true,

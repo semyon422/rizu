@@ -53,6 +53,7 @@ return {
 	["main_menu.background_empty"] = "无图片",
 	["main_menu.background_dialog_title"] = "选择背景图片",
 	["main_menu.background_load_failed"] = "无法加载图片",
+	["main_menu.chat_send_failed"] = "消息未发送",
 	["main_menu.dlc"] = "DLC",
 	["main_menu.locations"] = "本地文件夹",
 	["main_menu.settings"] = "设置",

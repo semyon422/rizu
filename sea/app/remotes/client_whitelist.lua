@@ -18,6 +18,9 @@ local whitelist = {
 		syncChart = true,
 		syncReplayBase = true,
 	},
+	chat = {
+		addMessage = true,
+	},
 	compute_data_provider = {
 		getChartData = true,
 		getIidxMetadata = true,

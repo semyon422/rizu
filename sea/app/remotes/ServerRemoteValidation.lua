@@ -4,9 +4,11 @@ local Session = require("sea.access.Session")
 local SubmissionServerRemoteValidation = require("sea.chart.remotes.SubmissionServerRemoteValidation")
 local DifftablesServerRemoteValidation = require("sea.difftables.remotes.DifftablesServerRemoteValidation")
 local MultiplayerServerRemoteValidation = require("sea.app.remotes.MultiplayerServerRemoteValidation")
+local ChatServerRemoteValidation = require("sea.chat.remotes.ChatServerRemoteValidation")
 
 ---@class sea.ServerRemoteValidation: sea.ServerRemote
 ---@field multiplayer sea.MultiplayerServerRemoteValidation
+---@field chat sea.chat.remotes.ChatServerRemoteValidation
 ---@operator call: sea.ServerRemoteValidation
 local ServerRemoteValidation = class()
 
@@ -18,6 +20,7 @@ function ServerRemoteValidation:new(remote)
 	self.leaderboards = remote.leaderboards
 	self.difftables = DifftablesServerRemoteValidation(remote.difftables)
 	self.multiplayer = MultiplayerServerRemoteValidation(remote.multiplayer)
+	self.chat = ChatServerRemoteValidation(remote.chat)
 end
 
 ---@return sea.User
