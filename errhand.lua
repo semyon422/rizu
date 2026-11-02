@@ -118,7 +118,6 @@ return function(msg)
 	trace = typecheck.fix_traceback(trace)
 
 	print(message .. "\n" .. trace)
-	love.filesystem.write("userdata/lasterror.txt", message .. "\n" .. trace)
 
 	if love.graphics and love.graphics.isActive() then
 		love.graphics.reset()

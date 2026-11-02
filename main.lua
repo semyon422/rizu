@@ -100,6 +100,8 @@ love.filesystem.unmountCommonPath("appsavedir")
 love.filesystem.unmountFullPath(root)
 assert(love.filesystem.mountFullPath(root, "/", "readwrite", false))
 
+require("log_print").install("userdata/log.txt", true)
+
 pcall(require, "luamidi")
 
 setmetatable(_G, {__newindex = function(a, b, c)

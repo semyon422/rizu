@@ -36,7 +36,7 @@ userdata/urls.lua
 userdata/filters.lua
 userdata/play.lua
 userdata/avatar.png
-userdata/lasterror.txt
+userdata/log.txt
 userdata/settings.json
 userdata/ui.json
 userdata/mapperatorinator.json
