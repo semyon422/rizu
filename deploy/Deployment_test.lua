@@ -29,6 +29,20 @@ local function joinedCommands(shell)
 end
 
 ---@param t testing.T
+function test.workflow_fetches_without_submodules_before_checkout(t)
+	local file = assert(io.open(".github/workflows/deploy.yml", "rb"))
+	local workflow = file:read("*a")
+	file:close()
+	---@type integer
+	local fetch = assert(workflow:find('git fetch --no-recurse-submodules --no-tags origin "$1"', 1, true))
+	---@type integer
+	local checkout = assert(workflow:find('git checkout --detach "$1"', 1, true))
+	---@type integer
+	local submodules = assert(workflow:find("git submodule update --init --recursive", 1, true))
+	t:assert(fetch < checkout and checkout < submodules)
+end
+
+---@param t testing.T
 function test.lock_wraps_mutating_command(t)
 	local deployment, shell = createDeployment()
 	deployment:runLocked("build-deploy", string.rep("a", 40))
@@ -45,7 +59,7 @@ function test.prepare_commit_checks_out_exact_revision(t)
 	shell.outputs["git rev-parse HEAD"] = commit .. "\n"
 	deployment:prepareCommit(commit)
 	local commands = joinedCommands(shell)
-	t:assert(commands:find('git fetch --no-tags origin "' .. commit .. '"', 1, true))
+	t:assert(commands:find('git fetch --no-recurse-submodules --no-tags origin "' .. commit .. '"', 1, true))
 	t:assert(commands:find('git checkout --detach "' .. commit .. '"', 1, true))
 	t:assert(commands:find("git submodule update --init --recursive", 1, true))
 end

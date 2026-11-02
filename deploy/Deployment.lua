@@ -104,7 +104,7 @@ end
 function Deployment:prepareCommit(commit)
 	assert(commit:match("^[0-9a-f]+$") and #commit == 40, "commit must be a full lowercase SHA")
 	self.shell:execute("test -z \"$(git status --porcelain --untracked-files=no)\"")
-	self.shell:execute("git fetch --no-tags origin " .. quote(commit))
+	self.shell:execute("git fetch --no-recurse-submodules --no-tags origin " .. quote(commit))
 	self.shell:execute("git cat-file -e " .. quote(commit .. "^{commit}"))
 	self.shell:execute("git checkout --detach " .. quote(commit))
 	self.shell:execute("git submodule update --init --recursive")

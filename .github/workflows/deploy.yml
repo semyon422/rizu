@@ -50,7 +50,7 @@ jobs:
           exec 9>.deploy.lock
           flock --wait 7200 9
           test -z "$(git status --porcelain --untracked-files=no)"
-          git fetch --no-tags origin "$1"
+          git fetch --no-recurse-submodules --no-tags origin "$1"
           git cat-file -e "$1^{commit}"
           git checkout --detach "$1"
           git submodule update --init --recursive

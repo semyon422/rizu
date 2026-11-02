@@ -62,7 +62,7 @@ The reverse proxy or download server should serve `/home/semyon422/rizu/public/c
 - Explicit and implicit rollback use the same health gate before switching server and public pointers.
 - Only the current and previous server and published client releases are retained. After successful publication, all `build/release/` copies and stale staging directories are removed because deployed immutable directories are the durable rollback copies.
 - `build-deploy`, `deploy`, and `rollback` acquire the same `flock` lock. Concurrent automation or operators wait up to two hours instead of racing state and service changes.
-- Automated builds fetch and checkout the full pushed SHA rather than deploying a moving branch name. Tracked changes are rejected before and after checkout/submodule synchronization.
+- Automated builds fetch and checkout the full pushed SHA rather than deploying a moving branch name. Fetch uses `--no-recurse-submodules` so unavailable gitlinks in intermediate history cannot block deployment; recursive submodule synchronization runs only after checkout of the requested revision. Tracked changes are rejected before and after checkout/submodule synchronization.
 - Application rollback does not roll back persistent database migrations. A release that changes storage encoding needs a database-compatible previous release or a separately planned data rollback that preserves subsequent writes. Container health alone does not prove that an older application understands the migrated data. In particular, server schema 12 normalizes compute states to integer enums, which pre-converter releases cannot safely read; see `sea/compute/spec.md`.
 
 ## Invariants
