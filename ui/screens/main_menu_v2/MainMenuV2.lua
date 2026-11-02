@@ -105,7 +105,7 @@ function MainMenuV2:new(ui)
 	self.music_strip = self.content:add(MusicStrip(ui))
 	self.music_strip:setAlignment(0, 1):addPosition(EDGE, -BOTTOM)
 	self.chat_box = self.content:add(ChatBox(ui.api.online, ui.api.notifications, ui.localization))
-	self.chat_box:setSize(400, 260):setAlignment(0, 1):addPosition(EDGE, -BOTTOM - 140)
+	self.chat_box:setSize(MusicStrip.WIDTH, 300):setAlignment(0, 1):addPosition(EDGE, -BOTTOM - 140)
 	self.status_line = self.content:add(StatusLine(ui))
 	self.status_line:setSize(0, StatusLine.HEIGHT):setAlignment(0, 1):fillWidth(0, 0)
 
@@ -119,6 +119,7 @@ function MainMenuV2:new(ui)
 		{view = self.player_card, x = -SLIDE, y = 0, delay = 0.1},
 		{view = self.status_line, x = 0, y = SLIDE / 2, delay = 0.1},
 		{view = self.music_strip, x = -SLIDE, y = 0, delay = 0.25},
+		{view = self.chat_box, x = -SLIDE, y = 0, delay = 0.3},
 		{view = self.session_panel, x = SLIDE, y = 0, delay = 0.1 + #self.buttons.children * 0.05},
 		{view = self.play_button, x = SLIDE, y = 0, delay = 0},
 	}

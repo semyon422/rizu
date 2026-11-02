@@ -190,6 +190,7 @@ local keys = {
 	misc = {
 		auto_update = "misc.auto_update",
 		mute_on_unfocus = "misc.mute_on_unfocus",
+		censor_chat = "misc.censor_chat",
 		show_fps = "misc.show_fps",
 		show_tasks = "misc.show_tasks",
 		show_debug_menu = "misc.show_debug_menu",
@@ -392,6 +393,7 @@ function Settings.createConfig(filesystem)
 
 	config:setDefaultBoolean(m.auto_update, true)
 	config:setDefaultBoolean(m.mute_on_unfocus, false)
+	config:setDefaultBoolean(m.censor_chat, true)
 	config:setDefaultBoolean(m.show_fps, false)
 	config:setDefaultBoolean(m.show_tasks, false)
 	config:setDefaultBoolean(m.show_debug_menu, false)

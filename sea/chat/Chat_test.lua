@@ -1,6 +1,7 @@
 local Chat = require("sea.chat.Chat")
 local ChatClient = require("sea.chat.ChatClient")
 local User = require("sea.access.User")
+local UserRole = require("sea.access.UserRole")
 
 local test = {}
 
@@ -28,6 +29,20 @@ function test.broadcasts_trimmed_message_from_logged_in_user(t)
 	t:eq(msg.user_id, 5)
 	t:eq(msg.user_name, "nimue")
 	t:eq(msg.text, "hello")
+end
+
+---@param t testing.T
+function test.tags_admins_and_donators(t)
+	local chat = Chat(fake_connections({}))
+	local user = User()
+	user.id = 5
+	user.name = "nimue"
+
+	t:eq(assert(chat:send(user, "hi")).role, nil)
+	user.user_roles = {UserRole("donator", 0)}
+	t:eq(assert(chat:send(user, "hi")).role, "donator")
+	user.user_roles = {UserRole("owner", 0)}
+	t:eq(assert(chat:send(user, "hi")).role, "admin", "an owner shows as an admin")
 end
 
 ---@param t testing.T
@@ -66,6 +81,10 @@ function test.client_censors_profanity(t)
 	local client = ChatClient()
 	client:addMessage({user_id = 1, user_name = "a", text = "what the fuck", time = 0})
 	t:eq(client.messages[1].text, "what the ***")
+
+	local uncensored = ChatClient(nil, function() return false end)
+	uncensored:addMessage({user_id = 1, user_name = "a", text = "what the fuck", time = 0})
+	t:eq(uncensored.messages[1].text, "what the fuck", "with the option off")
 end
 
 return test

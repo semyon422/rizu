@@ -15,8 +15,10 @@ local ChatClient = class()
 ChatClient.max_messages = 200
 
 ---@param server_remote sea.ServerRemote?
-function ChatClient:new(server_remote)
+---@param censor (fun(): boolean)? whether to censor profanity in messages arriving now, yes by default
+function ChatClient:new(server_remote, censor)
 	self.server_remote = server_remote
+	self.censor = censor or function() return true end
 	self.observable = Observable()
 	---@type sea.chat.ChatMessage[]
 	self.messages = {}
@@ -37,8 +39,10 @@ end
 
 ---@param msg sea.chat.ChatMessage
 function ChatClient:addMessage(msg)
-	-- shortcut: censored on arrival, so a future option to turn it off only affects new messages; keep the raw text if that matters.
-	msg.text = Profanity.censor(msg.text)
+	-- shortcut: censored on arrival, so turning the option off only affects new messages; keep the raw text if that matters.
+	if self.censor() then
+		msg.text = Profanity.censor(msg.text)
+	end
 	table.insert(self.messages, msg)
 	if #self.messages > self.max_messages then
 		table.remove(self.messages, 1)

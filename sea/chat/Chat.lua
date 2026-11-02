@@ -5,6 +5,7 @@ local class = require("class")
 ---@field user_name string
 ---@field text string
 ---@field time integer
+---@field role "admin"|"donator"? Shown next to the name.
 
 ---One global channel. Messages are only broadcast to the connected clients, never stored.
 ---@class sea.chat.Chat
@@ -35,12 +36,21 @@ function Chat:send(user, text)
 		return nil, "message too long"
 	end
 
+	local time = os.time()
+	local role ---@type "admin"|"donator"?
+	if user:hasRole("admin", time) then
+		role = "admin"
+	elseif user:hasRole("donator", time) then
+		role = "donator"
+	end
+
 	---@type sea.chat.ChatMessage
 	local msg = {
 		user_id = user.id,
 		user_name = user.name,
 		text = text,
-		time = os.time(),
+		time = time,
+		role = role,
 	}
 
 	self.user_connections:broadcastAll().chat:addMessage(msg)

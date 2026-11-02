@@ -9,6 +9,7 @@ local BackgroundLayers = require("ui.screens.main_menu_v2.BackgroundLayers")
 local LayerRow = require("ui.screens.main_menu_v2.LayerRow")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local UiConfig = require("ui.UiConfig")
+local Colors = require("ui.Colors")
 
 local test = {}
 
@@ -407,6 +408,67 @@ function test.a_picked_image_becomes_a_parallax_layer(t)
 	love.filesystem.remove("test_main_menu_background/front")
 	love.filesystem.remove("test_main_menu_background")
 	BackgroundLayers.directory = directory
+end
+
+---@param t testing.T
+function test.chat_shows_five_messages_until_focused(t)
+	setup()
+	local messages = {} ---@type sea.chat.ChatMessage[]
+	for i = 1, 8 do
+		messages[i] = {user_id = i, user_name = "player" .. i, text = "message " .. i, time = 0}
+	end
+	messages[7].role = "donator"
+	messages[8].role = "admin"
+	messages[6].text = ("a long message that wraps "):rep(6)
+	local screen = newScreen({getChatMessages = function() return messages end})
+	screen.root:finishTransforms()
+	screen:update(0)
+	screen:flush()
+	local chat = screen.chat_box
+
+	t:eq(chat.width, 520, "as wide as the music strip")
+	local lines = chat:layoutLines()
+	t:eq(#lines, 5)
+	t:eq(lines[1].text[2], "Admin player8: ")
+	t:eq(lines[2].text[2], "Supporter player7: ")
+	t:eq(lines[2].text[1], Colors.yellow)
+	t:assert(lines[2].y - lines[3].y > lines[1].y - lines[2].y, "the long message wraps")
+	screen:draw()
+	love.graphics.present()
+
+	chat.input.focused = true
+	t:eq(#chat:layoutLines(), 8)
+	screen:draw()
+	love.graphics.present()
+end
+
+---@param t testing.T
+function test.chat_input_is_off_while_offline_or_logged_out(t)
+	setup()
+	local connected, logged_in = false, false
+	local listeners = {} ---@type function[]
+	local function on_account() for _, f in ipairs(listeners) do f() end end
+	local screen = newScreen({
+		isConnected = function() return connected end,
+		isLoggedIn = function() return logged_in end,
+		on = function(_, event, f)
+			if event == "account_changed" then table.insert(listeners, f) end
+			return function() end
+		end,
+	})
+	local input = screen.chat_box.input
+	t:eq(input.enabled, false)
+	t:eq(input.placeholder, "Offline")
+
+	connected = true
+	on_account()
+	t:eq(input.enabled, false)
+	t:eq(input.placeholder, "Log in to chat")
+
+	logged_in = true
+	on_account()
+	t:eq(input.enabled, true)
+	t:eq(input.placeholder, "Message")
 end
 
 return test

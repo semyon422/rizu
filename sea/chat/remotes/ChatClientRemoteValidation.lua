@@ -16,6 +16,7 @@ function ChatClientRemoteValidation:addMessage(msg)
 	assert(type(msg.user_name) == "string")
 	assert(type(msg.text) == "string")
 	assert(type(msg.time) == "number")
+	assert(msg.role == nil or msg.role == "admin" or msg.role == "donator")
 	self.remote:addMessage(msg)
 end
 

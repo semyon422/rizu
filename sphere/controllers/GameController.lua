@@ -88,6 +88,7 @@ local GlobalTimer = require("rizu.game.GlobalTimer")
 
 local MultiplayerClient = require("sea.multi.MultiplayerClient")
 local ChatClient = require("sea.chat.ChatClient")
+local Settings = require("rizu.config.Settings")
 
 local DlcManager = require("rizu.dlc.DlcManager")
 
@@ -130,7 +131,9 @@ function GameController:new()
 
 	self.online_client = OnlineClient()
 	self.multiplayer_client = MultiplayerClient()
-	self.chat_client = ChatClient()
+	self.chat_client = ChatClient(nil, function()
+		return self.settings:getBoolean(Settings.keys.misc.censor_chat)
+	end)
 	self.client_remote = ClientRemoteValidation(ClientRemote(self.online_client, self.persistence.library, self.multiplayer_client, self.chat_client))
 	self.seaClient = SeaClient(self.online_client, self.client_remote, self.network)
 	self.difftables_sync = DifftablesSync(self.seaClient.remote.difftables, self.persistence.library.difftablesRepo)

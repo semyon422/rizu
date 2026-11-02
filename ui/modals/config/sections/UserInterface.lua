@@ -133,6 +133,11 @@ function UserInterface:new(settings, ui_config, localization, form, popup_contai
 					keywords = {"mute", "focus", "background", "audio", "volume"},
 					tip = localization:get("settings.mute_on_unfocus_tip"),
 				}),
+				ControlFactory.boolean(settings, Settings.keys.misc.censor_chat, {
+					name = localization:get("settings.censor_chat"),
+					keywords = {"chat", "censor", "profanity", "swearing", "filter"},
+					tip = localization:get("settings.censor_chat_tip"),
+				}),
 				ControlFactory.segmentedChoice(settings, select_keys.diff_column, {
 					name = localization:get("settings.difficulty_type"),
 					keywords = {"difficulty", "rating", "menus"},
