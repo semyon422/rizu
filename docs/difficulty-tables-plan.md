@@ -1,6 +1,6 @@
 ## Status
 
-`calculators` and `chart_difficulties` exist (migration 13), for plugin calculators only, see `docs/plugins.md` and `rizu/library/tasks/CalculatorTask.lua`. They differ from the design below: no `key` column, since a calculator with several outputs keeps the rest in its own storage; no `custom_user_id`; `value` is NULL when the calculator doesn't rate the chart; only rate 1000 is filled. Built-in calculators still write `chartdiffs`, and `chart_patterns` doesn't exist yet.
+`calculators` and `chart_difficulties` exist (migration 13), for plugin calculators only, see `docs/plugins.md` and `rizu/library/tasks/CalculatorTask.lua`. Plays get the same in `chartplay_ratings (chartplay_id, calc_id, key, value)`. They differ from the design below: key 0 is the headline and key i a calculator's i-th named value; no `custom_user_id`; `value` is NULL when the calculator doesn't rate the chart; only rate 1000 is filled. Built-in calculators still write `chartdiffs`, and `chart_patterns` doesn't exist yet.
 
 ## Goal
 

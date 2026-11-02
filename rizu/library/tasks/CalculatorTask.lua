@@ -2,6 +2,8 @@ local class = require("class")
 local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
 local Gamemode = require("sea.chart.Gamemode")
+local CalculatorsRepo = require("rizu.library.repos.CalculatorsRepo")
+local Calculators = require("rizu.library.Calculators")
 
 ---Rates the unmodded mania charts that miss a value of a plugin's calculator, see rizu.library.Calculators.
 ---@class rizu.library.tasks.CalculatorTask
@@ -17,38 +19,25 @@ local CalculatorTask = class()
 function CalculatorTask:new(calculators, models, chartsRepo, taskContext, timer, chartProvider)
 	self.calculators = calculators
 	self.models = models
+	self.calculatorsRepo = CalculatorsRepo(models)
 	self.chartsRepo = chartsRepo
 	self.chartProvider = chartProvider
 	self.batchProcessor = BatchProcessor(taskContext, timer)
-end
-
----Gives every calculator its row, and drops its values when its version changed.
----@return {[integer]: rizu.library.Calculator} calculators By id.
-function CalculatorTask:sync()
-	local models = self.models
-	---@type {[integer]: rizu.library.Calculator}
-	local by_id = {}
-	for _, calc in ipairs(self.calculators) do
-		local row = models.calculators:find({name = calc.name})
-		if not row then
-			row = models.calculators:create({name = calc.name, version = calc.version})
-		elseif row.version ~= calc.version then
-			models.chart_difficulties:delete({calc_id = row.id})
-			models.calculators:update({version = calc.version}, {id = row.id})
-		end
-		by_id[row.id] = calc
-	end
-	return by_id
 end
 
 function CalculatorTask:computeMissing()
 	if not self.calculators[1] then
 		return
 	end
-	local by_id = self:sync()
+	local by_id = self.calculatorsRepo:sync(self.calculators)
 	local ids = {}
-	for id in pairs(by_id) do
-		table.insert(ids, id)
+	for id, calc in pairs(by_id) do
+		if calc.compute then
+			table.insert(ids, id)
+		end
+	end
+	if not ids[1] then
+		return
 	end
 
 	---@type {id: integer, hash: string, index: integer, calc_ids: integer[]}[]
@@ -59,7 +48,7 @@ SELECT chartmetas.id, chartmetas.hash, chartmetas.`index`, calculators.id AS cal
 FROM chartmetas CROSS JOIN calculators
 WHERE chartmetas.mode = %d AND calculators.id IN (%s) AND NOT EXISTS (
 	SELECT 1 FROM chart_difficulties
-	WHERE chart_id = chartmetas.id AND calc_id = calculators.id AND rate = 1000
+	WHERE chart_id = chartmetas.id AND calc_id = calculators.id AND `key` = 0 AND rate = 1000
 )
 ORDER BY chartmetas.hash, chartmetas.`index`
 ]]):format(Gamemode:encode("mania"), table.concat(ids, ", ")))) do
@@ -72,15 +61,16 @@ ORDER BY chartmetas.hash, chartmetas.`index`
 	end
 
 	self.batchProcessor:process(items, "difficulty", #items, function(item)
-		---@type {[integer]: number}
+		---@type {[integer]: rizu.library.Calculators.Row[]}
 		local values = {}
 		-- A chart that fails gets NULL too, so it isn't decoded again at every start.
 		local ok, err = xpcall(self.computeValues, debug.traceback, self, item, by_id, values)
-		---@type {chart_id: integer, calc_id: integer, rate: integer, value: integer?}[]
+		---@type {chart_id: integer, calc_id: integer, key: integer, rate: integer, value: integer?}[]
 		local rows = {}
-		for i, calc_id in ipairs(item.calc_ids) do
-			local value = values[calc_id]
-			rows[i] = {chart_id = item.id, calc_id = calc_id, rate = 1000, value = value and math.floor(value * 100 + 0.5)}
+		for _, calc_id in ipairs(item.calc_ids) do
+			for _, row in ipairs(values[calc_id] or Calculators.toRows(by_id[calc_id], nil)) do
+				table.insert(rows, {chart_id = item.id, calc_id = calc_id, key = row.key, rate = 1000, value = row.value})
+			end
 		end
 		self.models.chart_difficulties:insert(rows, "replace")
 		assert(ok, err)
@@ -90,7 +80,7 @@ end
 
 ---@param item {id: integer, hash: string, index: integer, calc_ids: integer[]}
 ---@param by_id {[integer]: rizu.library.Calculator}
----@param values {[integer]: number} Filled by calculator id.
+---@param values {[integer]: rizu.library.Calculators.Row[]} Filled by calculator id.
 function CalculatorTask:computeValues(item, by_id, values)
 	local charts, err = self.chartProvider(item.hash)
 	if not charts then
@@ -102,11 +92,8 @@ function CalculatorTask:computeValues(item, by_id, values)
 	local chartdiff = self.chartsRepo:selectDefaultChartdiff(item.hash, item.index) or {}
 	local ctx = DiffcalcContext(chartdiff, chart, 1)
 	for _, calc_id in ipairs(item.calc_ids) do
-		local value = by_id[calc_id]:compute(ctx, chartmeta)
-		-- NaN and infinities can't be stored as integers.
-		if value and value == value and math.abs(value) ~= math.huge then
-			values[calc_id] = value
-		end
+		local calc = by_id[calc_id]
+		values[calc_id] = Calculators.toRows(calc, calc:compute(ctx, chartmeta))
 	end
 end
 

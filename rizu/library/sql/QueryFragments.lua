@@ -159,7 +159,7 @@ function QueryFragments.getDifficultyField(diff_column)
 	if not name then
 		return diff_column
 	end
-	return ([[(SELECT value / 100.0 FROM chart_difficulties WHERE chart_id = chartmetas.id AND rate = 1000
+	return ([[(SELECT value / 100.0 FROM chart_difficulties WHERE chart_id = chartmetas.id AND `key` = 0 AND rate = 1000
 AND calc_id = (SELECT id FROM calculators WHERE name = '%s'))]]):format(name)
 end
 

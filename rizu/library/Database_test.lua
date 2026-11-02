@@ -66,6 +66,9 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	db.db:user_version(9)
 	db:migrate()
 	t:eq(db.db:user_version(), 13)
+	for _, name in ipairs({"chart_difficulties_sort_idx", "chartplay_ratings_sort_idx"}) do
+		t:eq(#db.db:query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", {name}), 1, name)
+	end
 	for id, state in ipairs(states) do
 		check_play(t, db, id, state)
 		local play = assert(db.models.chartplays:find({id = id}))

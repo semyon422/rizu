@@ -34,11 +34,11 @@ function test.rates_missing_charts_and_queries_them(t)
 
 	local calls = 0
 	---@type rizu.library.Calculator
-	local calc = {name = "test", version = 1, compute = function(_, ctx, chartmeta)
+	local calc = {name = "test", version = 1, keys = {"stream"}, compute = function(_, ctx, chartmeta)
 		calls = calls + 1
 		t:eq(ctx.rate, 1)
 		-- Chart 2 isn't rated.
-		return chartmeta.id == 1 and 12.345 or nil
+		return chartmeta.id == 1 and {[0] = 12.345, stream = 3} or nil
 	end}
 
 	local task = CalculatorTask({calc}, models, ChartsRepo(models, {"enps_diff"}), context, timer, function(hash)
@@ -46,16 +46,16 @@ function test.rates_missing_charts_and_queries_them(t)
 	end)
 
 	local function values()
-		local out = {} ---@type {[integer]: integer|string}
+		local out = {} ---@type {[string]: integer|string}
 		for _, row in ipairs(models.chart_difficulties:select()) do
-			out[row.chart_id] = row.value or "null"
+			out[row.chart_id .. ":" .. row.key] = row.value or "null"
 		end
 		return out
 	end
 
 	task:computeMissing()
 	t:eq(calls, 2, "the taiko chart is skipped, the one without a file fails before computing")
-	t:tdeq(values(), {[1] = 1235, [2] = "null", [4] = "null"})
+	t:tdeq(values(), {["1:0"] = 1235, ["1:1"] = 300, ["2:0"] = "null", ["4:0"] = "null"})
 
 	task:computeMissing()
 	t:eq(calls, 2, "stored values, also NULL ones, are not computed again")
@@ -72,7 +72,7 @@ function test.rates_missing_charts_and_queries_them(t)
 	t:eq(repo:query().count, 0, "unrated charts match no difficulty filter")
 
 	models.chartmetas:delete({id = 1})
-	t:tdeq(values(), {[2] = "null", [4] = "null"}, "values go with their chart")
+	t:tdeq(values(), {["2:0"] = "null", ["4:0"] = "null"}, "values go with their chart")
 
 	db:unload()
 end

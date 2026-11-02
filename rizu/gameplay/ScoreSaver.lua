@@ -7,6 +7,7 @@ local Chartplay = require("sea.chart.Chartplay")
 local ReplayFactory = require("rizu.engine.replay.ReplayFactory")
 local ChartplayComputedFactory = require("rizu.engine.ChartplayComputedFactory")
 local ScoreSubmissionLog = require("rizu.gameplay.ScoreSubmissionLog")
+local Calculators = require("rizu.library.Calculators")
 
 ---@class rizu.ScoreSaver
 ---@operator call: rizu.ScoreSaver
@@ -88,6 +89,11 @@ function ScoreSaver:saveScore(gameplay_session, replayBase)
 	computeContext.chartplay = _chartplay
 
 	self.library.chartplayHitsRepo:setHits(_chartplay.id, scoreEngine.chart_info, scoreEngine.events)
+	local rating_errors = self.library.calculatorsRepo:ratePlay(Calculators.list, _chartplay.id,
+		computeContext.diffcalc_context, scoreEngine)
+	for _, err in ipairs(rating_errors) do
+		print("play rating failed: " .. err)
+	end
 
 	---@param event string
 	---@param fields {[string]: any}?

@@ -10,6 +10,7 @@ local Collections = require("rizu.library.Collections")
 local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local CalculatorsRepo = require("rizu.library.repos.CalculatorsRepo")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
@@ -89,6 +90,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.locationsRepo = LocationsRepo(self.database.models)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
 	self.chartplayHitsRepo = ChartplayHitsRepo(self.database.models)
+	self.calculatorsRepo = CalculatorsRepo(self.database.models)
 
 	self.statusUpdate = Status(self.chartfilesRepo, self.chartsRepo)
 	self.collections = Collections(self.chartfilesRepo, self.locationsRepo)
@@ -303,7 +305,8 @@ function Library:computeChartdiffs()
 	end)
 end
 
----Values of plugin calculators that charts miss, see rizu.library.Calculators. Scans compute them too.
+---Values of plugin calculators that charts and plays miss, see rizu.library.Calculators. Scans rate
+---new charts too, and saving a play rates it.
 function Library:computeCalculators()
 	self:addTask(function()
 		self.worker:computeCalculators()

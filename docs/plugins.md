@@ -43,4 +43,23 @@ Calculators.add({
 - `compute` returns a number, or nil for charts it doesn't rate. Values are stored in hundredths.
 - `ctx.chart` is the decoded chart, `ctx:getSimplifiedNotes()` its notes, and `ctx.chartdiff` the stored default chartdiff (an empty table if the chart has none).
 - An error in `compute` is shown in the library errors, and the chart is stored as not rated, so it isn't decoded again at every start. Fix it and raise `version`.
-- A calculator with more outputs, such as skillsets, keeps its headline value here and the rest in its own storage.
+- A calculator with more values, such as skillsets, names them in `keys = {"stream", "jack"}` and returns `{[0] = headline, stream = 25.1, jack = 23.4}`. Key 0 is the headline, which song select shows, sorts and filters by; key i is `keys[i]`. Only append names to `keys`: the stored rows use their positions.
+
+## Play ratings
+
+A calculator can rate plays too, with `computePlay(ctx, score_engine)`, beside `compute` or instead of it. The value goes to `chartplay_ratings`, one per play and calculator, rated when the play is saved and, for older plays, at start by playing their replays again.
+
+- `ctx` is the played chart with the play's modifiers, and `ctx.rate` its rate. Its notes are not scaled by the rate.
+- `score_engine` holds the play's events. Add the score system you need to judge them, such as `score_engine:addScoreSystem(EtternaAccuracy(4)):getAccuracy()` for Wife3 J4. It judges the events again with its own windows: what the play hit and missed stays as played.
+- A calculator that only rates plays has no `compute`, and is not a difficulty type.
+
+## Interface
+
+`ui.Extensions.add(function(ui) ... end)` from the `require` module extends the default interface. It runs every time the interface loads, once its screens and commands exist:
+
+- `ui.screen_manager:register(screen)` and `ui:setScreen(screen)` for a screen of the plugin's own.
+- `ui.command_registry:pushContext("my_plugin", commands)` for commands in the command palette.
+- Existing screens, such as `ui.song_select`, can be patched from here.
+
+An error in the function is shown as a notification, and the rest of the interface loads.
+

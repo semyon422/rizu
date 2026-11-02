@@ -21,6 +21,7 @@ local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
 local CalculatorTask = require("rizu.library.tasks.CalculatorTask")
+local PlayRatingTask = require("rizu.library.tasks.PlayRatingTask")
 local Calculators = require("rizu.library.Calculators")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local HitsTask = require("rizu.library.tasks.HitsTask")
@@ -107,6 +108,8 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 		self.taskContext,
 		timer
 	)
+	self.playRatingTask = PlayRatingTask(Calculators.list, self.db.models, self.chartsRepo, self.computeDataLoader,
+		self.taskContext, timer)
 	self.timer = timer
 end
 
@@ -275,9 +278,10 @@ function Processor:computeChartdiffs()
 	self.calculatorTask:computeMissing()
 end
 
----Values of plugin calculators that charts miss, see rizu.library.Calculators.
+---Values of plugin calculators that charts and plays miss, see rizu.library.Calculators.
 function Processor:computeCalculators()
 	self.calculatorTask:computeMissing()
+	self.playRatingTask:computeMissing()
 end
 
 ---@param prefer_preview boolean
