@@ -9,7 +9,7 @@ local table_util = require("table_util")
 ---@field version integer Raise it to compute every value again.
 ---@field keys string[]? Names of the values besides the headline: key i is keys[i]. Only ever append to it.
 ---@field compute (fun(self: rizu.library.Calculator, ctx: chart.DiffcalcContext, chartmeta: sea.Chartmeta): rizu.library.Calculators.Result)? nil when it doesn't rate the chart.
----@field computePlay (fun(self: rizu.library.Calculator, ctx: chart.DiffcalcContext, score_engine: rizu.ScoreEngine, chartplay_id: integer): rizu.library.Calculators.Result)? The played chart, with its modifiers and rate, and the play's events: add the score systems you need with score_engine:addScoreSystem. Runs in the library worker. nil when it doesn't rate the play.
+---@field computePlay (fun(self: rizu.library.Calculator, ctx: chart.DiffcalcContext, score_engine: rizu.ScoreEngine): rizu.library.Calculators.Result)? The played chart, with its modifiers and rate, and the play's events: add the score systems you need with score_engine:addScoreSystem. Runs in the library worker. nil when it doesn't rate the play.
 
 ---The headline, or the headline at [0] and other values by their names in keys. nil rates nothing.
 ---@alias rizu.library.Calculators.Result number|{[0]: number?, [string]: number}|nil

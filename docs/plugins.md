@@ -47,11 +47,10 @@ Calculators.add({
 
 ## Play ratings
 
-A calculator can rate plays too, with `computePlay(ctx, score_engine, chartplay_id)`, beside `compute` or instead of it. The value goes to `chartplay_ratings`, one per play and calculator. The library worker rates a play after it is saved and, for older plays, at start, by playing their replays again, so a slow calculator doesn't stall the game.
+A calculator can rate plays too, with `computePlay(ctx, score_engine)`, beside `compute` or instead of it. The value goes to `chartplay_ratings`, one per play and calculator. The library worker rates a play after it is saved and, for older plays, at start, by playing their replays again, so a slow calculator doesn't stall the game.
 
 - `ctx` is the played chart with the play's modifiers, and `ctx.rate` its rate. Its notes are not scaled by the rate.
 - `score_engine` holds the play's events. Add the score system you need to judge them, such as `score_engine:addScoreSystem(EtternaAccuracy(4)):getAccuracy()` for Wife3 J4. It judges the events again with its own windows: what the play hit and missed stays as played.
-- `chartplay_id` is the play's row in `chartplays`, for a plugin that keeps more about a play in storage of its own.
 - A calculator that only rates plays has no `compute`, and is not a difficulty type.
 
 ## Interface

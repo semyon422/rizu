@@ -18,8 +18,8 @@ function test.rates_plays(t)
 	local ctx, engine = {}, {}
 	---@type rizu.library.Calculator[]
 	local calcs = {
-		{name = "ssr", version = 1, keys = {"stream", "ln"}, computePlay = function(_, c, e, id)
-			t:assert(c == ctx and e == engine and id == 1)
+		{name = "ssr", version = 1, keys = {"stream", "ln"}, computePlay = function(_, c, e)
+			t:assert(c == ctx and e == engine)
 			return {[0] = 25.004, ln = 30}
 		end},
 		{name = "broken", version = 1, keys = {"stream"}, computePlay = function() return {[0] = 1, jack = 2} end},

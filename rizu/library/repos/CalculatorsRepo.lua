@@ -49,7 +49,7 @@ function CalculatorsRepo:ratePlay(calculators, chartplay_id, ctx, score_engine)
 			local ok, result = true, nil
 			if ctx then
 				ok, result = xpcall(function()
-					return Calculators.toRows(calc, calc:computePlay(ctx, assert(score_engine), chartplay_id))
+					return Calculators.toRows(calc, calc:computePlay(ctx, assert(score_engine)))
 				end, debug.traceback)
 			end
 			if not ok then
