@@ -89,10 +89,9 @@ function ScoreSaver:saveScore(gameplay_session, replayBase)
 	computeContext.chartplay = _chartplay
 
 	self.library.chartplayHitsRepo:setHits(_chartplay.id, scoreEngine.chart_info, scoreEngine.events)
-	local rating_errors = self.library.calculatorsRepo:ratePlay(Calculators.list, _chartplay.id,
-		computeContext.diffcalc_context, scoreEngine)
-	for _, err in ipairs(rating_errors) do
-		print("play rating failed: " .. err)
+	-- Plugin calculators can take seconds per play, so the library worker rates it.
+	if Calculators.list[1] then
+		self.library:computeCalculators()
 	end
 
 	---@param event string
