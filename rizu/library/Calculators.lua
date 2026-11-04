@@ -1,7 +1,7 @@
 local Settings = require("rizu.config.Settings")
 local table_util = require("table_util")
 
----A difficulty calculator added by a plugin. compute rates unmodded mania charts at rate 1, into the
+---A difficulty calculator, the game's own or added by a plugin. compute rates unmodded mania charts at rate 1, into the
 ---chart_difficulties table, see rizu.library.tasks.CalculatorTask. computePlay rates plays, into
 ---chartplay_ratings, see rizu.library.tasks.PlayRatingTask. Either one may be missing.
 ---@class rizu.library.Calculator
@@ -18,7 +18,8 @@ local table_util = require("table_util")
 ---@field key integer
 ---@field value integer? In hundredths.
 
----Calculators added by plugins. Plugins add theirs from a `require` package module, which runs in every thread.
+---Difficulty calculators: the game's Rizu Difficulty, and those added by plugins. Plugins add theirs from a
+---`require` package module, which runs in every thread.
 local Calculators = {}
 
 ---@type rizu.library.Calculator[]
@@ -71,5 +72,7 @@ function Calculators.toRows(calc, result)
 	end
 	return rows
 end
+
+Calculators.add(require("rizu.library.RizuDifficulty"))
 
 return Calculators

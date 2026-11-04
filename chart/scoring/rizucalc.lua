@@ -1,12 +1,12 @@
--- Port of the calc/ difficulty calculators (calc/README.md): v2 4K, v2 7K and v1 14K.
--- Ratings are on the 4K scale (v2 4K mapped onto MSD) for 4key, 7key and 7key1scratch,
--- and on the IIDX DP level scale for 14key2scratch.
+-- The engine of calc/rizucalc.py: a raw rating from a layout and its parameters. Rizu Difficulty
+-- (rizu.library.RizuDifficulty) gives the layouts and maps the rating onto its scale.
 
 local bit = require("bit")
 
 local rizucalc = {}
 
 local RECOVERY_TAU = 5 / math.log(10) -- exp(-5 / tau) = 0.1
+local MOTION_MAX_DT = 0.25 -- seconds between the rows of a bracket or roll, Prism's MOTION_MAX_GAP_MS
 
 ---@class chart.scoring.rizucalc.Params
 ---@field window number seconds
@@ -29,80 +29,17 @@ local RECOVERY_TAU = 5 / math.log(10) -- exp(-5 / tau) = 0.1
 ---@field density number windows weigh into the power mean by their note count to this exponent
 ---@field short_notes number the rating is multiplied by n / (n + short_notes)
 ---@field group_power number power mean of group speeds
+---@field delay number seconds: a note this close to its group's row start joins that row
+---@field bracket number group row strain multiplier is 1 + bracket for the last row of an A-B-A bracket
+---@field roll number group row strain multiplier is 1 - roll for a one-finger step continuing a roll
 
 ---@class chart.scoring.rizucalc.Layout
 ---@field params chart.scoring.rizucalc.Params
 ---@field groups integer[] group of each column
 ---@field cross number[] cross[i] is the weight of columns i and i + 1
 ---@field skip_input string? input dropped before rating
----@field map fun(raw: number): number raw rating to user_diff
-
----@type chart.scoring.rizucalc.Params
-local params_4k = {
-	window = 0.25, min_dt = 0.06, chord = 0, jack = 1.5, tech = 0.05, bins = 24, max_dt = 0.25, power = 6,
-	tau = 5, stamina = 0.3, long_tau = 120, long_stamina = 0.2, reference_nps = 20,
-	speed_exp = 1, pattern = 0, cross = 0.25, anchor = 0.25, density = 1, short_notes = 0, group_power = 2,
-}
-
----@type chart.scoring.rizucalc.Params
-local params_7k = {
-	window = 1, min_dt = 0.03, chord = 0.5, jack = 1.5, tech = 0.05, bins = 24, max_dt = 0.5, power = 6,
-	tau = 1, stamina = 2, long_tau = 60, long_stamina = 0.2, reference_nps = 20,
-	speed_exp = 0.5, pattern = 0.2, cross = 1, anchor = 0.5, density = 0.5, short_notes = 240, group_power = 2,
-}
-
----@type chart.scoring.rizucalc.Params
-local params_14k = {
-	window = 4, min_dt = 0.04, chord = 0.75, jack = 0.5, tech = 0, bins = 24, max_dt = 0.5, power = 4,
-	tau = 10, stamina = 5, long_tau = 480, long_stamina = 0.8, reference_nps = 20,
-	speed_exp = 0.7, pattern = 1, cross = 0.25, anchor = 0, density = 1, short_notes = 240, group_power = 16,
-}
-
--- linear fit of v2 4K on MSD 17-31
-local function map_4k(raw)
-	return raw > 0 and 0.67977701 * raw + 6.78613977 or 0
-end
-
--- (v2 7K, 4K scale) of 7K and 4K dans that feel alike (calc/write_user_diff.py DANS_7K_TO_4K)
-local dans_7k_to_4k = {{24.71, 17.08}, {49.09, 22.87}, {68.34, 25.05}, {94.05, 27.76}, {123.30, 32.27}}
-
--- piecewise linear in ln(v2 7K) through the dans, extended with the outer slopes (calc/write_user_diff.py dan_curve)
-local function map_7k(raw)
-	local x = math.log(math.max(raw, 1e-9))
-	local d = dans_7k_to_4k
-	local i = 1
-	while i < #d - 1 and x > math.log(d[i + 1][1]) do
-		i = i + 1
-	end
-	local x0, x1 = math.log(d[i][1]), math.log(d[i + 1][1])
-	local y0, y1 = d[i][2], d[i + 1][2]
-	return math.max(y0 + (x - x0) * (y1 - y0) / (x1 - x0), 0)
-end
-
--- fit of IIDX DP levels and DP tables (calc/tune_14k.py)
-local function map_14k(raw)
-	return math.max(1.25991768 * math.sqrt(raw) - 0.02181418, 0)
-end
-
--- left hand, right hand, middle key as its own thumb group
-local groups_7k = {1, 1, 1, 3, 2, 2, 2}
--- SRR's 7K finger pair weights
-local cross_7k = {0.35, 0.25, 0.225, 0.225, 0.25, 0.35}
-
----@type {[string]: chart.scoring.rizucalc.Layout}
-rizucalc.layouts = {
-	["4key"] = {params = params_4k, groups = {1, 1, 2, 2}, cross = {0.125, 0.125, 0.125}, map = map_4k},
-	["7key"] = {params = params_7k, groups = groups_7k, cross = cross_7k, map = map_7k},
-	-- keyboard players play these without the scratch
-	["7key1scratch"] = {params = params_7k, groups = groups_7k, cross = cross_7k, skip_input = "scratch1", map = map_7k},
-	-- one hand per side: key1-key7 and scratch1, key8-key14 and scratch2
-	["14key2scratch"] = {
-		params = params_14k,
-		groups = {1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 2},
-		cross = {1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0},
-		map = map_14k,
-	},
-}
+---@field columns integer[][]? the notes of column i go to the columns columns[i], one after another in turn
+---@field map fun(raw: number): number raw rating to the displayed one
 
 ---@param counts {[integer]: integer}
 ---@param total integer
@@ -223,6 +160,42 @@ local function snap_ms(times)
 	return ms
 end
 
+---@param x integer
+---@return integer
+local function popcount(x)
+	local c = 0
+	while x ~= 0 do
+		c = c + bit.band(x, 1)
+		x = bit.rshift(x, 1)
+	end
+	return c
+end
+
+--- Whether shapes a, b, c of one group's rows form a bracket like Prism's: b disjoint from a and c, c overlapping
+--- a, and b and c using 3 or more fingers.
+---@param a integer
+---@param b integer
+---@param c integer
+---@return boolean
+local function is_bracket(a, b, c)
+	return bit.band(b, c) == 0 and bit.band(a, c) ~= 0 and bit.band(a, b) == 0 and popcount(bit.bor(b, c)) >= 3
+end
+
+--- 1 or -1 when shape b is one finger in the column after or before shape a's one finger, else 0.
+---@param a integer
+---@param b integer
+---@return integer
+local function step(a, b)
+	if popcount(a) ~= 1 or popcount(b) ~= 1 then
+		return 0
+	elseif b == bit.lshift(a, 1) then
+		return 1
+	elseif b == bit.rshift(a, 1) then
+		return -1
+	end
+	return 0
+end
+
 --- Raw rating of notes sorted by time then column.
 ---@param times number[] seconds
 ---@param cols integer[] 1-based
@@ -245,16 +218,18 @@ function rizucalc.rate(times, cols, layout)
 	local t0 = ms[1] / 1000
 	local window = p.window
 
-	-- notes of a group at the same millisecond form one row; row strain needs the row size, so rows come first
-	---@type integer[], integer[]
-	local row_of, row_size = {}, {}
-	---@type {[integer]: integer[]} group -> {ms, row}
+	-- notes of a group at the same millisecond, or up to delay after its row start, form one row; row strain
+	-- needs the row size and shape, so rows come first
+	local delay_ms = round(p.delay * 1000)
+	---@type integer[], integer[], integer[]
+	local row_of, row_size, row_mask = {}, {}, {}
+	---@type {[integer]: integer[]} group -> {start ms, row}
 	local last_row = {}
 	local nrows = 0
 	for i = 1, n do
 		local g = groups[cols[i]]
 		local r = last_row[g]
-		if r and r[1] == ms[i] then
+		if r and ms[i] - r[1] <= delay_ms then
 			row_of[i] = r[2]
 			row_size[r[2]] = row_size[r[2]] + 1
 		else
@@ -262,13 +237,20 @@ function rizucalc.rate(times, cols, layout)
 			last_row[g] = {ms[i], nrows}
 			row_of[i] = nrows
 			row_size[nrows] = 1
+			row_mask[nrows] = 0
 		end
+		row_mask[row_of[i]] = bit.bor(row_mask[row_of[i]], bit.lshift(1, cols[i] - 1))
 	end
 
 	---@type number[], number[]
 	local strain, row_strain = {}, {}
 	---@type {[integer]: integer} group -> ms of its previous row
 	local group_prev = {}
+	---@type {[integer]: integer}, {[integer]: integer} group -> its previous row and the one before
+	local prev1, prev2 = {}, {}
+	-- per row: 1 or -1 when it is a one-finger step to the next column from its group's previous row, else 0
+	---@type integer[]
+	local row_step = {}
 	---@type {[integer]: integer}
 	local col_prev = {}
 	---@type {[integer]: integer}, {[integer]: number}
@@ -280,7 +262,16 @@ function rizucalc.rate(times, cols, layout)
 			local prev = group_prev[g]
 			local dt = prev and m / 1000 - prev / 1000 or math.huge
 			row_strain[r] = row_size[r] ^ p.chord / math.max(dt, p.min_dt) ^ p.speed_exp
+			if p.bracket ~= 0 and prev2[g] and dt <= MOTION_MAX_DT and is_bracket(row_mask[prev2[g]], row_mask[prev1[g]], row_mask[r]) then
+				row_strain[r] = row_strain[r] * (1 + p.bracket)
+			end
+			local r1 = prev1[g]
+			row_step[r] = r1 and dt <= MOTION_MAX_DT and step(row_mask[r1], row_mask[r]) or 0
+			if p.roll ~= 0 and row_step[r] ~= 0 and r1 and row_step[r1] == row_step[r] then
+				row_strain[r] = row_strain[r] * (1 - p.roll)
+			end
 			group_prev[g] = m
+			prev2[g], prev1[g] = prev1[g], r
 		end
 		local cprev = col_prev[c]
 		local col_dt = cprev and m / 1000 - cprev / 1000 or math.huge
@@ -392,26 +383,6 @@ function rizucalc.rate(times, cols, layout)
 		return 0
 	end
 	return (num / den) ^ (1 / p.power) * n / (n + p.short_notes)
-end
-
---- user_diff of simplified notes, nil for inputmodes without a calculator.
----@param notes {time: number, column: integer, input: chart.Column}[] sorted by time then column
----@param inputmode string
----@param rate number
----@return number?
-function rizucalc.calc(notes, inputmode, rate)
-	local layout = rizucalc.layouts[inputmode]
-	if not layout then
-		return
-	end
-	local times, cols = {}, {}
-	for _, note in ipairs(notes) do
-		if note.input ~= layout.skip_input then
-			table.insert(times, note.time / rate)
-			table.insert(cols, note.column)
-		end
-	end
-	return layout.map(rizucalc.rate(times, cols, layout))
 end
 
 return rizucalc
