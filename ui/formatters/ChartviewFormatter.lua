@@ -77,11 +77,11 @@ function ChartviewFormatter:getDifficulty()
 		postfix = "ENPS"
 	end
 
-	-- the dan curve is fitted on 4K charts under 10% long notes only
+	-- the dan curves are fitted on 4K and 7K charts under 10% long notes only
 	local cv = self.chartview
 	local dan ---@type string?
-	if diff_column == "calc:rizu" and (cv.chartdiff_inputmode or cv.inputmode) == "4key" and (cv.long_notes_ratio or 0) < 0.1 then
-		dan = RizuDifficulty.dan(num)
+	if diff_column == "calc:rizu" and (cv.long_notes_ratio or 0) < 0.1 then
+		dan = RizuDifficulty.dan(num, cv.chartdiff_inputmode or cv.inputmode)
 	end
 
 	return {

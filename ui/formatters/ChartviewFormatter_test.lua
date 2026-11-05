@@ -91,6 +91,8 @@ function test.rizu_shows_4k_dan(t)
 	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "4key", long_notes_ratio = 0.5})
 	t:eq(formatter:getDifficulty().dan, nil)
 	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "7key"})
+	t:eq(formatter:getDifficulty().dan, "10th+")
+	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "8key"})
 	t:eq(formatter:getDifficulty().dan, nil)
 end
 
