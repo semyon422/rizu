@@ -40,25 +40,30 @@ local MOTION_MAX_DT = 0.25 -- seconds between the rows of a bracket or roll, Pri
 ---@field skip_input string? input dropped before rating
 ---@field columns integer[][]? the notes of column i go to the columns columns[i], one after another in turn
 ---@field map fun(raw: number): number raw rating to the displayed one
+---@field ln chart.scoring.rizucalc_ln.Params? the LN level's parameters, see rizu.library.RizuDifficulty
 
----@param counts {[integer]: integer}
----@param total integer
+---@param counts {[integer]: number}
+---@param total number
 ---@return number
 local function entropy(counts, total)
 	local h = 0
 	for _, c in pairs(counts) do
-		local p = c / total
-		h = h - p * math.log(p)
+		if c > 0 then
+			local p = c / total
+			h = h - p * math.log(p)
+		end
 	end
 	return h
 end
 
---- Shannon entropy (nats) of values inside each window; ws must be nondecreasing.
+--- Shannon entropy (nats) of values inside each window, each value counted with its weight (default 1); ws must be
+--- nondecreasing.
 ---@param ws integer[]
 ---@param values integer[]
 ---@param nw integer
+---@param weights number[]?
 ---@return number[]
-local function window_entropy(ws, values, nw)
+local function window_entropy(ws, values, nw, weights)
 	---@type number[]
 	local out = {}
 	for w = 1, nw do
@@ -74,8 +79,9 @@ local function window_entropy(ws, values, nw)
 			end
 			counts, total, cur = {}, 0, w
 		end
-		counts[values[i]] = (counts[values[i]] or 0) + 1
-		total = total + 1
+		local wt = weights and weights[i] or 1
+		counts[values[i]] = (counts[values[i]] or 0) + wt
+		total = total + wt
 	end
 	if cur then
 		out[cur] = entropy(counts, total)
@@ -324,8 +330,8 @@ function rizucalc.rate(times, cols, layout)
 	end
 
 	-- rhythm variety: quantized deltas between rows; pattern variety: which columns each row uses
-	---@type integer[], integer[], integer[], integer[]
-	local tech_w, tech_q, mask_w, masks = {}, {}, {}, {}
+	---@type integer[], integer[], number[], integer[], integer[]
+	local tech_w, tech_q, tech_f, mask_w, masks = {}, {}, {}, {}, {}
 	---@type integer?
 	local prev_ms
 	for i = 1, n do
@@ -335,8 +341,15 @@ function rizucalc.rate(times, cols, layout)
 			if prev_ms then
 				local d = (m - prev_ms) / 1000
 				if d <= p.max_dt then
+					-- a delta counts toward its two nearest bins by distance, so a rate change moves the entropy smoothly
+					local x = math.log(d) / math.log(2) * p.bins
+					local lo = math.floor(x)
 					table.insert(tech_w, k)
-					table.insert(tech_q, round(math.log(d) / math.log(2) * p.bins))
+					table.insert(tech_q, lo)
+					table.insert(tech_f, 1 - (x - lo))
+					table.insert(tech_w, k)
+					table.insert(tech_q, lo + 1)
+					table.insert(tech_f, x - lo)
 				end
 			end
 			table.insert(mask_w, k)
@@ -345,7 +358,7 @@ function rizucalc.rate(times, cols, layout)
 		end
 		masks[#masks] = bit.bor(masks[#masks], bit.lshift(1, cols[i] - 1))
 	end
-	local tech = window_entropy(tech_w, tech_q, nw)
+	local tech = window_entropy(tech_w, tech_q, nw, tech_f)
 	local pattern = window_entropy(mask_w, masks, nw)
 
 	---@type number[]

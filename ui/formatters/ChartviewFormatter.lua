@@ -3,6 +3,7 @@ local Color = require("ui.Color")
 local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
 local dan_list = require("sea.dan.dan_list")
+local RizuDifficulty = require("rizu.library.RizuDifficulty")
 
 --- Formats info from chartview
 --- You can get it from `ui.api.charts:getSelectedChart()`
@@ -84,6 +85,12 @@ function ChartviewFormatter:getDifficulty()
 		postfix = "MSD"
 	elseif diff_column == "enps_diff" then
 		postfix = "ENPS"
+	end
+
+	-- the dan curve is fitted on 4K charts under 10% long notes only
+	local cv = self.chartview
+	if diff_column == "calc:rizu" and (cv.chartdiff_inputmode or cv.inputmode) == "4key" and (cv.long_notes_ratio or 0) < 0.1 then
+		postfix = postfix .. " · " .. RizuDifficulty.dan(num):upper()
 	end
 
 	return {

@@ -4,9 +4,9 @@ local test = {}
 
 ---The pattern of calc/rizu_difficulty.py's pattern().
 ---@param keys integer
----@return {time: number, column: integer}[]
+---@return {time: number, column: integer, end_time: number?}[]
 local function pattern(keys)
-	---@type {time: number, column: integer, input: string?}[]
+	---@type {time: number, column: integer, input: string?, end_time: number?}[]
 	local notes = {}
 	for i = 0, 399 do
 		notes[i + 1] = {time = i * 0.0625 + i % 3 * 0.01, column = (i * 5 + math.floor(i / 7)) % keys + 1}
@@ -17,12 +17,12 @@ end
 -- expected values from `python3 -m calc.rizu_difficulty`
 function test.matches_python(t)
 	local expected = {
-		["4key"] = 21.86809954611741,
+		["4key"] = 20.68494197276502,
 		["5key"] = 19.703875715070943,
 		["6key"] = 26.316913020636893,
 		["7key"] = 16.301515479785213,
 		["8key"] = 15.465923152275414,
-		["9key"] = 16.41469447877662,
+		["9key"] = 16.814820611106764,
 		["10key"] = 19.796414202091725,
 		["14key2scratch"] = 10.618113628813708,
 	}
@@ -30,6 +30,41 @@ function test.matches_python(t)
 		local keys = #RizuDifficulty.layouts[inputmode].groups
 		t:aeq(RizuDifficulty.rate(pattern(keys), inputmode), value, 1e-9)
 	end
+end
+
+---The pattern of calc/ln_difficulty.py's pattern(): every even note held until 50 ms before the next note of its column.
+---@param keys integer
+---@return {time: number, column: integer, end_time: number?}[]
+local function ln_pattern(keys)
+	local notes = pattern(keys)
+	for i = 1, #notes, 2 do
+		for j = i + 1, #notes do
+			if notes[j].column == notes[i].column then
+				notes[i].end_time = notes[j].time - 0.05
+				break
+			end
+		end
+	end
+	return notes
+end
+
+-- expected rating, short-note rating and LN level from `python3 -m calc.ln_difficulty`
+function test.matches_python_ln(t)
+	local expected = {['4key'] = {27.67744991360159, 20.68494197276502, 18.389519006849213}, ['6key'] = {43.834328334837814, 26.316913020636893, 40.41216184571936}, ['7key'] = {31.018170206960257, 16.301515479785213, 29.438235365720175}}
+	for inputmode, values in pairs(expected) do
+		local keys = #RizuDifficulty.layouts[inputmode].groups
+		local total, rice, ln = RizuDifficulty.rate(ln_pattern(keys), inputmode)
+		t:aeq(total, values[1], 1e-9)
+		t:aeq(rice, values[2], 1e-9)
+		t:aeq(ln, values[3], 1e-9)
+	end
+end
+
+-- without long notes the rating is the short-note rating
+function test.no_ln(t)
+	local total, rice, ln = RizuDifficulty.rate(pattern(4), "4key")
+	t:eq(total, rice)
+	t:eq(ln, 0)
 end
 
 -- 7K+1 is rated as 7K without its scratch
@@ -72,6 +107,22 @@ end
 function test.unrated(t)
 	t:eq(RizuDifficulty.rate(pattern(4), "16key"), nil)
 	t:eq(RizuDifficulty.rate({}, "4key"), 0)
+end
+
+function test.dan(t)
+	local knots = RizuDifficulty.dans_4k
+	t:eq(RizuDifficulty.dan(0), "Intro")
+	t:eq(RizuDifficulty.dan(knots[2]), "1st")
+	t:eq(RizuDifficulty.dan(knots[12]), "Alpha")
+	-- nearest dan, and the third of it: 10.4 is 10th+, 10.6 is alpha-
+	t:eq(RizuDifficulty.dan(knots[11] + (knots[12] - knots[11]) * 0.4), "10th+")
+	t:eq(RizuDifficulty.dan(knots[11] + (knots[12] - knots[11]) * 0.6), "Alpha-")
+	t:eq(RizuDifficulty.dan(knots[11] + (knots[12] - knots[11]) * 0.1), "10th")
+	t:eq(RizuDifficulty.dan(knots[19]), "Theta")
+	t:eq(RizuDifficulty.dan(100), "Theta+")
+	for i = 2, #knots do
+		t:assert(knots[i] > knots[i - 1], "dan ratings must rise")
+	end
 end
 
 return test

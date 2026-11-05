@@ -85,6 +85,17 @@ function test.formats_difficulty_postfix(t)
 end
 
 ---@param t testing.T
+function test.rizu_shows_4k_dan(t)
+	local settings = {getChoice = function() return "calc:rizu" end}
+	local formatter = ChartviewFormatter({["calc:rizu"] = 28, chartdiff_inputmode = "4key"}, settings)
+	t:eq(formatter:getDifficulty().postfix, "RIZU · BETA")
+	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "4key", long_notes_ratio = 0.5})
+	t:eq(formatter:getDifficulty().postfix, "RIZU")
+	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "7key"})
+	t:eq(formatter:getDifficulty().postfix, "RIZU")
+end
+
+---@param t testing.T
 function test.aim_hides_legacy_mania_difficulty(t)
 	local formatter = ChartviewFormatter({chartmeta_mode = "osu", inputmode = "1osu", chartdiff_inputmode = "4key", osu_diff = 12}, {})
 	t:eq(formatter:getMode(), "AIM (EXPERIMENTAL)")
