@@ -17,6 +17,7 @@ function test.rates_missing_charts_and_queries_them(t)
 	db:load(":memory:")
 	local models = db.models
 	local factory = TestChartFactory()
+	local charts_repo = ChartsRepo(models, {"enps_diff"})
 
 	models.locations:create({id = 1, name = "Test", path = "/test", is_relative = 0, is_internal = 0})
 	models.chartfile_sets:create({id = 1, location_id = 1, name = "Set", dir = "s", modified_at = 0, is_file = 0})
@@ -24,6 +25,9 @@ function test.rates_missing_charts_and_queries_them(t)
 		local hash = "h" .. id
 		models.chartfiles:create({id = id, set_id = 1, name = hash .. ".osu", hash = hash, modified_at = 0})
 		models.chartmetas:create(factory:createChartmeta({id = id, hash = hash, mode = mode}))
+		if mode == "mania" then
+			charts_repo:createChartdiff(factory:createChartdiff({id = id, hash = hash, rate = 1}))
+		end
 	end
 
 	local context = FakeTaskContext()
@@ -41,14 +45,15 @@ function test.rates_missing_charts_and_queries_them(t)
 		return chartmeta.id == 1 and {[0] = 12.345, stream = 3} or nil
 	end}
 
-	local task = CalculatorTask({calc}, models, ChartsRepo(models, {"enps_diff"}), context, timer, function(hash)
+	local task = CalculatorTask({calc}, models, charts_repo, context, timer, function(hash)
 		return context:getChartsByHash(hash)
 	end)
 
 	local function values()
 		local out = {} ---@type {[string]: integer|string}
-		for _, row in ipairs(models.chart_difficulties:select()) do
-			out[row.chart_id .. ":" .. row.key] = row.value or "null"
+		local calc_id = models.calculators:find({name = "test"}).id
+		for _, row in ipairs(models.chart_difficulties:select({calc_id = calc_id})) do
+			out[row.chartdiff_id .. ":" .. row.key] = row.value or "null"
 		end
 		return out
 	end
@@ -71,8 +76,8 @@ function test.rates_missing_charts_and_queries_them(t)
 	repo.params.where = {difficulty__lt = 12}
 	t:eq(repo:query().count, 0, "unrated charts match no difficulty filter")
 
-	models.chartmetas:delete({id = 1})
-	t:tdeq(values(), {["2:0"] = "null", ["4:0"] = "null"}, "values go with their chart")
+	models.chartdiffs:delete({id = 1})
+	t:tdeq(values(), {["2:0"] = "null", ["4:0"] = "null"}, "values go with their chartdiff")
 
 	db:unload()
 end

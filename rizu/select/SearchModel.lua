@@ -217,7 +217,8 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 			if config then
 				local field = config.field
 				if numbers_only and field == "difficulty" then
-					field = self.settings:getChoice(Settings.keys.select.diff_column)
+					local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
+					field = Settings.diff_column_fields[diff_column] or diff_column
 				end
 				if config.inverse then
 					operator = inverse_operators[operator] or operator
@@ -230,7 +231,7 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 				else
 					value = tonumber(value)
 				end
-				-- shortcut: the lamp query skips plugin calculators, which aren't chartdiffs columns; join chart_difficulties there when someone needs it.
+				-- shortcut: the lamp query skips plugin calculators, which have no chartplays_list field; join chart_difficulties there when someone needs it.
 				if value and not field:find("^calc:") then
 					cond[field .. "__" .. operator] = value
 				end

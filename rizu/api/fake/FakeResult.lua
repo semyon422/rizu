@@ -46,7 +46,7 @@ end
 
 function FakeResult:getChartdiff()
 	return {
-		enps_diff = 14.2, osu_diff = 5.1, user_diff = 14,
+		enps_diff = 14.2, osu_diff = 5.1,
 		notes_count = hit_count, judges_count = hit_count, duration = 140, rate = 1, inputmode = "4key",
 	}
 end
@@ -56,6 +56,8 @@ function FakeResult:getMutators() return {} end
 function FakeResult:hasScore() return true end
 function FakeResult:getRescoreSystems() return {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"} end
 function FakeResult:rescore() return nil, "There is no game in the preview." end
+function FakeResult:getDifficultyLabels() return require("rizu.library.DifficultyLabels").labels end
+function FakeResult:saveDifficultyLabel() return nil, "There is no game in the preview." end
 
 function FakeResult:getJudging()
 	return {

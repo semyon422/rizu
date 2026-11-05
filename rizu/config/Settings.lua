@@ -221,9 +221,13 @@ Settings.cheat_keys = {
 	keys.gameplay.offset_input,
 }
 
----Choices of select.diff_column: chartdiffs columns, and "calc:<name>" added by rizu.library.Calculators.
+---Choices of select.diff_column: "calc:<name>" of the game's calculators enps and osu, and those added by rizu.library.Calculators.
 ---@type string[]
-Settings.diff_columns = {"enps_diff", "osu_diff", "user_diff"}
+Settings.diff_columns = {"calc:enps", "calc:osu"}
+
+---The fields of rizu.api.Chartdiff that hold the value of a select.diff_column choice.
+---@type {[string]: string}
+Settings.diff_column_fields = {["calc:enps"] = "enps_diff", ["calc:osu"] = "osu_diff"}
 
 ---@param filesystem fs.IFilesystem
 ---@return rizu.config.Config
@@ -294,7 +298,7 @@ function Settings.createConfig(filesystem)
 	local chartview_modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
 	config:setDefaultChoice(s.primary_mode, "chartfile_sets", chartview_modes)
 	config:setDefaultChoice(s.secondary_mode, "chartmetas", chartview_modes)
-	config:setDefaultChoice(s.diff_column, "enps_diff", Settings.diff_columns)
+	config:setDefaultChoice(s.diff_column, "calc:enps", Settings.diff_columns)
 	config:setDefaultBoolean(s.locations_in_collections, false)
 	config:setDefaultBoolean(s.collapse, true) -- Deprecated?
 	config:setDefaultBoolean(s.chart_preview, true)

@@ -129,13 +129,13 @@ function Color.convertDiffToHue(x)
 	end
 end
 
----@param diff_type "enps_diff" | "osu_diff" | "user_diff" | "calc:rizu"
+---@param diff_type "calc:enps" | "calc:osu" | "calc:rizu"
 ---@param value number
 ---@return gui.Color
 function Color.diffToColor(diff_type, value, out)
-	if diff_type == "enps_diff" then
+	if diff_type == "calc:enps" then
 		return Color.enpsToColor(value, out)
-	elseif diff_type == "osu_diff" then
+	elseif diff_type == "calc:osu" then
 		return Color.osuToColor(value, out)
 	elseif diff_type == "calc:rizu" then
 		return Color.rizuToColor(value, out)

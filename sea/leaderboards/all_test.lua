@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local table_util = require("table_util")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
@@ -114,10 +115,8 @@ local function create_chartdiff(ctx, values)
 	chartdiff.sv_data = chartdiff.sv_data or {}
 	chartdiff.enps_diff = chartdiff.enps_diff or 0
 	chartdiff.osu_diff = chartdiff.osu_diff or 0
-	chartdiff.user_diff = chartdiff.user_diff or 0
-	chartdiff.user_diff_data = chartdiff.user_diff_data or ""
 	chartdiff.notes_preview = chartdiff.notes_preview or ""
-	return ctx.db.models.chartdiffs:create(chartdiff)
+	return ChartsRepo(ctx.db.models):createChartdiff(chartdiff)
 end
 
 ---@param t testing.T

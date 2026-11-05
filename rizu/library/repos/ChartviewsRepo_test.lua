@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
@@ -32,8 +33,8 @@ local function setup()
 	db.models.chartmetas:create(factory:createChartmeta({ id = 4, hash = "h3", index = 1, inputmode = "4key" }))
 	
 	-- Meta 4: Two diffs
-	db.models.chartdiffs:create(factory:createChartdiff({ id = 1, hash = "h3", index = 1, rate = 1.0, enps_diff = 10 }))
-	db.models.chartdiffs:create(factory:createChartdiff({ id = 2, hash = "h3", index = 1, rate = 1.2, enps_diff = 12 }))
+	ChartsRepo(db.models):createChartdiff(factory:createChartdiff({ id = 1, hash = "h3", index = 1, rate = 1.0, enps_diff = 10 }))
+	ChartsRepo(db.models):createChartdiff(factory:createChartdiff({ id = 2, hash = "h3", index = 1, rate = 1.2, enps_diff = 12 }))
 	
 	-- Diff 1: Two plays
 	db.models.chartplays:create(factory:createChartplay({ id = 1, hash = "h3", index = 1, rate = 1.0, accuracy = 0.90, created_at = 100 }))
@@ -43,7 +44,7 @@ local function setup()
 
 	local repo = ChartviewsRepo(db.models)
 	repo:setSync(true)
-	repo.params = { difficulty = "enps_diff", where = {} }
+	repo.params = { difficulty = "calc:enps", where = {} }
 
 	return db, repo, factory
 end
@@ -71,7 +72,7 @@ local function setup_root_set()
 	repo.params = {
 		primary_mode = "chartmetas",
 		secondary_mode = "chartmetas",
-		difficulty = "enps_diff",
+		difficulty = "calc:enps",
 		where = {},
 	}
 	return db, repo
@@ -93,7 +94,7 @@ local function setup_partial_cache()
 
 	local repo = ChartviewsRepo(db.models)
 	repo:setSync(true)
-	repo.params = {difficulty = "enps_diff", where = {}}
+	repo.params = {difficulty = "calc:enps", where = {}}
 
 	return db, repo
 end

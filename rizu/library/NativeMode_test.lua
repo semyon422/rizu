@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Database = require("rizu.library.Database")
@@ -30,9 +31,9 @@ function test.native_mode_survives_chartview_independently_of_diff_mode(t)
 	db.models.chartfile_sets:create({id = 1, location_id = 1, name = "set", modified_at = 0, is_file = false})
 	db.models.chartfiles:create({id = 1, set_id = 1, name = "test.osu", hash = "test", modified_at = 0})
 	db.models.chartmetas:create(factory:createChartmeta({hash = "test", mode = "taiko", format = "osu", inputmode = "2key"}))
-	db.models.chartdiffs:create(factory:createChartdiff({hash = "test", mode = "mania", rate = 1}))
+	ChartsRepo(db.models):createChartdiff(factory:createChartdiff({hash = "test", mode = "mania", rate = 1}))
 	local repo = ChartviewsRepo(db.models)
-	repo.params = {primary_mode = "chartmetas", secondary_mode = "chartmetas", difficulty = "enps_diff", where = {}}
+	repo.params = {primary_mode = "chartmetas", secondary_mode = "chartmetas", difficulty = "calc:enps", where = {}}
 	local view = assert(repo:getChartview({chartmeta_id = 1}))
 	t:eq(view.chartmeta_mode, "taiko")
 	t:eq(view.mode, "mania")

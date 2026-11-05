@@ -1,4 +1,5 @@
 local sql_util = require("rdb.sql_util")
+local DifficultySql = require("sea.chart.DifficultySql")
 local table_util = require("table_util")
 
 local QueryFragments = {}
@@ -78,10 +79,8 @@ chartdiffs.judges_count,
 chartdiffs.note_types_count,
 chartdiffs.density_data,
 chartdiffs.sv_data,
-chartdiffs.enps_diff,
-chartdiffs.osu_diff,
-chartdiffs.user_diff,
-chartdiffs.user_diff_data
+]] .. DifficultySql.value("enps") .. [[ AS enps_diff,
+]] .. DifficultySql.value("osu") .. [[ AS osu_diff
 ]]
 
 QueryFragments.FIELDS_CHARTDIFF_PREVIEW = [[
@@ -148,16 +147,11 @@ QueryFragments.COND_CHARTPLAY_BY_MODE = QueryFragments.COND_CHARTPLAY_BY_MODS ..
 AND chartdiffs.mode = chartplays.mode
 ]]
 
----The SQL of a select.diff_column choice: a chartdiffs column, or "calc:<name>", a plugin calculator's value.
+---The SQL of a select.diff_column choice, "calc:<name>": a calculator's value of the chartdiff.
 ---@param diff_column string
 ---@return string
 function QueryFragments.getDifficultyField(diff_column)
-	local name = diff_column:match("^calc:([%w_]+)$")
-	if not name then
-		return diff_column
-	end
-	return ([[(SELECT value / 100.0 FROM chart_difficulties WHERE chart_id = chartmetas.id AND `key` = 0 AND rate = 1000
-AND calc_id = (SELECT id FROM calculators WHERE name = '%s'))]]):format(name)
+	return DifficultySql.value(assert(diff_column:match("^calc:([%w_]+)$"), diff_column))
 end
 
 ---@param conditions rdb.Conditions

@@ -10,7 +10,7 @@ local autoload = require("autoload")
 ---@operator call: rizu.library.Database
 local Database = class()
 
-local user_version = 14
+local user_version = 15
 
 ---@param fs fs.IFilesystem
 function Database:new(fs)

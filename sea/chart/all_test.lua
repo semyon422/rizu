@@ -216,8 +216,6 @@ local _chartdiff_values = {
 	sv_data = {},
 	enps_diff = 0.0091578194443670893,
 	osu_diff = 0.30224240623872012,
-	user_diff = 0,
-	user_diff_data = "",
 	notes_preview = string.char(1, 0, 0, 64, 0, 193, 64, 194, 64, 196, 64, 200, 64, 4, 193),
 }
 setmetatable(_chartdiff_values, Chartdiff)

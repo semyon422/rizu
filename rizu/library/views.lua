@@ -99,8 +99,6 @@
 ---@field sv_data number[]
 ---@field enps_diff number
 ---@field osu_diff number
----@field user_diff number
----@field user_diff_data string
 
 ---@class rizu.library.ChartviewDiffPreviewFields
 ---@field notes_preview string

@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local class = require("class")
 local Library = require("rizu.library.Library")
 local TestChartFactory = require("sea.chart.TestChartFactory")
@@ -105,7 +106,7 @@ function TestLibraryFactory:populate(lib, data)
 		-- Insert chartdiff
 		local chartdiff = self.tcf:createChartdiff(entry)
 		if not chartdiff.id or not lib.database.models.chartdiffs:find({id = chartdiff.id}) then
-			lib.database.models.chartdiffs:create(chartdiff)
+			ChartsRepo(lib.database.models):createChartdiff(chartdiff)
 		end
 	end
 end

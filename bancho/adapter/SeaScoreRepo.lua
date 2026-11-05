@@ -196,8 +196,6 @@ local function create_chartdiff_values(replay, inputmode)
 	chartdiff.sv_data = {}
 	chartdiff.enps_diff = 0
 	chartdiff.osu_diff = 0
-	chartdiff.user_diff = 0
-	chartdiff.user_diff_data = ""
 	chartdiff.notes_preview = ""
 	return chartdiff
 end

@@ -12,7 +12,7 @@ local zlib = require("zlib")
 local RemoteCatalogLoader = class()
 
 -- `catalog.schema_version`, written by `rizu.library.CatalogBuilder`.
-RemoteCatalogLoader.schema_version = 12
+RemoteCatalogLoader.schema_version = 13
 -- The charts of the catalog are downloaded here.
 RemoteCatalogLoader.location_path = "userdata/online/charts"
 RemoteCatalogLoader.location_name = "online"
@@ -154,6 +154,19 @@ local function copy(db, schema_version, base_url)
 				AND d.modifiers = c.modifiers AND d.rate = c.rate AND d.mode = c.mode
 		)
 	]]):format(chartdiff_columns, chartdiff_columns))
+
+	db:query("INSERT OR IGNORE INTO calculators (name, version) SELECT name, version FROM catalog.calculators")
+	-- Values the library has are kept, too.
+	db:query([[
+		INSERT OR IGNORE INTO chart_difficulties (chartdiff_id, calc_id, `key`, value)
+		SELECT d.id, calculators.id, cd.`key`, cd.value
+		FROM catalog.chart_difficulties AS cd
+		JOIN catalog.chartdiffs AS c ON c.id = cd.chartdiff_id
+		JOIN catalog.calculators AS cc ON cc.id = cd.calc_id
+		JOIN calculators ON calculators.name = cc.name
+		JOIN chartdiffs AS d ON d.hash = c.hash AND d.`index` = c.`index` AND d.modifiers = c.modifiers
+			AND d.rate = c.rate AND d.mode = c.mode
+	]])
 
 	db:query([[
 		INSERT OR REPLACE INTO remote_assets (hash, `index`, chart_path, audio_path, audio_preview_path, background_path)

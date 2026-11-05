@@ -1,3 +1,4 @@
+local DifficultySql = require("sea.chart.DifficultySql")
 local table_util = require("table_util")
 local chartplays = require("sea.storage.server.models.chartplays")
 
@@ -10,7 +11,7 @@ SELECT
 	chartplays.*,
 	chartmetas.id AS chartmeta_id,
 	chartdiffs.id AS chartdiff_id,
-	chartdiffs.enps_diff AS difficulty,
+	]] .. DifficultySql.value("enps") .. [[ AS difficulty,
 	chartdiffs.inputmode,
 	users.name AS user_name,
 	users.avatar AS user_avatar

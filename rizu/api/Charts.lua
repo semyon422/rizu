@@ -55,7 +55,6 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field difftable_chartmetas table[]? The difficulty tables the chart is in.
 ---@field enps_diff number
 ---@field osu_diff number
----@field user_diff number
 ---@field difficulty number? The column chosen in the settings.
 ---@field accuracy number? Best local accuracy of the chart. Seconds, normalscore: lower is better.
 ---@field miss_count integer? Misses of that score.

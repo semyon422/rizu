@@ -83,9 +83,8 @@ end
 function test.lamp_string_uses_real_columns(t)
 	local settings = Settings.createConfig(FakeFilesystem())
 	local search = SearchModel({configs = {select = {}, filters = {notechart = {}}}}, settings)
-	local column = settings:getChoice(Settings.keys.select.diff_column)
 	local conditions = search:transformSearchString("d>5 ln>10", nil, true)
-	t:eq(conditions[column .. "__gt"], 5)
+	t:eq(conditions.enps_diff__gt, 5)
 	t:eq(conditions.difficulty__gt, nil)
 	t:eq(conditions.long_notes_ratio__gt, nil)
 end

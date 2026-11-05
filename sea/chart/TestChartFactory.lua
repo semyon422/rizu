@@ -60,8 +60,6 @@ function TestChartFactory:createChartdiff(data)
 	chartdiff.computed_at = data and data.computed_at or 0
 	chartdiff.density_data = data and data.density_data or {}
 	chartdiff.sv_data = data and data.sv_data or {}
-	chartdiff.user_diff = data and data.user_diff or 0
-	chartdiff.user_diff_data = data and data.user_diff_data or ""
 	chartdiff.notes_preview = data and data.notes_preview or ""
 	return chartdiff
 end

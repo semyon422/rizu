@@ -39,6 +39,29 @@ function test.repair_notes_preview_preserves_other_fields_and_checks_source(t)
 end
 
 ---@param t testing.T
+function test.chartdiff_difficulties_are_stored_in_hundredths(t)
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+	local repo = ChartsRepo(db.models, {"enps_diff", "osu_diff"})
+	local chartdiff = TestChartFactory():createChartdiff({id = 1, hash = "hash", enps_diff = 12.3456, osu_diff = 5})
+	local created = repo:createUpdateChartdiff(chartdiff, 10)
+	t:eq(created.enps_diff, 12.35)
+	t:eq(repo:getChartdiff(1).enps_diff, 12.35)
+	t:eq(repo:getChartdiff(1).osu_diff, 5)
+	t:eq(#repo:getIncompleteChartdiffs(), 0)
+
+	local same = TestChartFactory():createChartdiff({id = 1, hash = "hash", enps_diff = 12.3456, osu_diff = 5})
+	t:eq(repo:createUpdateChartdiff(same, 20).computed_at, 10, "an unchanged chartdiff is not updated")
+
+	repo:resetDiffcalcField("enps_diff")
+	local incomplete = repo:getIncompleteChartdiffs()
+	t:eq(#incomplete, 1)
+	t:eq(incomplete[1].enps_diff, nil)
+	t:eq(incomplete[1].osu_diff, 5)
+	db:unload()
+end
+
+---@param t testing.T
 function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	local db = Database(LinuxFilesystem())
 	db:load(":memory:")

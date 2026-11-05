@@ -1,3 +1,4 @@
+local DifficultySql = require("sea.chart.DifficultySql")
 local chartplays_list_base = require("sea.storage.server.models.chartplays_list")
 local QueryFragments = require("rizu.library.sql.QueryFragments")
 
@@ -10,7 +11,7 @@ chartplays.id AS chartplay_id,
 chartplays.*,
 chartmetas.id AS chartmeta_id,
 chartdiffs.id AS chartdiff_id,
-chartdiffs.enps_diff AS difficulty,
+]] .. DifficultySql.value("enps") .. [[ AS difficulty,
 ]]
 	.. QueryFragments.FIELDS_CHARTDIFF .. ", "
 	.. QueryFragments.FIELDS_CHARTDIFF_PREVIEW .. [[

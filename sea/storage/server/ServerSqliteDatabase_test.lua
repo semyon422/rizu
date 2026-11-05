@@ -21,6 +21,10 @@ local function downgrade_to_11(server)
 		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_rates BLOB NOT NULL DEFAULT ''",
 		"ALTER TABLE chartplays ADD COLUMN rating_msd REAL NOT NULL DEFAULT 0",
 		"CREATE INDEX IF NOT EXISTS chartdiffs_msd_idx ON chartdiffs (msd_diff)",
+		"ALTER TABLE chartdiffs ADD COLUMN enps_diff REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE chartdiffs ADD COLUMN osu_diff REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff_data BLOB NOT NULL DEFAULT ''",
 	}) do
 		server.db:exec(sql)
 	end
@@ -55,7 +59,7 @@ end
 ---@param t testing.T
 function test.enum_round_trip_and_conditions(t)
 	local server = create_db()
-	t:eq(server.db:user_version(), 13)
+	t:eq(server.db:user_version(), 14)
 	for id, state in ipairs(ComputeState:list()) do
 		create_rows(server, id, state)
 		check_rows(t, server, id, state)
@@ -81,7 +85,7 @@ function test.version_11_mixed_states_migrate_without_changing_scores(t)
 	end
 	downgrade_to_11(server)
 	server:migrate()
-	t:eq(server.db:user_version(), 13)
+	t:eq(server.db:user_version(), 14)
 	for id, state in ipairs(states) do
 		check_rows(t, server, id, state)
 		local play = assert(server.models.chartplays:find({id = id}))

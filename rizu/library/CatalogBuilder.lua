@@ -3,6 +3,7 @@ local sqlite = require("ljsqlite3")
 local zlib = require("zlib")
 local path_util = require("path_util")
 local Database = require("rizu.library.Database")
+local DifficultySql = require("sea.chart.DifficultySql")
 local Processor = require("rizu.library.Processor")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local FunctionTimer = require("time.FunctionTimer")
@@ -39,7 +40,7 @@ local FunctionTimer = require("time.FunctionTimer")
 local CatalogBuilder = class()
 
 -- Checked by the client against `catalog.schema_version`.
-CatalogBuilder.schema_version = 12
+CatalogBuilder.schema_version = 13
 CatalogBuilder.audio_profile = "opus-96k-stereo-v1"
 CatalogBuilder.background_profile = "v2"
 CatalogBuilder.chart_directory = "chart-files/v1"
@@ -318,6 +319,9 @@ function CatalogBuilder:export(entries, generated_at)
 		INSERT INTO chartdiffs SELECT d.* FROM work.chartdiffs AS d
 			JOIN selection ON selection.hash = d.hash AND selection.`index` = d.`index`
 			WHERE d.mode = 0 AND d.rate = 1000 AND d.modifiers = '';
+		INSERT INTO calculators SELECT * FROM work.calculators;
+		INSERT INTO chart_difficulties SELECT * FROM work.chart_difficulties
+			WHERE chartdiff_id IN (SELECT id FROM chartdiffs);
 		-- The files are relative to the catalog, wherever the library was built.
 		INSERT INTO locations SELECT id, 'charts/' || name, name, 1, 0, NULL FROM work.locations WHERE id IN (
 			SELECT location_id FROM chartfile_sets
@@ -328,7 +332,8 @@ function CatalogBuilder:export(entries, generated_at)
 	local summary = {}
 	for _, row in ipairs(query(conn, [[
 		SELECT remote_assets.`hash`, remote_assets.`index`, remote_assets.audio_path, remote_assets.audio_preview_path,
-			remote_assets.background_path, chartdiffs.enps_diff, chartdiffs.osu_diff
+			remote_assets.background_path, ]] .. DifficultySql.value("enps") .. [[, ]] .. DifficultySql.value("osu") .. [[
+
 		FROM remote_assets
 		JOIN chartdiffs ON chartdiffs.`hash` = remote_assets.`hash` AND chartdiffs.`index` = remote_assets.`index`
 		ORDER BY remote_assets.`hash`, remote_assets.`index`

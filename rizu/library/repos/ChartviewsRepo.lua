@@ -290,7 +290,6 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 		"modifiers", "rate", "rate_type", "mode", "chartdiff_inputmode", "duration", "start_time",
 		"notes_count", "judges_count", "long_notes_ratio", "note_types_count",
 		"density_data", "sv_data", "enps_diff", "osu_diff",
-		"user_diff", "user_diff_data",
 	}
 
 	if use_preview then
@@ -322,7 +321,6 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 			level >= LEVELS.chartdiffs and "notes_count" or "MAX(notes_count) AS notes_count",
 			"judges_count", "long_notes_ratio", "note_types_count",
 			"density_data", "sv_data", "enps_diff", "osu_diff",
-			"user_diff", "user_diff_data",
 			"MIN(accuracy) AS accuracy",
 			"MIN(miss_count) AS miss_count",
 			"MAX(chartplay_created_at) AS chartplay_created_at",

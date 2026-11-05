@@ -2,7 +2,7 @@ local Settings = require("rizu.config.Settings")
 local table_util = require("table_util")
 
 ---A difficulty calculator, the game's own or added by a plugin. compute rates unmodded mania charts at rate 1, into the
----chart_difficulties table, see rizu.library.tasks.CalculatorTask. computePlay rates plays, into
+---chart_difficulties table of their unmodded chartdiff, see rizu.library.tasks.CalculatorTask. computePlay rates plays, into
 ---chartplay_ratings, see rizu.library.tasks.PlayRatingTask. Either one may be missing.
 ---@class rizu.library.Calculator
 ---@field name string Letters, digits and underscores. Its difficulty setting is "calc:<name>".

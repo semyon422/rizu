@@ -59,7 +59,7 @@ function test.applies_time_rate_to_duration_and_tempo(t)
 end
 
 function test.formats_difficulty_postfix(t)
-	local diff_column = "osu_diff"
+	local diff_column = "calc:osu"
 	local settings = {
 		getChoice = function()
 			return diff_column
@@ -68,13 +68,13 @@ function test.formats_difficulty_postfix(t)
 	local formatter = ChartviewFormatter({
 		osu_diff = 1,
 		enps_diff = 3,
-		user_diff = 4,
+		difficulty = 4,
 	}, settings)
 
 	local postfixes = {
-		osu_diff = "★",
-		enps_diff = "ENPS",
-		user_diff = "USER",
+		["calc:osu"] = "★",
+		["calc:enps"] = "ENPS",
+		["calc:rizu"] = "RIZU",
 	}
 	for column, postfix in pairs(postfixes) do
 		diff_column = column

@@ -23,10 +23,12 @@ local chart_types = require("sea.chart.types")
 ---@field sv_data number[] 128 values, 4 bit per value, (visual duration) / (absoulte duration) ?
 ---@field enps_diff number
 ---@field osu_diff number
----@field user_diff number
----@field user_diff_data string
 ---@field notes_preview string
 local Chartdiff = ChartdiffKey + {}
+
+---Fields that are not columns of chartdiffs, but the headline of a calculator in chart_difficulties.
+---@type {[string]: string}
+Chartdiff.calculator_fields = {enps_diff = "enps", osu_diff = "osu"}
 
 function Chartdiff:new()
 	self.modifiers = {}
@@ -45,13 +47,11 @@ Chartdiff.struct = {
 	sv_data = valid.array(types.normalized, 128),
 	enps_diff = types.number,
 	osu_diff = types.number,
-	user_diff = types.number,
-	user_diff_data = types.binary,
 	notes_preview = types.binary,
 }
 
 local computed_keys = table_util.keys(Chartdiff.struct)
-assert(#table_util.keys(Chartdiff.struct) == 13)
+assert(#table_util.keys(Chartdiff.struct) == 11)
 
 ---@param values sea.Chartdiff
 ---@return boolean?
@@ -62,7 +62,7 @@ end
 
 table_util.copy(ChartdiffKey.struct, Chartdiff.struct)
 
-assert(#table_util.keys(Chartdiff.struct) == 18)
+assert(#table_util.keys(Chartdiff.struct) == 16)
 
 local validate_chartdiff = valid.struct(Chartdiff.struct)
 

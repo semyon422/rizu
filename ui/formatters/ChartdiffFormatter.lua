@@ -23,7 +23,7 @@ end
 
 function ChartdiffFormatter:getDifficulty()
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-	local num = self.chartdiff[diff_column] ---@type number?
+	local num = self.chartdiff[Settings.diff_column_fields[diff_column] or diff_column] ---@type number?
 	-- Plugin calculators rate only charts in the library, not played chartdiffs.
 	if not num then
 		return {value = "—", color = {1, 1, 1, 1}}

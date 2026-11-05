@@ -5,7 +5,7 @@ local Gamemode = require("sea.chart.Gamemode")
 local CalculatorsRepo = require("rizu.library.repos.CalculatorsRepo")
 local Calculators = require("rizu.library.Calculators")
 
----Rates the unmodded mania charts that miss a value of a plugin's calculator, see rizu.library.Calculators.
+---Rates the unmodded mania chartdiffs that miss a value of a plugin's calculator, see rizu.library.Calculators.
 ---@class rizu.library.tasks.CalculatorTask
 ---@operator call: rizu.library.tasks.CalculatorTask
 local CalculatorTask = class()
@@ -44,13 +44,14 @@ function CalculatorTask:computeMissing()
 	local items = {}
 	local last ---@type {id: integer, hash: string, index: integer, calc_ids: integer[]}?
 	for _, row in ipairs(self.models.calculators.orm:query(([[
-SELECT chartmetas.id, chartmetas.hash, chartmetas.`index`, calculators.id AS calc_id
-FROM chartmetas CROSS JOIN calculators
-WHERE chartmetas.mode = %d AND calculators.id IN (%s) AND NOT EXISTS (
+SELECT chartdiffs.id, chartdiffs.hash, chartdiffs.`index`, calculators.id AS calc_id
+FROM chartdiffs CROSS JOIN calculators
+WHERE chartdiffs.mode = %d AND chartdiffs.modifiers = '' AND chartdiffs.rate = 1000
+AND calculators.id IN (%s) AND NOT EXISTS (
 	SELECT 1 FROM chart_difficulties
-	WHERE chart_id = chartmetas.id AND calc_id = calculators.id AND `key` = 0 AND rate = 1000
+	WHERE chartdiff_id = chartdiffs.id AND calc_id = calculators.id AND `key` = 0
 )
-ORDER BY chartmetas.hash, chartmetas.`index`
+ORDER BY chartdiffs.hash, chartdiffs.`index`
 ]]):format(Gamemode:encode("mania"), table.concat(ids, ", ")))) do
 		local id = tonumber(row.id) --[[@as integer]]
 		if not last or last.id ~= id then
@@ -65,11 +66,11 @@ ORDER BY chartmetas.hash, chartmetas.`index`
 		local values = {}
 		-- A chart that fails gets NULL too, so it isn't decoded again at every start.
 		local ok, err = xpcall(self.computeValues, debug.traceback, self, item, by_id, values)
-		---@type {chart_id: integer, calc_id: integer, key: integer, rate: integer, value: integer?}[]
+		---@type {chartdiff_id: integer, calc_id: integer, key: integer, value: integer?}[]
 		local rows = {}
 		for _, calc_id in ipairs(item.calc_ids) do
 			for _, row in ipairs(values[calc_id] or Calculators.toRows(by_id[calc_id], nil)) do
-				table.insert(rows, {chart_id = item.id, calc_id = calc_id, key = row.key, rate = 1000, value = row.value})
+				table.insert(rows, {chartdiff_id = item.id, calc_id = calc_id, key = row.key, value = row.value})
 			end
 		end
 		self.models.chart_difficulties:insert(rows, "replace")

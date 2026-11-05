@@ -3,6 +3,7 @@ local table_util = require("table_util")
 local sql_util = require("rdb.sql_util")
 local ChartmetaUserData = require("sea.chart.ChartmetaUserData")
 local IidxMetadata = require("sea.chart.IidxMetadata")
+local Chartdiff = require("sea.chart.Chartdiff")
 
 ---@class sea.ChartsRepo
 ---@operator call: sea.ChartsRepo
@@ -13,41 +14,117 @@ local ChartsRepo = class()
 function ChartsRepo:new(models, diffcalc_fields)
 	self.models = models
 	self.diffcalc_fields = diffcalc_fields
+	---@type {[string]: integer}
+	self.calculator_ids = {}
+end
+
+---@param name string
+---@return integer
+function ChartsRepo:getCalculatorId(name)
+	local id = self.calculator_ids[name]
+	if not id then
+		local row = self.models.calculators:find({name = name}) or self.models.calculators:create({name = name, version = 1})
+		id = row.id
+		self.calculator_ids[name] = id
+	end
+	return id
+end
+
+---The calculator values are stored in hundredths, so the chartdiff takes them rounded.
+---@param chartdiff sea.Chartdiff
+function ChartsRepo.roundDifficulties(chartdiff)
+	for field in pairs(Chartdiff.calculator_fields) do
+		local value = chartdiff[field]
+		if value then
+			-- NaN and infinities can't be stored as integers
+			chartdiff[field] = value == value and math.abs(value) ~= math.huge and math.floor(value * 100 + 0.5) / 100 or nil
+		end
+	end
+end
+
+---Reads the values of the calculators into the fields of the chartdiff.
+---@param chartdiff sea.Chartdiff?
+---@return sea.Chartdiff?
+function ChartsRepo:loadDifficulties(chartdiff)
+	if not chartdiff then
+		return
+	end
+	for field, name in pairs(Chartdiff.calculator_fields) do
+		local row = self.models.chart_difficulties:find({
+			chartdiff_id = chartdiff.id,
+			calc_id = self:getCalculatorId(name),
+			key = 0,
+		})
+		chartdiff[field] = row and row.value and row.value / 100 or nil
+	end
+	return chartdiff
+end
+
+---@param chartdiff sea.Chartdiff A stored one.
+---@param values sea.Chartdiff
+function ChartsRepo:saveDifficulties(chartdiff, values)
+	---@type {chartdiff_id: integer, calc_id: integer, key: integer, value: integer?}[]
+	local rows = {}
+	for field, name in pairs(Chartdiff.calculator_fields) do
+		local value = values[field]
+		chartdiff[field] = value
+		if value then
+			table.insert(rows, {
+				chartdiff_id = chartdiff.id,
+				calc_id = self:getCalculatorId(name),
+				key = 0,
+				value = math.floor(value * 100 + 0.5),
+			})
+		end
+	end
+	if rows[1] then
+		self.models.chart_difficulties:insert(rows, "replace")
+	end
 end
 
 ---@return sea.Chartdiff[]
 function ChartsRepo:getChartdiffs()
-	return self.models.chartdiffs:select()
+	local chartdiffs = self.models.chartdiffs:select()
+	for _, chartdiff in ipairs(chartdiffs) do
+		self:loadDifficulties(chartdiff)
+	end
+	return chartdiffs
 end
 
 ---@param id number
 ---@return sea.Chartdiff?
 function ChartsRepo:getChartdiff(id)
-	return self.models.chartdiffs:find({id = assert(id)})
+	return self:loadDifficulties(self.models.chartdiffs:find({id = assert(id)}))
 end
 
 ---@param chartdiff_key sea.ChartdiffKey
 ---@return sea.Chartdiff?
 function ChartsRepo:getChartdiffByChartdiffKey(chartdiff_key)
-	return self.models.chartdiffs:find({
+	return self:loadDifficulties(self.models.chartdiffs:find({
 		hash = assert(chartdiff_key.hash),
 		index = assert(chartdiff_key.index),
 		modifiers = assert(chartdiff_key.modifiers),
 		rate = assert(chartdiff_key.rate),
 		mode = assert(chartdiff_key.mode),
-	})
+	}))
 end
 
 ---@param chartdiff sea.Chartdiff
 ---@return sea.Chartdiff
 function ChartsRepo:createChartdiff(chartdiff)
-	return self.models.chartdiffs:create(chartdiff)
+	self.roundDifficulties(chartdiff)
+	local created = self.models.chartdiffs:create(chartdiff)
+	self:saveDifficulties(created, chartdiff)
+	return created
 end
 
 ---@param chartdiff sea.Chartdiff
 ---@return sea.Chartdiff
 function ChartsRepo:updateChartdiff(chartdiff)
-	return self.models.chartdiffs:update(chartdiff, {id = assert(chartdiff.id)})[1]
+	self.roundDifficulties(chartdiff)
+	local updated = self.models.chartdiffs:update(chartdiff, {id = assert(chartdiff.id)})[1]
+	self:saveDifficulties(updated, chartdiff)
+	return updated
 end
 
 ---@param id integer
@@ -65,13 +142,13 @@ end
 ---@param index number
 ---@return sea.Chartdiff?
 function ChartsRepo:selectDefaultChartdiff(hash, index)
-	return self.models.chartdiffs:find({
+	return self:loadDifficulties(self.models.chartdiffs:find({
 		hash = assert(hash),
 		index = assert(index),
 		modifiers = {},
 		rate = 1,
 		mode = "mania",
-	})
+	}))
 end
 
 ---@return integer
@@ -111,6 +188,7 @@ end
 ---@param time integer
 ---@return sea.Chartdiff
 function ChartsRepo:createUpdateChartdiff(chartdiff, time)
+	self.roundDifficulties(chartdiff)
 	local _chartdiff = self:getChartdiffByChartdiffKey(chartdiff)
 	if not _chartdiff then
 		chartdiff.created_at = time
@@ -129,16 +207,31 @@ function ChartsRepo:getIncompleteChartdiffs()
 	---@type rdb.Conditions
 	local conds = {"or"}
 	for _, field in ipairs(self.diffcalc_fields) do
-		conds[field .. "__isnull"] = true
+		local name = Chartdiff.calculator_fields[field]
+		if name then
+			local sql = "NOT EXISTS (SELECT 1 FROM chart_difficulties WHERE chartdiff_id = chartdiffs.id AND calc_id = %d AND `key` = 0)"
+			conds[{sql:format(self:getCalculatorId(name))}] = true
+		else
+			conds[field .. "__isnull"] = true
+		end
 	end
 	assert(next(conds))
-	return self.models.chartdiffs:select(conds)
+	local chartdiffs = self.models.chartdiffs:select(conds)
+	for _, chartdiff in ipairs(chartdiffs) do
+		self:loadDifficulties(chartdiff)
+	end
+	return chartdiffs
 end
 
 ---@param field string
 function ChartsRepo:resetDiffcalcField(field)
 	assert(table_util.indexof(self.diffcalc_fields, field))
-	self.models.chartdiffs:update({[field] = sql_util.NULL})
+	local name = Chartdiff.calculator_fields[field]
+	if name then
+		self.models.chart_difficulties:delete({calc_id = self:getCalculatorId(name)})
+	else
+		self.models.chartdiffs:update({[field] = sql_util.NULL})
+	end
 end
 
 --------------------------------------------------------------------------------

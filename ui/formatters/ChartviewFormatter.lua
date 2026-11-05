@@ -59,23 +59,17 @@ function ChartviewFormatter:getDifficulty()
 		return {value = "—", postfix = "EXPERIMENTAL", color = {0.6, 0.8, 1, 1}}
 	end
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-	-- A plugin calculator's value comes as the query's difficulty column.
+	-- A calculator's value comes as the query's difficulty column.
 	local calc = diff_column:match("^calc:(.+)$")
-	local num = self.chartview[diff_column] or self.chartview.difficulty ---@type number?
-	if not num and calc then
+	local num = self.chartview[Settings.diff_column_fields[diff_column] or diff_column] or self.chartview.difficulty ---@type number?
+	if not num then
 		return {value = "—", postfix = calc:upper(), color = {1, 1, 1, 1}}
 	end
 	num = num or 0
 
 	num = num * self.time_rate
 
-	local postfix = calc and calc:upper() or "USER"
-
-	if diff_column == "osu_diff" then
-		postfix = "★"
-	elseif diff_column == "enps_diff" then
-		postfix = "ENPS"
-	end
+	local postfix = calc == "osu" and "★" or calc:upper()
 
 	-- the dan curves are fitted on 4K and 7K charts under 10% long notes only
 	local cv = self.chartview

@@ -23,6 +23,10 @@ local function downgrade(db, version)
 		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_rates BLOB",
 		"ALTER TABLE chartplays ADD COLUMN rating_msd REAL NOT NULL DEFAULT 0",
 		"CREATE INDEX IF NOT EXISTS chartdiffs_msd_idx ON chartdiffs (msd_diff)",
+		"ALTER TABLE chartdiffs ADD COLUMN enps_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN osu_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff_data BLOB",
 	}) do
 		db.db:exec(sql)
 	end
@@ -54,7 +58,7 @@ end
 ---@param t testing.T
 function test.enum_storage_and_derived_model_filters(t)
 	local db = create_db()
-	t:eq(db.db:user_version(), 14)
+	t:eq(db.db:user_version(), 15)
 	for id, state in ipairs(ComputeState:list()) do
 		create_play(db, id, state)
 		check_play(t, db, id, state)
@@ -81,7 +85,7 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	end
 	downgrade(db, 9)
 	db:migrate()
-	t:eq(db.db:user_version(), 14)
+	t:eq(db.db:user_version(), 15)
 	for _, name in ipairs({"chart_difficulties_sort_idx", "chartplay_ratings_sort_idx"}) do
 		t:eq(#db.db:query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", {name}), 1, name)
 	end
@@ -97,6 +101,28 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	downgrade(db, 9)
 	db:migrate()
 	for id, state in ipairs(states) do check_play(t, db, id, state) end
+	db:unload()
+end
+
+---@param t testing.T
+function test.version_14_drops_the_difficulty_columns(t)
+	local db = create_db()
+	for _, sql in ipairs({
+		"DROP TABLE chart_difficulties",
+		[[CREATE TABLE chart_difficulties (chart_id INTEGER NOT NULL, calc_id INTEGER NOT NULL, `key` INTEGER NOT NULL,
+			rate INTEGER NOT NULL, value INTEGER, PRIMARY KEY (chart_id, calc_id, `key`, rate)) WITHOUT ROWID]],
+		"ALTER TABLE chartdiffs ADD COLUMN enps_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN osu_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff_data BLOB",
+	}) do
+		db.db:exec(sql)
+	end
+	db.db:user_version(14)
+	db:migrate()
+	t:eq(db.db:user_version(), 15)
+	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chartdiffs') WHERE name IN ('enps_diff', 'user_diff')"), 0)
+	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_difficulties') WHERE name = 'chartdiff_id'"), 1)
 	db:unload()
 end
 

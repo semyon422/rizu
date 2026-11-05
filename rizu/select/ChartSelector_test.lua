@@ -17,7 +17,7 @@ local function createSettings()
 	local keys = Settings.keys
 	settings:setChoice(keys.select.primary_mode, "chartfile_sets")
 	settings:setChoice(keys.select.secondary_mode, "chartmetas")
-	settings:setChoice(keys.select.diff_column, "osu_diff")
+	settings:setChoice(keys.select.diff_column, "calc:osu")
 	settings:setNumber(keys.gameplay.rating_hit_timing_window, 0.05)
 	return settings
 end
@@ -30,7 +30,7 @@ local function createMockConfigModel()
 					locations_in_collections = false,
 					primary_mode = "chartfile_sets",
 					secondary_mode = "chartmetas",
-					diff_column = "osu_diff"
+					diff_column = "calc:osu"
 				},
 				gameplay = {
 					ratingHitTimingWindow = 0.05

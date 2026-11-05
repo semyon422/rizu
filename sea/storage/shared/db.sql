@@ -62,10 +62,6 @@ CREATE TABLE IF NOT EXISTS `chartdiffs` (
 	`note_types_count` TEXT NOT NULL,
 	`density_data` TEXT NOT NULL,
 	`sv_data` TEXT NOT NULL,
-	`enps_diff` REAL NOT NULL,
-	`osu_diff` REAL NOT NULL,
-	`user_diff` REAL NOT NULL,
-	`user_diff_data` BLOB NOT NULL,
 	`notes_preview` BLOB NOT NULL
 );
 
@@ -73,11 +69,29 @@ CREATE INDEX IF NOT EXISTS chartdiffs_hi_idx ON chartdiffs (`hash`, `index`);
 CREATE INDEX IF NOT EXISTS chartdiffs_himr_idx ON chartdiffs (`hash`, `index`, `modifiers`, `rate`);
 CREATE UNIQUE INDEX IF NOT EXISTS chartdiffs_himrmc_idx ON chartdiffs (`hash`, `index`, `modifiers`, `rate`, `mode`, `custom_user_id`);
 CREATE INDEX IF NOT EXISTS chartdiffs_inputmode_idx ON chartdiffs (`inputmode`);
-CREATE INDEX IF NOT EXISTS chartdiffs_enps_idx ON chartdiffs (`enps_diff`);
-CREATE INDEX IF NOT EXISTS chartdiffs_osu_idx ON chartdiffs (`osu_diff`);
-CREATE INDEX IF NOT EXISTS chartdiffs_user_idx ON chartdiffs (`user_diff`);
 CREATE INDEX IF NOT EXISTS chartdiffs_notes_count_idx ON chartdiffs (`notes_count`);
 CREATE INDEX IF NOT EXISTS chartdiffs_duration_idx ON chartdiffs (`duration`);
+
+-- Difficulty calculators: the game's own (enps, osu) and those added by plugins, see rizu.library.Calculators.
+CREATE TABLE IF NOT EXISTS `calculators` (
+	`id` INTEGER PRIMARY KEY,
+	`name` TEXT NOT NULL UNIQUE,
+	`version` INTEGER NOT NULL
+);
+
+-- Their values for chartdiffs, in hundredths. Key 0 is the headline, key i the calculator's keys[i].
+-- NULL when the calculator does not rate the chart.
+CREATE TABLE IF NOT EXISTS `chart_difficulties` (
+	`chartdiff_id` INTEGER NOT NULL,
+	`calc_id` INTEGER NOT NULL,
+	`key` INTEGER NOT NULL,
+	`value` INTEGER,
+	PRIMARY KEY (`chartdiff_id`, `calc_id`, `key`),
+	FOREIGN KEY (chartdiff_id) REFERENCES chartdiffs(id) ON DELETE CASCADE,
+	FOREIGN KEY (calc_id) REFERENCES calculators(id) ON DELETE CASCADE
+) WITHOUT ROWID;
+
+CREATE INDEX IF NOT EXISTS chart_difficulties_sort_idx ON chart_difficulties (`calc_id`, `key`, `value`);
 
 CREATE TABLE IF NOT EXISTS `chartplays` (
 	`id` INTEGER PRIMARY KEY,
