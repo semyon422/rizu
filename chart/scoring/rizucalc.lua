@@ -37,7 +37,6 @@ local MOTION_MAX_DT = 0.25 -- seconds between the rows of a bracket or roll, Pri
 ---@field params chart.scoring.rizucalc.Params
 ---@field groups integer[] group of each column
 ---@field cross number[] cross[i] is the weight of columns i and i + 1
----@field skip_input string? input dropped before rating
 ---@field columns integer[][]? the notes of column i go to the columns columns[i], one after another in turn
 ---@field map fun(raw: number): number raw rating to the displayed one
 ---@field ln chart.scoring.rizucalc_ln.Params? the LN level's parameters, see rizu.library.RizuDifficulty
@@ -245,6 +244,7 @@ function rizucalc.rate(times, cols, layout)
 			row_size[nrows] = 1
 			row_mask[nrows] = 0
 		end
+		-- shortcut: row masks are 32-bit, so bracket and roll need layouts of up to 32 columns; 36K2S has both off
 		row_mask[row_of[i]] = bit.bor(row_mask[row_of[i]], bit.lshift(1, cols[i] - 1))
 	end
 
@@ -272,7 +272,7 @@ function rizucalc.rate(times, cols, layout)
 				row_strain[r] = row_strain[r] * (1 + p.bracket)
 			end
 			local r1 = prev1[g]
-			row_step[r] = r1 and dt <= MOTION_MAX_DT and step(row_mask[r1], row_mask[r]) or 0
+			row_step[r] = p.roll ~= 0 and r1 and dt <= MOTION_MAX_DT and step(row_mask[r1], row_mask[r]) or 0
 			if p.roll ~= 0 and row_step[r] ~= 0 and r1 and row_step[r1] == row_step[r] then
 				row_strain[r] = row_strain[r] * (1 - p.roll)
 			end
@@ -356,7 +356,11 @@ function rizucalc.rate(times, cols, layout)
 			table.insert(masks, 0)
 			prev_ms = m
 		end
-		masks[#masks] = bit.bor(masks[#masks], bit.lshift(1, cols[i] - 1))
+		-- a double holds up to 53 columns, bit ops only 32
+		local bit_value = 2 ^ (cols[i] - 1)
+		if math.floor(masks[#masks] / bit_value) % 2 == 0 then
+			masks[#masks] = masks[#masks] + bit_value
+		end
 	end
 	local tech = window_entropy(tech_w, tech_q, nw, tech_f)
 	local pattern = window_entropy(mask_w, masks, nw)
