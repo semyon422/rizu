@@ -86,14 +86,14 @@ function test.icon_copy_pulses_with_the_beat(t)
 end
 
 ---@param t testing.T
-function test.player_card_shows_the_name_and_local_msd(t)
+function test.player_card_shows_the_name_and_local_pp(t)
 	setup()
 	local screen = newScreen()
 	local card = screen.player_card
 	t:eq(card.name.text, "Player")
-	t:eq(card.msd.text, "25.30")
-	-- Refitted to the new MSD, so the card hugs its content.
-	t:eq(card.width, card.msd_column.x + card.msd_column.width)
+	t:eq(card.pp.text, "1235")
+	-- Refitted to the new PP, so the card hugs its content.
+	t:eq(card.width, card.pp_column.x + card.pp_column.width)
 	screen:update(0)
 	screen:draw()
 end
@@ -115,14 +115,14 @@ function test.player_card_offers_login_until_logged_in(t)
 	local card = screen.player_card
 	t:eq(card.children[1], card.account)
 	t:assert(not card.profile.parent, "profile hidden")
-	t:eq(card.msd.text, "25.30")
+	t:eq(card.pp.text, "1235")
 
 	logged_in = true
 	on_account_changed()
 	t:eq(card.children[1], card.profile)
 	t:assert(not card.account.parent, "buttons hidden")
 	t:eq(card.name.text, "nimue")
-	t:eq(card.width, card.msd_column.x + card.msd_column.width)
+	t:eq(card.width, card.pp_column.x + card.pp_column.width)
 end
 
 ---@param t testing.T
@@ -348,14 +348,14 @@ function test.entering_again_counts_plays_made_since(t)
 	local screen = newScreen()
 	local scores = screen.ui.api.scores
 	scores.getSessionStats = function(_, f) f({plays = 3, firsts = 2}) end
-	scores.getTotalRatings = function(_, f) f({pp = 4900, msd = 24.5}) end
+	scores.getTotalRatings = function(_, f) f({pp = 4900}) end
 
 	-- Off to song select and gameplay, then back: the screen is not loaded again.
 	screen:exit()
 	screen:enter()
 
 	t:eq(screen.session_panel.stats.plays, 3)
-	t:eq(screen.player_card.msd.text, "24.50")
+	t:eq(screen.player_card.pp.text, "4900")
 end
 
 ---@param t testing.T

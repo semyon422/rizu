@@ -6,7 +6,6 @@ local RatingCalc = {
 	difftable = 1,
 	enps = 2,
 	pp = 3,
-	msd = 4,
 }
 
 RatingCalc = Enum(RatingCalc)
@@ -19,7 +18,6 @@ local columns = {
 	difftable = "difftable_level",
 	enps = "rating",
 	pp = "rating_pp",
-	msd = "rating_msd",
 }
 
 ---@type {[sea.RatingCalc]: string}
@@ -28,7 +26,6 @@ local postfixes = {
 	difftable = "lvl",
 	enps = "enps",
 	pp = "pp",
-	msd = "msd",
 }
 
 ---@param rating_calc sea.RatingCalc

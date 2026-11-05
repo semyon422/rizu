@@ -48,8 +48,8 @@ The `sea/` tree contains the website, server-side logic, and shared online infra
 - OpenResty and NATS use host networking on Linux to preserve the existing loopback-only reverse-proxy and NATS contracts.
 - NATS binds its client and monitoring ports to loopback and is not exposed publicly.
 - Configuration, SQLite (including WAL/SHM sidecars), and content-addressed chart and replay storage live under the single `server-state/` directory, which is mounted separately from immutable application releases.
-- Docker does not compile or download application dependencies. The checkout must contain compatible prebuilt `tree/` Lua modules and `bin/linux64/` native libraries, including the repository-pinned SQLite and Minacalc builds. Compose may pull the pinned OpenResty and NATS images when they are missing locally.
-- The container exposes only Rizu's server-specific 7z, iconv, Minacalc, and SQLite libraries through `LD_LIBRARY_PATH`. OpenResty and Lua SSL modules use the container image's OpenSSL instead of the game runtime's bundled OpenSSL.
+- Docker does not compile or download application dependencies. The checkout must contain compatible prebuilt `tree/` Lua modules and `bin/linux64/` native libraries, including the repository-pinned SQLite build. Compose may pull the pinned OpenResty and NATS images when they are missing locally.
+- The container exposes only Rizu's server-specific 7z, iconv, and SQLite libraries through `LD_LIBRARY_PATH`. OpenResty and Lua SSL modules use the container image's OpenSSL instead of the game runtime's bundled OpenSSL.
 - The OpenResty container runs as the invoking host UID and GID so its worker can update the mounted SQLite database, create WAL files, and write runtime logs without changing checkout ownership. `make` exports these IDs; direct Compose usage defaults both to `1000`.
 - Server replay computation uses the fake audio provider. The server module graph must not load BASS or require game audio libraries; the BASS provider is loaded lazily only when audio is explicitly enabled.
 

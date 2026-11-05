@@ -99,7 +99,6 @@ preflight: nginx-conf
 	@test -f bin/linux64/libsqlite3.so || { echo "missing bin/linux64/libsqlite3.so" >&2; exit 1; }
 	@test -f bin/linux64/libssl.so.3 || { echo "missing bin/linux64/libssl.so.3" >&2; exit 1; }
 	@test -f bin/linux64/libcrypto.so.3 || { echo "missing bin/linux64/libcrypto.so.3" >&2; exit 1; }
-	@test -f bin/linux64/libminacalc.so || { echo "missing bin/linux64/libminacalc.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/bcrypt.so || { echo "missing tree/lib/lua/5.1/bcrypt.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/socket/core.so || { echo "missing tree/lib/lua/5.1/socket/core.so" >&2; exit 1; }
 	@test -f tree/lib/lua/5.1/ssl.so || { echo "missing tree/lib/lua/5.1/ssl.so" >&2; exit 1; }

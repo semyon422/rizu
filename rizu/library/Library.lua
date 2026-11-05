@@ -497,7 +497,7 @@ function Library:getChartplaysForChartmetaAsync(chartmeta_key)
 end
 
 ---See rizu.library.Worker:getTotalRatings(). Nil before the library is loaded.
----@return {pp: number, msd: number}?
+---@return {pp: number}?
 function Library:getTotalRatingsAsync()
 	return self.reader and self.reader:getTotalRatings()
 end

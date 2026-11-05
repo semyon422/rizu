@@ -9,8 +9,6 @@ local Modifiers = require("sea.storage.server.Modifiers")
 local Subtimings = require("sea.chart.Subtimings")
 local IntegerArray = require("sea.storage.server.IntegerArray")
 local IntegerArrayOptional = require("sea.storage.server.IntegerArrayOptional")
-local MsdDiffData = require("chart.difficulty.MsdDiffData")
-local MsdDiffRates = require("chart.difficulty.MsdDiffRates")
 
 ---@type rdb.ModelOptions
 local chartview_base = {}
@@ -38,8 +36,6 @@ chartview_base.types = {
 	healths = Healths,
 	rate_type = RateType,
 
-	msd_diff_data = MsdDiffData,
-	msd_diff_rates = MsdDiffRates,
 
 	chartmeta_timings = Timings,
 	chartmeta_healths = Healths,

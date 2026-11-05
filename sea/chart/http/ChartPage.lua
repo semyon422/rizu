@@ -68,8 +68,6 @@ end
 function ChartPage:getDifficulty()
 	if self.rating_calc == "pp" then
 		return self.chartdiff.osu_diff
-	elseif self.rating_calc == "msd" then
-		return self.chartdiff.msd_diff
 	end
 	return self.chartdiff.enps_diff
 end
@@ -80,8 +78,6 @@ function ChartPage:getDifficultyHue()
 
 	if self.rating_calc == "pp" then
 		x = math.min(10, self.chartdiff.osu_diff) / 10
-	elseif self.rating_calc == "msd" then
-		x = (math.min(self.chartdiff.msd_diff, 40) / 40) / 1.2
 	elseif self.rating_calc == "enps" then
 		x = math.min(self.chartdiff.enps_diff, 35) / 35
 	end
@@ -92,8 +88,6 @@ end
 function ChartPage:getDifficultyPostfix()
 	if self.rating_calc == "pp" then
 		return "☆"
-	elseif self.rating_calc == "msd" then
-		return "Tech/Stamina" -- Two top patterns
 	end
 	return "ENPS"
 end
@@ -160,8 +154,6 @@ end
 function ChartPage:getRating(cpv)
 	if self.rating_calc == "pp" then
 		return cpv.rating_pp
-	elseif self.rating_calc == "msd" then
-		return cpv.rating_msd
 	end
 
 	return cpv.rating

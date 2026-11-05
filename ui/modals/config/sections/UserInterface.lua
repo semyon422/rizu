@@ -15,7 +15,6 @@ local function formatDifficulty(value)
 	return ({
 		enps_diff = "ENPS",
 		osu_diff = "osu!",
-		msd_diff = "MSD",
 		user_diff = "User",
 	})[value] or value:match("^calc:(.+)$")
 end

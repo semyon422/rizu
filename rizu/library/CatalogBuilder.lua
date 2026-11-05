@@ -328,12 +328,12 @@ function CatalogBuilder:export(entries, generated_at)
 	local summary = {}
 	for _, row in ipairs(query(conn, [[
 		SELECT remote_assets.`hash`, remote_assets.`index`, remote_assets.audio_path, remote_assets.audio_preview_path,
-			remote_assets.background_path, chartdiffs.msd_diff, chartdiffs.enps_diff, chartdiffs.osu_diff
+			remote_assets.background_path, chartdiffs.enps_diff, chartdiffs.osu_diff
 		FROM remote_assets
 		JOIN chartdiffs ON chartdiffs.`hash` = remote_assets.`hash` AND chartdiffs.`index` = remote_assets.`index`
 		ORDER BY remote_assets.`hash`, remote_assets.`index`
 	]])) do
-		for i = 1, 8 do
+		for i = 1, 7 do
 			summary[#summary + 1] = tostring(row[i])
 		end
 	end

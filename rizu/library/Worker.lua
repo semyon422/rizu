@@ -162,16 +162,15 @@ function Worker:getChartplaysForChartmeta(chartmeta_key)
 	return repo:getChartplaysForChartmeta(chartmeta_key)
 end
 
----The local player's total PP and MSD, each over the best play of each chart by that rating.
+---The local player's total PP, over the best play of each chart by that rating.
 ---shortcut: plays the last recompute could not play again (chart or replay gone) keep the ratings
 ---of their time, add a per-play compute version if they must be left out.
----@return {pp: number, msd: number}
+---@return {pp: number}
 function Worker:getTotalRatings()
 	local repo = ChartsRepo(self.db.models)
-	local pp, msd = TotalRating(), TotalRating()
+	local pp = TotalRating()
 	pp:calc(repo:getBestChartplaysByRating(1, "rating_pp", 100) --[[@as sea.Chartplayview[] ]])
-	msd:calc(repo:getBestChartplaysByRating(1, "rating_msd", 100) --[[@as sea.Chartplayview[] ]])
-	return {pp = pp.rating_pp, msd = msd.rating_msd}
+	return {pp = pp.rating_pp}
 end
 
 ---The local player's plays since a time: how many, the best ratings of the passed ones (nil before the first
@@ -187,7 +186,6 @@ function Worker:getSessionStats(since)
 		if chartplay.pass then
 			stats.best_rating = math.max(stats.best_rating or -math.huge, chartplay.rating)
 			stats.best_pp = math.max(stats.best_pp or -math.huge, chartplay.rating_pp)
-			stats.best_msd = math.max(stats.best_msd or -math.huge, chartplay.rating_msd)
 		end
 		local key = chartplay.hash .. ":" .. chartplay.index
 		if not seen[key] then

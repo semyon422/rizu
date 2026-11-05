@@ -20,7 +20,6 @@ local ReleasePackager = class()
 ReleasePackager.SERVER_RUNTIME_PATHS = {
 	"bin/linux64/lib7z.so",
 	"bin/linux64/libiconv.so",
-	"bin/linux64/libminacalc.so",
 	"bin/linux64/libsqlite3.so",
 	"bin/linux64/libssl.so.3",
 	"bin/linux64/libcrypto.so.3",
@@ -42,7 +41,6 @@ ReleasePackager.SERVER_REQUIRED_PATHS = {
 	"pkg_config.lua",
 	"bin/linux64/lib7z.so",
 	"bin/linux64/libiconv.so",
-	"bin/linux64/libminacalc.so",
 	"bin/linux64/libsqlite3.so",
 	"bin/linux64/libssl.so.3",
 	"bin/linux64/libcrypto.so.3",

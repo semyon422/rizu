@@ -1,6 +1,5 @@
 local class = require("class")
 local Color = require("ui.Color")
-local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
 local dan_list = require("sea.dan.dan_list")
 local RizuDifficulty = require("rizu.library.RizuDifficulty")
@@ -68,21 +67,12 @@ function ChartviewFormatter:getDifficulty()
 	end
 	num = num or 0
 
-	if diff_column == "msd_diff" then
-		local rates = self.chartview.msd_diff_rates
-		if rates and #rates > 0 then
-			num = num * MsdFormatter.multiplierAt(rates, self.time_rate)
-		end
-	else
-		num = num * self.time_rate
-	end
+	num = num * self.time_rate
 
 	local postfix = calc and calc:upper() or "USER"
 
 	if diff_column == "osu_diff" then
 		postfix = "★"
-	elseif diff_column == "msd_diff" then
-		postfix = "MSD"
 	elseif diff_column == "enps_diff" then
 		postfix = "ENPS"
 	end
@@ -98,35 +88,6 @@ function ChartviewFormatter:getDifficulty()
 		postfix = postfix,
 		color = Color.diffToColor(diff_column, num, {1, 1, 1, 1})
 	}
-end
-
----@return {top_full: string?, second_full: string?, top_simple: string?, second_simple: string?}
-function ChartviewFormatter:getPatterns()
-	local msd_diff_data = self.chartview.msd_diff_data
-	local msd_diff_rates = self.chartview.msd_diff_rates
-
-	if not msd_diff_data or not msd_diff_rates then
-		return {}
-	end
-
-	local msd_formatter = MsdFormatter(msd_diff_data, msd_diff_rates)
-	local inputmode = self.chartview.chartdiff_inputmode or self.chartview.inputmode
-	local first, second = msd_formatter:getTopPatterns(self.time_rate, inputmode)
-
-	local t = {
-		top_full = first,
-		second_full = second,
-	}
-
-	if first then
-		t.top_simple = msd_formatter.simplifyName(first)
-	end
-
-	if second then
-		t.second_simple = msd_formatter.simplifyName(second)
-	end
-
-	return t
 end
 
 ---@return string

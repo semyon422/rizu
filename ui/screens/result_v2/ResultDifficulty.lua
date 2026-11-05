@@ -12,7 +12,6 @@ local Colors = require("ui.Colors")
 ---@field difficulty ui.views.Label
 ---@field rate ui.views.Label
 ---@field rate_x ui.views.Label
----@field patterns ui.views.Label
 local ResultDifficulty = FlowContainer + {}
 
 function ResultDifficulty:new()
@@ -53,12 +52,6 @@ function ResultDifficulty:new()
 	self.rate_row:fitContent()
 	self.hero:fitContent()
 
-	self.patterns = self:add(Label({
-		font_name = "medium",
-		font_size = 32,
-		color = Colors.muted,
-		text = "",
-	}))
 	self:fitContent()
 end
 
@@ -75,14 +68,6 @@ function ResultDifficulty:bind(cvf, cdf)
 	self.rate:setText((rate.value:gsub("x$", "")))
 	self.rate.color = rate.color
 	self.rate_x.color = rate.color
-
-	-- Only the two strongest patterns are shown.
-	local names = {} ---@type string[]
-	for _, name in ipairs({cdf:getPatterns()}) do
-		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
-	end
-	self.patterns:setText(table.concat(names, " · "))
-	self.patterns:setVisible(#names > 0)
 
 	self.rate_row:fitContent()
 	self.header:fitContent()

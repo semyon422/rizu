@@ -5,7 +5,7 @@ local GitDepsSpec = {}
 
 ---@param spec rizu.build.deps.Spec
 function GitDepsSpec.add(spec)
-	for _, dep_name in ipairs({"minacalc", "luamidi"}) do
+	for _, dep_name in ipairs({"luamidi"}) do
 		local cfg = Manifest[dep_name]
 		local dep_dir = "${deps_dir}/" .. dep_name
 		table.insert(spec.steps, {

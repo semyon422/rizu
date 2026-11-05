@@ -43,7 +43,6 @@ function ChartResource:getPage(req, res, ctx)
 		duration = 140,
 		enps_diff = 20,
 		osu_diff = 7,
-		msd_diff = 35,
 		judges_count = 461,
 		notes_count = 417
 	}
@@ -55,7 +54,6 @@ function ChartResource:getPage(req, res, ctx)
 	cpv.miss_count = 9
 	cpv.rating = 20
 	cpv.rating_pp = 400
-	cpv.rating_msd = 27
 	cpv.modifiers = {}
 	cpv.rate = 1.2
 	cpv.const = false

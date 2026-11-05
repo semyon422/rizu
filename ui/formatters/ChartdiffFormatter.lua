@@ -1,6 +1,5 @@
 local class = require("class")
 local Color = require("ui.Color")
-local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
 
 --- Formats info from chartdiff
@@ -50,19 +49,6 @@ end
 function ChartdiffFormatter:getDuration()
 	local duration = (self.chartdiff.duration or 0) / (self.chartdiff.rate or 1)
 	return ("%i:%02i"):format(duration / 60, duration % 60)
-end
-
---- The two strongest patterns
----@return string?
----@return string?
-function ChartdiffFormatter:getPatterns()
-	local msd_diff_data = self.chartdiff.msd_diff_data
-	local msd_diff_rates = self.chartdiff.msd_diff_rates
-	if not msd_diff_data or not msd_diff_rates then
-		return
-	end
-	-- The ratings are already at the played rate.
-	return MsdFormatter(msd_diff_data, msd_diff_rates):getTopPatterns(1, self.chartdiff.inputmode)
 end
 
 ---@return string

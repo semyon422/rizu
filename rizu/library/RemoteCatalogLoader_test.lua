@@ -28,8 +28,8 @@ local function createCatalog(schema_version, charts)
 				VALUES (0, 0, '%s', 1, '4key', 1, 'Catalog title');
 			INSERT INTO chartdiffs (created_at, computed_at, hash, `index`, modifiers, rate, mode, inputmode, duration,
 				start_time, notes_count, judges_count, note_types_count, density_data, sv_data, enps_diff, osu_diff,
-				msd_diff, msd_diff_data, msd_diff_rates, user_diff, user_diff_data, notes_preview)
-				VALUES (0, 0, '%s', 1, '', 1000, 0, '4key', 90, 0, 100, 100, '', '', '', 5, 2, 10, '', '', 0, '', '');
+				user_diff, user_diff_data, notes_preview)
+				VALUES (0, 0, '%s', 1, '', 1000, 0, '4key', 90, 0, 100, 100, '', '', '', 5, 2, 0, '', '');
 			INSERT INTO remote_assets VALUES ('%s', 1, 'chart-files/v1/%s.osu', 'audio/v1/a.webm', 'audio-previews/v1/p.webm', NULL);
 		]]):format(40 + i, hash, hash, hash, hash, hash, hash))
 	end

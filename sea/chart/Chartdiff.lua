@@ -23,9 +23,6 @@ local chart_types = require("sea.chart.types")
 ---@field sv_data number[] 128 values, 4 bit per value, (visual duration) / (absoulte duration) ?
 ---@field enps_diff number
 ---@field osu_diff number
----@field msd_diff number
----@field msd_diff_data minacalc.Ssr
----@field msd_diff_rates number[]
 ---@field user_diff number
 ---@field user_diff_data string
 ---@field notes_preview string
@@ -48,37 +45,24 @@ Chartdiff.struct = {
 	sv_data = valid.array(types.normalized, 128),
 	enps_diff = types.number,
 	osu_diff = types.number,
-	msd_diff = types.number,
-	msd_diff_data = chart_types.msd_diff_data,
-	msd_diff_rates = chart_types.msd_diff_rates,
 	user_diff = types.number,
 	user_diff_data = types.binary,
 	notes_preview = types.binary,
 }
 
 local computed_keys = table_util.keys(Chartdiff.struct)
-assert(#table_util.keys(Chartdiff.struct) == 16)
-
-local computed_keys_no_msd = table_util.copy(computed_keys)
-table.remove(computed_keys_no_msd, table_util.indexof(computed_keys_no_msd, "msd_diff"))
-table.remove(computed_keys_no_msd, table_util.indexof(computed_keys_no_msd, "msd_diff_data"))
-table.remove(computed_keys_no_msd, table_util.indexof(computed_keys_no_msd, "msd_diff_rates"))
+assert(#table_util.keys(Chartdiff.struct) == 13)
 
 ---@param values sea.Chartdiff
----@param no_msd boolean?
 ---@return boolean?
 ---@return string?
-function Chartdiff:equalsComputed(values, no_msd)
-	local keys = computed_keys
-	if no_msd then
-		keys = computed_keys_no_msd
-	end
-	return valid.equals(table_util.sub(self, keys), table_util.sub(values, keys))
+function Chartdiff:equalsComputed(values)
+	return valid.equals(table_util.sub(self, computed_keys), table_util.sub(values, computed_keys))
 end
 
 table_util.copy(ChartdiffKey.struct, Chartdiff.struct)
 
-assert(#table_util.keys(Chartdiff.struct) == 21)
+assert(#table_util.keys(Chartdiff.struct) == 18)
 
 local validate_chartdiff = valid.struct(Chartdiff.struct)
 

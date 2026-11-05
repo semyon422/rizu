@@ -46,10 +46,10 @@ function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	local factory = TestChartFactory()
 	---@param hash string
 	---@param pp number
-	---@param msd number
+	---@param rating number
 	---@param pass boolean
-	local function add(hash, pp, msd, pass)
-		local chartplay = factory:createChartplay({hash = hash, rating_pp = pp, rating_msd = msd})
+	local function add(hash, pp, rating, pass)
+		local chartplay = factory:createChartplay({hash = hash, rating_pp = pp, rating = rating})
 		chartplay.pass = pass
 		repo:createChartplay(chartplay)
 	end
@@ -63,9 +63,9 @@ function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	t:eq(by_pp[1].rating_pp, 300, "a failed play does not count")
 	t:eq(by_pp[2].rating_pp, 200)
 
-	local by_msd = repo:getBestChartplaysByRating(1, "rating_msd", 100)
-	t:eq(by_msd[1].rating_msd, 30)
-	t:eq(by_msd[2].rating_msd, 20, "each rating takes its own best play of a chart")
+	local by_rating = repo:getBestChartplaysByRating(1, "rating", 100)
+	t:eq(by_rating[1].rating, 30)
+	t:eq(by_rating[2].rating, 20, "each rating takes its own best play of a chart")
 	t:eq(#repo:getBestChartplaysByRating(1, "rating_pp", 1), 1)
 	t:eq(#repo:getBestChartplaysByRating(2, "rating_pp", 100), 0)
 end

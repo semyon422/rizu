@@ -151,8 +151,6 @@ function ComputeContext:computeReplay(replay)
 	local chartmeta = assert(self.chartmeta)
 	local chartdiff = assert(self.chartdiff)
 	local state = assert(self.state)
-	local diffcalc_context = assert(self.diffcalc_context)
-
 	local rhythm_engine = ManiaEngine()
 
 	rhythm_engine:setChart(self.chart, chartmeta, chartdiff)
@@ -173,7 +171,7 @@ function ComputeContext:computeReplay(replay)
 	self:computePlay(rhythm_engine, replay.frames)
 	self.score_engine = rhythm_engine.score_engine
 
-	local cc_factory = ChartplayComputedFactory(chartdiff, diffcalc_context, rhythm_engine.score_engine, chartmeta.timings)
+	local cc_factory = ChartplayComputedFactory(chartdiff, rhythm_engine.score_engine, chartmeta.timings)
 	local chartplay_computed = cc_factory:getChartplayComputed()
 
 	return chartplay_computed

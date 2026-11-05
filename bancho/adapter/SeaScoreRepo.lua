@@ -196,18 +196,6 @@ local function create_chartdiff_values(replay, inputmode)
 	chartdiff.sv_data = {}
 	chartdiff.enps_diff = 0
 	chartdiff.osu_diff = 0
-	chartdiff.msd_diff = 0
-	chartdiff.msd_diff_data = {
-		overall = 0,
-		stream = 0,
-		jumpstream = 0,
-		handstream = 0,
-		stamina = 0,
-		jackspeed = 0,
-		chordjack = 0,
-		technical = 0,
-	}
-	chartdiff.msd_diff_rates = {}
 	chartdiff.user_diff = 0
 	chartdiff.user_diff_data = ""
 	chartdiff.notes_preview = ""
@@ -228,7 +216,6 @@ local function create_chartplay_values(replay, replay_hash)
 	chartplay.pass = false
 	chartplay.rating = 0
 	chartplay.rating_pp = 0
-	chartplay.rating_msd = 0
 	chartplay.hash = replay.hash
 	chartplay.index = replay.index
 	chartplay.replay_hash = replay_hash

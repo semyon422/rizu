@@ -99,9 +99,6 @@
 ---@field sv_data number[]
 ---@field enps_diff number
 ---@field osu_diff number
----@field msd_diff number
----@field msd_diff_data minacalc.Ssr
----@field msd_diff_rates number[]
 ---@field user_diff number
 ---@field user_diff_data string
 
@@ -153,7 +150,6 @@
 ---@field pass boolean
 ---@field rating number
 ---@field rating_pp number
----@field rating_msd number
 
 ---@class rizu.library.ChartplayComputable
 ---@field id integer
@@ -186,4 +182,3 @@
 ---@field pass boolean
 ---@field rating number
 ---@field rating_pp number
----@field rating_msd number

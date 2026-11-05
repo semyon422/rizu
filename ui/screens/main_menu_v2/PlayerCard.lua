@@ -11,19 +11,19 @@ local lg = love.graphics
 
 local AVATAR_SIZE = 64
 local RING_WIDTH = 3
-local MSD_COLOR = {0xF5 / 255, 0xC8 / 255, 0x42 / 255, 1}
+local PP_COLOR = {0xF5 / 255, 0xC8 / 255, 0x42 / 255, 1}
 local DIVIDER_COLOR = {0xF2 / 255, 0xF2 / 255, 1, 0.25}
 
 ---Top left of the main menu: round avatar and name, or Register and Login when connected but
----not logged in, then the local MSD.
+---not logged in, then the local PP.
 ---@class ui.screens.main_menu_v2.PlayerCard : gui.layout.FlowContainer
 ---@operator call: ui.screens.main_menu_v2.PlayerCard
 ---@field ui ui.UserInterface
 ---@field profile gui.layout.FlowContainer Avatar and name
 ---@field account gui.layout.FlowContainer Register and Login
 ---@field name ui.views.Label
----@field msd ui.views.Label
----@field msd_column gui.layout.FlowContainer
+---@field pp ui.views.Label
+---@field pp_column gui.layout.FlowContainer
 ---@field avatar_shader love.Shader?
 ---@field unsubscribe fun()?
 local PlayerCard = FlowContainer + {}
@@ -55,15 +55,15 @@ function PlayerCard:new(ui)
 		Resources.sprites.pixel:draw(math.floor(view.width / 2), 0, 0, 1, view.height)
 	end)
 
-	self.msd_column = self:add(FlowContainer({direction = "column", align = 0}))
-	self.msd = self.msd_column:add(Label({font_name = "bold", font_size = 32, text = "-", color = MSD_COLOR}))
-	self.msd_column:add(Label({
+	self.pp_column = self:add(FlowContainer({direction = "column", align = 0}))
+	self.pp = self.pp_column:add(Label({font_name = "bold", font_size = 32, text = "-", color = PP_COLOR}))
+	self.pp_column:add(Label({
 		font_name = "medium",
 		font_size = 13,
-		text = localization:get("main_menu.local_msd"):upper(),
+		text = localization:get("main_menu.local_pp"):upper(),
 		color = Colors.muted,
 	}))
-	self.msd_column:fitContent()
+	self.pp_column:fitContent()
 	self:updateAccount()
 end
 
@@ -72,12 +72,12 @@ function PlayerCard:load()
 	self:updateAccount()
 end
 
----Asks for the local MSD again, so plays made since are counted.
+---Asks for the local PP again, so plays made since are counted.
 function PlayerCard:refreshRatings()
 	self.ui.api.scores:getTotalRatings(function(totals)
 		if not totals then return end
-		self.msd:setText(("%.2f"):format(totals.msd))
-		self.msd_column:fitContent()
+		self.pp:setText(("%.0f"):format(totals.pp))
+		self.pp_column:fitContent()
 		self:fitContent()
 	end)
 end

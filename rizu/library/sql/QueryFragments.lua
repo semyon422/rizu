@@ -80,9 +80,6 @@ chartdiffs.density_data,
 chartdiffs.sv_data,
 chartdiffs.enps_diff,
 chartdiffs.osu_diff,
-chartdiffs.msd_diff,
-chartdiffs.msd_diff_data,
-chartdiffs.msd_diff_rates,
 chartdiffs.user_diff,
 chartdiffs.user_diff_data
 ]]

@@ -28,7 +28,6 @@ local function new_valid_chartplay()
 		rate = 1,
 		rate_type = "exp",
 		rating = 0,
-		rating_msd = 0,
 		rating_pp = 0,
 		tap_only = false,
 		timings = Timings("simple", 0.160),

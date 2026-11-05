@@ -180,7 +180,6 @@ function UserPage:getGeneralStats(user_id)
 	-- TODO: Get these values from the main leaderboard.
 	-- TODO: People have their preferences in rating calculators, let them choose one or two options in the settings. This is a personal option.
 	-- table.insert(cells, {label = "PP", value = "15028"})
-	-- table.insert(cells, {label = "MSD", value = "33.42"})
 
 	-- Accuracy should always be displayed
 	-- table.insert(cells, {label = "Accuracy", value = "90.81%"})

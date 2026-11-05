@@ -28,15 +28,12 @@ Nothing here changes by itself: read it when the result screen is entered and af
 ---@class rizu.api.Chartdiff
 ---@field enps_diff number
 ---@field osu_diff number
----@field msd_diff number
 ---@field user_diff number
 ---@field notes_count integer
 ---@field judges_count integer notes plus long note ends
 ---@field duration number seconds at rate 1
 ---@field rate number
 ---@field inputmode string e.g. "7key", after modifiers
----@field msd_diff_data table? Etterna's skill ratings by pattern, at the played rate.
----@field msd_diff_rates number[]?
 
 ---The system that judged the play. `ui.formatters.ScoreSystemFormatter` names and colors it.
 ---@class rizu.api.Result.Judging

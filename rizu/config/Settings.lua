@@ -223,7 +223,7 @@ Settings.cheat_keys = {
 
 ---Choices of select.diff_column: chartdiffs columns, and "calc:<name>" added by rizu.library.Calculators.
 ---@type string[]
-Settings.diff_columns = {"enps_diff", "osu_diff", "msd_diff", "user_diff"}
+Settings.diff_columns = {"enps_diff", "osu_diff", "user_diff"}
 
 ---@param filesystem fs.IFilesystem
 ---@return rizu.config.Config

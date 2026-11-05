@@ -67,14 +67,12 @@ function test.formats_difficulty_postfix(t)
 	}
 	local formatter = ChartviewFormatter({
 		osu_diff = 1,
-		msd_diff = 2,
 		enps_diff = 3,
 		user_diff = 4,
 	}, settings)
 
 	local postfixes = {
 		osu_diff = "★",
-		msd_diff = "MSD",
 		enps_diff = "ENPS",
 		user_diff = "USER",
 	}

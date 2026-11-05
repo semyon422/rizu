@@ -80,7 +80,6 @@ function SessionPanel:draw()
 		{
 			{best("%.0f", s.best_pp), "main_menu.session_best_pp"},
 			{best("%.2f", s.best_rating), "main_menu.session_best_enps"},
-			{best("%.2f", s.best_msd), "main_menu.session_best_msd"},
 		},
 	}
 	local inner = self.width - PADDING * 2

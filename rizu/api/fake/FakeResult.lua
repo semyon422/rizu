@@ -46,7 +46,7 @@ end
 
 function FakeResult:getChartdiff()
 	return {
-		enps_diff = 14.2, osu_diff = 5.1, msd_diff = 21.4, user_diff = 14,
+		enps_diff = 14.2, osu_diff = 5.1, user_diff = 14,
 		notes_count = hit_count, judges_count = hit_count, duration = 140, rate = 1, inputmode = "4key",
 	}
 end

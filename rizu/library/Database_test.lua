@@ -13,6 +13,22 @@ local function create_db()
 	return db
 end
 
+-- Puts the database back to a version below 14, which still had the MinaCalc columns.
+---@param db rizu.library.Database
+---@param version integer
+local function downgrade(db, version)
+	for _, sql in ipairs({
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff REAL",
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_data BLOB",
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_rates BLOB",
+		"ALTER TABLE chartplays ADD COLUMN rating_msd REAL NOT NULL DEFAULT 0",
+		"CREATE INDEX IF NOT EXISTS chartdiffs_msd_idx ON chartdiffs (msd_diff)",
+	}) do
+		db.db:exec(sql)
+	end
+	db.db:user_version(version)
+end
+
 ---@param db rizu.library.Database
 ---@param id integer
 ---@param state sea.ComputeState
@@ -38,7 +54,7 @@ end
 ---@param t testing.T
 function test.enum_storage_and_derived_model_filters(t)
 	local db = create_db()
-	t:eq(db.db:user_version(), 13)
+	t:eq(db.db:user_version(), 14)
 	for id, state in ipairs(ComputeState:list()) do
 		create_play(db, id, state)
 		check_play(t, db, id, state)
@@ -63,9 +79,9 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 		local raw_state = id <= 3 and state or ComputeState:encode(state)
 		db.db:query("UPDATE chartplays SET compute_state = ? WHERE id = ?", {raw_state, id})
 	end
-	db.db:user_version(9)
+	downgrade(db, 9)
 	db:migrate()
-	t:eq(db.db:user_version(), 13)
+	t:eq(db.db:user_version(), 14)
 	for _, name in ipairs({"chart_difficulties_sort_idx", "chartplay_ratings_sort_idx"}) do
 		t:eq(#db.db:query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", {name}), 1, name)
 	end
@@ -78,7 +94,7 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	db:migrate()
 	t:eq(db.models.chartplays:count(), 6)
 	t:eq(db.models.chartfiles:count(), 6)
-	db.db:user_version(9)
+	downgrade(db, 9)
 	db:migrate()
 	for id, state in ipairs(states) do check_play(t, db, id, state) end
 	db:unload()
@@ -92,7 +108,7 @@ function test.unknown_state_aborts_migration_without_advancing_version(t)
 		create_play(db, 2, "new")
 		db.db:query("UPDATE chartplays SET compute_state = 'valid' WHERE id = 1")
 		db.db:query("UPDATE chartplays SET compute_state = ? WHERE id = 2", {bad_state})
-		db.db:user_version(9)
+		downgrade(db, 9)
 		t:has_error(db.migrate, db)
 		t:eq(db.db:user_version(), 9)
 		t:eq(db.db:query("SELECT compute_state FROM chartplays WHERE id = 1")[1].compute_state, "valid")

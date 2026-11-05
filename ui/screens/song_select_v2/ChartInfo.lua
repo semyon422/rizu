@@ -15,7 +15,6 @@ local CELL_GAP = 44
 local CELLS_BOTTOM = 6
 local LABEL_SPACING = 0.3
 local CELL_LABEL_SPACING = 0.18
-local PATTERN_SEPARATOR = "  ·  "
 
 ---Draws text with extra space after every character, like CSS letter-spacing.
 ---@param font love.Font
@@ -42,12 +41,11 @@ local function spacedWidth(font, text, spacing)
 	return font:getWidth(text) + utf8.len(text) * spacing * font:getHeight() / 1.2
 end
 
----The difficulty, its patterns and the chart facts above the difficulty tabs.
+---The difficulty and the chart facts above the difficulty tabs.
 ---@class ui.screens.song_select_v2.ChartInfo : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartInfo
 ---@field cvf ui.formatters.ChartviewFormatter?
 ---@field difficulty {value: string, postfix: string, color: gui.Color}
----@field patterns string
 ---@field cells {value: string, label: string}[]
 local ChartInfo = View + {}
 
@@ -57,12 +55,10 @@ function ChartInfo:new()
 	View.new(self)
 	self.label_font = Resources.getFont("bold", 20)
 	self.postfix_font = Resources.getFont("medium", 24)
-	self.patterns_font = Resources.getFont("medium", 24)
 	self.big_font = Resources.getFont("bold", 76)
 	self.value_font = Resources.getFont("medium", 34)
 	self.cell_label_font = Resources.getFont("medium", 13)
 	self.difficulty = {value = "", postfix = "", color = Colors.text}
-	self.patterns = ""
 	self.cells = {}
 end
 
@@ -75,22 +71,15 @@ function ChartInfo:bind(cvf)
 		end)
 	end
 	self.cvf = cvf
-	self.difficulty, self.patterns, self.cells = ChartInfo.collect(cvf)
+	self.difficulty, self.cells = ChartInfo.collect(cvf)
 end
 
 ---The texts the panel shows, so other screens (the video export) can draw the same facts.
 ---@param cvf ui.formatters.ChartviewFormatter
 ---@return {value: string, postfix: string, color: gui.Color} difficulty
----@return string patterns
 ---@return {value: string, label: string}[] cells
 function ChartInfo.collect(cvf)
-	local patterns = cvf:getPatterns()
-	local names = {}
-	for _, name in ipairs({patterns.top_full, patterns.second_full}) do
-		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
-	end
-
-	return cvf:getDifficulty(), table.concat(names, PATTERN_SEPARATOR), {
+	return cvf:getDifficulty(), {
 		{value = (cvf:getMode():gsub(" %(EXPERIMENTAL%)$", "")), label = "KEYS"},
 		{value = cvf:getDuration(), label = "LENGTH"},
 		{value = cvf:getNoteCount(), label = "NOTES"},
@@ -114,12 +103,6 @@ function ChartInfo:draw()
 	local label_baseline = TOP_PADDING + self.label_font:getBaseline()
 	lg.print(self.difficulty.postfix, x + 16 - LABEL_SPACING * self.label_font:getHeight() / 1.2,
 		label_baseline - self.postfix_font:getBaseline())
-
-	-- Patterns, right aligned on the same row.
-	lg.setFont(self.patterns_font)
-	Painter.setColorTable(Colors.muted)
-	lg.print(self.patterns, self.width - PADDING_X - self.patterns_font:getWidth(self.patterns),
-		label_baseline - self.patterns_font:getBaseline())
 
 	-- Big difficulty number.
 	local big_y = self.height - self.big_font:getHeight()

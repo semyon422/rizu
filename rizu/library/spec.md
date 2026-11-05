@@ -26,7 +26,7 @@ The library is structured around a 5-level hierarchy, where each level represent
   - **Single File**: Used for "Unrelated" self-contained charts (e.g., `.ojn`, `.mid`).
 - **Chartfile** (`chartfiles`): A single physical file containing chart data (e.g., `.osu`, `.sm`, `.bms`). It is identified by a content `hash` and linked to a set via `set_id`.
 - **Chartmeta** (`chartmetas`): The logical identity of a song. It is identified by a `ChartmetaKey` (content `hash` + `index` within the file). It contains high-level metadata like `title`, `artist`, `audio_path`, and `preview_time`.
-- **Chartdiff** (`chartdiffs`): A specific playable variation. It is identified by a `ChartdiffKey` (MetaKey + `mode` + `rate` + `modifiers`). It stores difficulty metrics (`msd`, `osu`, `enps`) and `notes_count`.
+- **Chartdiff** (`chartdiffs`): A specific playable variation. It is identified by a `ChartdiffKey` (MetaKey + `mode` + `rate` + `modifiers`). It stores difficulty metrics (`osu`, `enps`) and `notes_count`.
 - **Chartplay** (`chartplays`): A record of a performance attempt. It tracks `accuracy`, `grade`, `judges` (hit counts), and a `replay_hash`.
 
 ## Architecture Decisions (ADR)

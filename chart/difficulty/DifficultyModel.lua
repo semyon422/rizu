@@ -7,7 +7,6 @@ local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
 local EnpsDiffcalc = require("chart.difficulty.EnpsDiffcalc")
 local NotesDiffcalc = require("chart.difficulty.NotesDiffcalc")
 local OsuDiffcalc = require("chart.difficulty.OsuDiffcalc")
-local MsdDiffcalc = require("chart.difficulty.MsdDiffcalc")
 local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
 
 ---@class chart.DifficultyModel
@@ -20,7 +19,6 @@ function DifficultyModel:new()
 	self.registry:add(NotesDiffcalc())
 	self.registry:add(EnpsDiffcalc())
 	self.registry:add(OsuDiffcalc())
-	self.registry:add(MsdDiffcalc())
 	self.registry:add(PreviewDiffcalc())
 end
 
