@@ -1,3 +1,8 @@
+-- SPDX-License-Identifier: Unlicense
+-- This file is released into the public domain, unlike the rest of the repository (GPL-3.0).
+-- Anyone may copy, modify, publish, use, sell or distribute it, in source or compiled form, for any purpose, with no
+-- warranty. See https://unlicense.org.
+
 -- The engine of calc/rizucalc.py: a raw rating from a layout and its parameters. Rizu Difficulty
 -- (rizu.library.RizuDifficulty) gives the layouts and maps the rating onto its scale.
 

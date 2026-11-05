@@ -1,3 +1,8 @@
+-- SPDX-License-Identifier: Unlicense
+-- This file is released into the public domain, unlike the rest of the repository (GPL-3.0).
+-- Anyone may copy, modify, publish, use, sell or distribute it, in source or compiled form, for any purpose, with no
+-- warranty. See https://unlicense.org.
+
 -- The LN part of Rizu Difficulty, a port of calc/ln_difficulty.py: a raw rating from the work long notes add to a
 -- chart, per hand group. rizu.library.RizuDifficulty gives the parameters and joins it with the short-note rating.
 

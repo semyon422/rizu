@@ -1,3 +1,8 @@
+-- SPDX-License-Identifier: Unlicense
+-- This file is released into the public domain, unlike the rest of the repository (GPL-3.0).
+-- Anyone may copy, modify, publish, use, sell or distribute it, in source or compiled form, for any purpose, with no
+-- warranty. See https://unlicense.org.
+
 local rizucalc = require("chart.scoring.rizucalc")
 local rizucalc_ln = require("chart.scoring.rizucalc_ln")
 
