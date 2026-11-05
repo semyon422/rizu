@@ -80,11 +80,24 @@ function test.miss_uses_miss_count_column(t)
 end
 
 ---@param t testing.T
+function test.rizu_difficulty_is_the_default(t)
+	local settings = Settings.createConfig(FakeFilesystem())
+	t:eq(settings:getChoice(Settings.keys.select.diff_column), "calc:rizu")
+end
+
+---@param t testing.T
 function test.lamp_string_uses_real_columns(t)
 	local settings = Settings.createConfig(FakeFilesystem())
 	local search = SearchModel({configs = {select = {}, filters = {notechart = {}}}}, settings)
 	local conditions = search:transformSearchString("d>5 ln>10", nil, true)
-	t:eq(conditions.enps_diff__gt, 5)
+	local raw ---@type string?
+	for k, v in pairs(conditions) do
+		if type(k) == "table" then
+			raw = k[1]
+			t:eq(v, 5)
+		end
+	end
+	t:assert(raw and raw:find("calculators WHERE name = 'rizu'", 1, true) and raw:find("> ?", 1, true), raw)
 	t:eq(conditions.difficulty__gt, nil)
 	t:eq(conditions.long_notes_ratio__gt, nil)
 end

@@ -3,6 +3,7 @@ local Observable = require("Observable")
 local string_util = require("string_util")
 local erfunc = require("chart.scoring.erfunc")
 local Settings = require("rizu.config.Settings")
+local QueryFragments = require("rizu.library.sql.QueryFragments")
 
 ---@alias rizu.select.SearchOperator "eq"|"ne"|"gt"|"lt"|"gte"|"lte"
 
@@ -179,6 +180,9 @@ local operators = {
 	["<="] = "lte",
 }
 
+---@type {[rizu.select.SearchOperator]: string}
+local sql_operators = {eq = "=", ne = "!=", gt = ">", lt = "<", gte = ">=", lte = "<="}
+
 ---@type {[rizu.select.SearchOperator]: rizu.select.SearchOperator}
 local inverse_operators = {
 	eq = "ne",
@@ -216,10 +220,6 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 			end
 			if config then
 				local field = config.field
-				if numbers_only and field == "difficulty" then
-					local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-					field = Settings.diff_column_fields[diff_column] or diff_column
-				end
 				if config.inverse then
 					operator = inverse_operators[operator] or operator
 				end
@@ -231,8 +231,11 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 				else
 					value = tonumber(value)
 				end
-				-- shortcut: the lamp query skips plugin calculators, which have no chartplays_list field; join chart_difficulties there when someone needs it.
-				if value and not field:find("^calc:") then
+				if value and numbers_only and field == "difficulty" then
+					-- The lamp query joins the tables themselves, where the chosen difficulty is no column but a calculator's value.
+					local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
+					cond[{("%s %s ?"):format(QueryFragments.getDifficultyField(diff_column), sql_operators[operator])}] = value
+				elseif value then
 					cond[field .. "__" .. operator] = value
 				end
 			end

@@ -36,7 +36,7 @@ function Calculators.add(calc)
 		assert(other.name ~= calc.name, "duplicate calculator: " .. calc.name)
 	end
 	table.insert(Calculators.list, calc)
-	if calc.compute then
+	if calc.compute and not table_util.indexof(Settings.diff_columns, "calc:" .. calc.name) then
 		table.insert(Settings.diff_columns, "calc:" .. calc.name)
 	end
 end

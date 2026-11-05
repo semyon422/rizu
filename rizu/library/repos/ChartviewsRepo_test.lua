@@ -227,4 +227,26 @@ function test.aggregation_in_modes(t)
 	db:unload()
 end
 
+---@param t testing.T
+function test.lamp_filters_by_the_chosen_difficulty(t)
+	local db, repo = setup()
+	local SearchModel = require("rizu.select.SearchModel")
+	local Settings = require("rizu.config.Settings")
+	local FakeFilesystem = require("fs.FakeFilesystem")
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.diff_column, "calc:enps")
+	local search = SearchModel({configs = {select = {}, filters = {notechart = {}}}}, settings)
+	repo.params.primary_mode = "chartplays"
+	repo.params.secondary_mode = "chartplays"
+	repo.params.lamp = search:transformSearchString("d>11", nil, true)
+	local lamps = {}
+	local items, count = repo:unpackResult(repo:query())
+	for i = 0, count - 1 do
+		lamps[items[i].chartplay_id] = items[i].lamp
+	end
+	t:eq(lamps[1], false)
+	t:eq(lamps[3], true)
+	db:unload()
+end
+
 return test
