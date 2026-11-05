@@ -52,7 +52,7 @@ function ChartviewFormatter:getTimeRate()
 	}
 end
 
----@return {value: string, postfix: string, color: gui.Color}
+---@return {value: string, postfix: string, color: gui.Color, dan: string?} dan: the estimated REFORM dan, see RizuDifficulty.dan
 function ChartviewFormatter:getDifficulty()
 	local mode = self.chartview.chartmeta_mode
 	if mode and mode ~= "mania" then
@@ -79,13 +79,15 @@ function ChartviewFormatter:getDifficulty()
 
 	-- the dan curve is fitted on 4K charts under 10% long notes only
 	local cv = self.chartview
+	local dan ---@type string?
 	if diff_column == "calc:rizu" and (cv.chartdiff_inputmode or cv.inputmode) == "4key" and (cv.long_notes_ratio or 0) < 0.1 then
-		postfix = postfix .. " · " .. RizuDifficulty.dan(num):upper()
+		dan = RizuDifficulty.dan(num)
 	end
 
 	return {
 		value = ("%0.01f"):format(num),
 		postfix = postfix,
+		dan = dan,
 		color = Color.diffToColor(diff_column, num, {1, 1, 1, 1})
 	}
 end

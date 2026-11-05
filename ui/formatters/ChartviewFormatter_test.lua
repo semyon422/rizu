@@ -86,11 +86,21 @@ end
 function test.rizu_shows_4k_dan(t)
 	local settings = {getChoice = function() return "calc:rizu" end}
 	local formatter = ChartviewFormatter({["calc:rizu"] = 28, chartdiff_inputmode = "4key"}, settings)
-	t:eq(formatter:getDifficulty().postfix, "RIZU · BETA")
+	t:eq(formatter:getDifficulty().postfix, "RIZU")
+	t:eq(formatter:getDifficulty().dan, "Beta")
 	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "4key", long_notes_ratio = 0.5})
-	t:eq(formatter:getDifficulty().postfix, "RIZU")
+	t:eq(formatter:getDifficulty().dan, nil)
 	formatter:setChartview({["calc:rizu"] = 28, chartdiff_inputmode = "7key"})
-	t:eq(formatter:getDifficulty().postfix, "RIZU")
+	t:eq(formatter:getDifficulty().dan, nil)
+end
+
+---@param t testing.T
+function test.rizu_difficulty_is_colored_on_the_msd_scale(t)
+	local settings = {getChoice = function() return "calc:rizu" end}
+	local low = ChartviewFormatter({["calc:rizu"] = 10, chartdiff_inputmode = "7key"}, settings):getDifficulty().color
+	local high = ChartviewFormatter({["calc:rizu"] = 35, chartdiff_inputmode = "7key"}, settings):getDifficulty().color
+	t:assert(low[1] ~= 1 or low[2] ~= 1 or low[3] ~= 1, "not white")
+	t:assert(low[1] ~= high[1] or low[2] ~= high[2] or low[3] ~= high[3], "harder is another color")
 end
 
 ---@param t testing.T
