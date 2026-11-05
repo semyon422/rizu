@@ -14,6 +14,7 @@ local NoteSkins = require("ui.modals.note_skins.NoteSkins")
 local HudElementPicker = require("ui.modals.hud_element_picker.HudElementPicker")
 local TexturePicker = require("ui.modals.texture_picker.TexturePicker")
 local Rescore = require("ui.modals.rescore.Rescore")
+local DifficultyLabel = require("ui.modals.difficulty_label.DifficultyLabel")
 local Filters = require("ui.modals.filters.Filters")
 local LocationEditor = require("ui.modals.locations.LocationEditor")
 local CreateRoom = require("ui.modals.lobby.CreateRoom")
@@ -36,6 +37,7 @@ local UiActions = require("ui.UiActions")
 ---@field hud_element_picker ui.modals.hud_element_picker.HudElementPicker
 ---@field texture_picker ui.modals.texture_picker.TexturePicker
 ---@field rescore ui.modals.rescore.Rescore
+---@field difficulty_label ui.modals.difficulty_label.DifficultyLabel
 ---@field chart_mutators ui.modals.chart_mutators.ChartMutators
 ---@field collection_selector ui.modals.collections.CollectionSelector
 ---@field filters ui.modals.filters.Filters
@@ -110,6 +112,8 @@ function ModalManager:new(ui, popup_container)
 	self.rescore = self:addModal(Rescore(ui.api.result,
 		function() ui.result:updateInfo() end,
 		function() self:hideModal(self.rescore) end, localization))
+	self.difficulty_label = self:addModal(DifficultyLabel(ui.api.result, ui.api.notifications,
+		function() self:hideModal(self.difficulty_label) end, localization))
 	self.note_skins = self:addModal(NoteSkins(ui.api.skins,
 		function() self:hideModal(self.note_skins) end, localization, function()
 			self:hideModal(self.note_skins)
@@ -334,6 +338,11 @@ end
 ---@return boolean detached
 function ModalManager:detachRescore()
 	return self:hideModal(self.rescore)
+end
+
+---@return boolean attached
+function ModalManager:attachDifficultyLabel()
+	return self:showModal(self.difficulty_label)
 end
 
 ---@return boolean attached

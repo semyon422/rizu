@@ -34,6 +34,16 @@ return function(ui)
 			end,
 		},
 		{
+			id = "ui.result.open_difficulty_label",
+			title = "Result: Rate Difficulty",
+			description = "Labels this play as under- or overrated by Rizu Difficulty, for tuning the calculator",
+			callback = function()
+				if result:hasScore() then
+					ui.modal_manager:attachDifficultyLabel()
+				end
+			end,
+		},
+		{
 			id = "ui.result.back",
 			title = "Result: Back to Select",
 			description = "Returns to chart selection",
