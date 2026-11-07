@@ -5,6 +5,7 @@ local Painter = require("gui.Painter")
 local ProgressBar = require("ui.screens.music_player.ProgressBar")
 local SpringValue = require("gui.anim.SpringValue")
 local ChartPreviewView = require("ui.screens.song_select_v2.ChartPreviewView")
+local PatternStrip = require("ui.screens.song_select_v2.PatternStrip")
 local math_util = require("math_util")
 
 local lg = love.graphics
@@ -85,6 +86,7 @@ end
 ---@class ui.screens.song_select_v2.SelectedSongPanel : gui.View
 ---@operator call: ui.screens.song_select_v2.SelectedSongPanel
 ---@field chart_preview ui.screens.song_select_v2.ChartPreviewView
+---@field pattern_strip ui.screens.song_select_v2.PatternStrip
 ---@field details_container ui.screens.song_select_v2.SelectedSongPanel.Details
 ---@field progress_bar ui.screens.music_player.ProgressBar
 ---@field title_font love.Font
@@ -112,6 +114,7 @@ function SelectedSongPanel:new(media, localization)
 	View.new(self)
 	self.chart_preview = self:add(ChartPreviewView(media))
 	self.chart_preview:anchorFill(0, 0, 0, 0)
+	self.pattern_strip = self:add(PatternStrip())
 	self.title_font = Resources.getFont("cjk_bold", 48)
 	self.artist_font = Resources.getFont("cjk_bold", 24)
 	self.chart_name_font = Resources.getFont("cjk_regular", 20)
@@ -149,6 +152,7 @@ function SelectedSongPanel:onLayoutChanged(old_x, old_y, old_width, old_height)
 		+ PROGRESS_HEIGHT + DETAILS_BOTTOM_PADDING
 	local details_y = self.height - details_height - PROGRESS_BOTTOM
 	self.details_container:anchorFixed(0, details_y, self.width, details_height)
+	self.pattern_strip:anchorFixed(0, 0, self.width, PatternStrip.HEIGHT)
 	self.progress_bar:anchorFixed(
 		DETAILS_PADDING,
 		title_height + artist_height + DETAILS_GAP,
@@ -178,6 +182,7 @@ function SelectedSongPanel:bind(cvf)
 	self.artist = cvf:getArtist()
 	self.chart_name = cvf:getName() or ""
 	self.chart_preview:bind(cvf)
+	self.pattern_strip:bind(cvf)
 end
 
 return SelectedSongPanel
