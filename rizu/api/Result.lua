@@ -4,8 +4,6 @@ local Timings = require("sea.chart.Timings")
 local Subtimings = require("sea.chart.Subtimings")
 local TimingValuesFactory = require("sea.chart.TimingValuesFactory")
 local TimingSystems = require("rizu.engine.scoring.TimingSystems")
-local DifficultyLabels = require("rizu.library.DifficultyLabels")
-local RizuDifficulty = require("rizu.library.RizuDifficulty")
 
 --[[
 How the last play of the selected chart went, or the score that `ui.api.scores:loadSelectedResult()`
@@ -250,89 +248,6 @@ function Result:rescore(system, value, osu_score_version)
 		value = value and math.floor(value * 10 + 0.5) / 10
 	end
 	return self.game.rhythm_engine.score_engine:rescore(Timings(system, value), subtimings)
-end
-
--- Difficulty labels
-
----How the player found the play against the chart's Rizu Difficulty, from DifficultyLabels.labels.
----@return string[]
-function Result:getDifficultyLabels() return DifficultyLabels.labels end
-
----Appends the label with the play to userdata/difficulty_labels.jsonl, see rizu.library.DifficultyLabels.
----The accuracy is the shown one: rescore first to label in another system. Labeling a play again adds a line,
----the last one of a chartplay_id counts.
----@param label string One of getDifficultyLabels().
----@param comment string? Empty is left out.
----@return boolean? ok
----@return string? err
-function Result:saveDifficultyLabel(label, comment)
-	if not self:hasScore() then
-		return nil, "There is no result to label."
-	end
-	local game = self.game ---@diagnostic disable-line: invisible
-	local cc = game.computeContext
-	local chartmeta, chartdiff, chartplay = cc.chartmeta, cc.chartdiff, cc.chartplay
-	if not chartmeta or not chartdiff then
-		return nil, "The played chart is not known."
-	end
-
-	-- Rizu Difficulty rates only the unmodded chart, at rate 1.
-	local models = game.library.database.models
-	local rizu = {version = RizuDifficulty.version}
-	local calc = models.calculators:find({name = RizuDifficulty.name})
-	local base = game.library.chartsRepo:selectDefaultChartdiff(chartmeta.hash, chartmeta.index)
-	if calc and base then
-		for _, row in ipairs(models.chart_difficulties:select({chartdiff_id = base.id, calc_id = calc.id})) do
-			local key = row.key == 0 and "value" or RizuDifficulty.keys[row.key]
-			if key and row.value then
-				rizu[key] = row.value / 100
-			end
-		end
-	end
-
-	-- 1 for the first play of the chart, counting every rate and mutator.
-	local attempt ---@type integer?
-	if chartplay and chartplay.created_at then
-		attempt = 0
-		for _, other in ipairs(game.library.chartsRepo:getChartplaysForChartmeta(chartmeta)) do
-			if other.created_at <= chartplay.created_at then
-				attempt = attempt + 1
-			end
-		end
-	end
-
-	local judging = self:getJudging()
-	local accuracy, accuracy_text = self:getAccuracy()
-	return DifficultyLabels.append(game.fs, {
-		label = label,
-		comment = comment ~= "" and comment or nil,
-		labeled_at = os.time(),
-		hash = chartmeta.hash,
-		index = chartmeta.index,
-		title = chartmeta.title,
-		artist = chartmeta.artist,
-		name = chartmeta.name,
-		format = chartmeta.format,
-		inputmode = chartdiff.inputmode,
-		rate = self:getRate(),
-		mutators = #self:getMutators(),
-		notes_count = chartdiff.notes_count,
-		judges_count = chartdiff.judges_count,
-		duration = chartdiff.duration,
-		rizu = rizu,
-		chartplay_id = chartplay and chartplay.id,
-		played_at = chartplay and chartplay.created_at,
-		attempt = attempt,
-		timings = judging.timings,
-		subtimings = judging.subtimings,
-		accuracy = accuracy,
-		accuracy_text = accuracy_text,
-		judge_names = judging:getJudgeNames(),
-		judge_counts = self:getJudgeCounts(),
-		passed = self:isPassed(),
-		pauses = self:getPauseCount(),
-		normalscore = self:getNormalscoreText(),
-	})
 end
 
 -- Leaving

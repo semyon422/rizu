@@ -44,7 +44,6 @@ local BUTTON_GAP = 12
 ---@field ui ui.UserInterface
 ---@field unsubscribe fun()?
 ---@field loading_score boolean?
----@field difficulty_label_button ui.views.IconTextButton
 local ResultV2 = Screen + {}
 
 -- Stays above the next screen while fading out: song select fades in an opaque backdrop that would hide it.
@@ -233,15 +232,6 @@ function ResultV2:createFooter()
 	}))
 	self.rescore_button:addPosition(self.back_button:getPreferredWidth() + BUTTON_GAP, 0)
 
-	self.difficulty_label_button = footer:add(IconTextButton({
-		text = "RATE DIFF",
-		icon = Resources.sprites.icon_pen,
-		font_size = 18,
-		on_click = function() self:runCommand("ui.result.open_difficulty_label") end,
-	}))
-	self.difficulty_label_button:addPosition(self.back_button:getPreferredWidth() + BUTTON_GAP
-		+ self.rescore_button:getPreferredWidth() + BUTTON_GAP, 0)
-
 	-- Right-aligned, laid out from the edge inwards: Watch, Export Video, Export Replay.
 	local x = 0
 	for _, item in ipairs({
@@ -316,7 +306,6 @@ function ResultV2:updateInfo()
 	self.left:setVisible(has_score)
 	self.hit_graph:setVisible(has_score)
 	self.rescore_button:setVisible(has_score)
-	self.difficulty_label_button:setVisible(has_score)
 	if not has_score then
 		return
 	end

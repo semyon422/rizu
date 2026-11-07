@@ -56,8 +56,6 @@ function FakeResult:getMutators() return {} end
 function FakeResult:hasScore() return true end
 function FakeResult:getRescoreSystems() return {"sphere", "osuod", "etternaj", "quaver", "bmsrank", "iidx"} end
 function FakeResult:rescore() return nil, "There is no game in the preview." end
-function FakeResult:getDifficultyLabels() return require("rizu.library.DifficultyLabels").labels end
-function FakeResult:saveDifficultyLabel() return nil, "There is no game in the preview." end
 
 function FakeResult:getJudging()
 	return {
