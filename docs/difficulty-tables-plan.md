@@ -1,6 +1,6 @@
 ## Status
 
-`calculators` and `chart_difficulties` exist (migration 13), for plugin calculators only, see `docs/plugins.md` and `rizu/library/tasks/CalculatorTask.lua`. Plays get the same in `chartplay_ratings (chartplay_id, calc_id, key, value)`. They differ from the design below: key 0 is the headline and key i a calculator's i-th named value; no `custom_user_id`; `value` is NULL when the calculator doesn't rate the chart; only rate 1000 is filled. Built-in calculators still write `chartdiffs`, and `chart_patterns` doesn't exist yet.
+`calculators` and `chart_difficulties` exist (migration 13), for plugin calculators only, see `docs/plugins.md` and `rizu/library/tasks/CalculatorTask.lua`. Plays get the same in `chartplay_ratings (chartplay_id, calc_id, key, value)`. They differ from the design below: key 0 is the headline and key i a calculator's i-th named value; no `custom_user_id`; `value` is NULL when the calculator doesn't rate the chart; only rate 1000 is filled. Built-in calculators still write `chartdiffs`. `chart_patterns` exists (migration 16) with the labels of `chart.scoring.pattern_classifier`: `(chartdiff_id, rank, pattern, share, bpm, version)`, the top 3 patterns of the chartdiff, made by `rizu/library/repos/ChartPatternsRepo.lua` together with its difficulty. Their `version` follows `RizuDifficulty.version`, whose curve orders them: raising it makes every pattern again at the next start, like it makes every difficulty value again.
 
 ## Goal
 

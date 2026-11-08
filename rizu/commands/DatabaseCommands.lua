@@ -93,6 +93,14 @@ return function(game)
 			end,
 		},
 		{
+			id = "database.compute_chart_patterns",
+			title = "Database: Compute Missing Chart Patterns",
+			description = "Classifies charts that have no patterns yet, or patterns of an older version",
+			callback = function()
+				library:computeChartPatterns()
+			end,
+		},
+		{
 			id = "database.compute_chartplays",
 			title = "Database: Compute Chartplays",
 			description = "Computes chartplays",

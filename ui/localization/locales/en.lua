@@ -536,6 +536,7 @@ return {
 	["notifications.type.library_scanning"] = "Scanning charts",
 	["notifications.type.library_hashing"] = "Hashing charts",
 	["notifications.type.library_difficulty"] = "Computing difficulty",
+	["notifications.type.library_patterns"] = "Computing patterns",
 	["notifications.type.library_scores"] = "Updating scores",
 	["notifications.type.library_hits"] = "Preparing scores for rescoring",
 	["notifications.type.location_scanned"] = "Location scanned",

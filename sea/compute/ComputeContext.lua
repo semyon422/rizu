@@ -21,6 +21,7 @@ local ReplayPlayer = require("rizu.engine.replay.ReplayPlayer")
 ---@field chart chart.Chart?
 ---@field chartmeta sea.Chartmeta?
 ---@field chartdiff sea.Chartdiff?
+---@field chart_patterns {rank: integer, pattern: string, share: number, bpm: number?}[]? Classified when the chart was loaded, see rizu.library.repos.ChartPatternsRepo.
 ---@field chartplay sea.Chartplay?
 ---@field score_engine rizu.ScoreEngine? Of the last computeReplay(), to score its events with other systems.
 local ComputeContext = class()

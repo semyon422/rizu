@@ -61,6 +61,7 @@ function ScoreSaver:saveScore(gameplay_session, replayBase)
 	local chartdiff_copy = setmetatable(table_util.deepcopy(chartdiff), getmetatable(chartdiff))
 
 	chartdiff = self.library.chartsRepo:createUpdateChartdiff(chartdiff, created_at)
+	self.library.chartPatternsRepo:saveComputed(chartdiff, computeContext.chart_patterns)
 
 	local chartplay = Chartplay()
 

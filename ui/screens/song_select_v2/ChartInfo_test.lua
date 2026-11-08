@@ -1,3 +1,4 @@
+local utf8 = require("utf8")
 local ChartInfo = require("ui.screens.song_select_v2.ChartInfo")
 
 local test = {}
@@ -35,6 +36,22 @@ function test.pad_cell_grays_the_leading_zeros(t)
 	t:tdeq({ChartInfo.padCell("LENGTH", 5, "%d:%02d")}, {"00:05", 4})
 	t:tdeq({ChartInfo.padCell("LENGTH", 600, "%d:%02d")}, {"10:00", 0})
 	t:tdeq({ChartInfo.padCell("BPM", 90, "%d")}, {"090", 1})
+end
+
+---@param t testing.T
+function test.format_pattern_reads_labels_as_words(t)
+	t:eq(ChartInfo.formatPattern("full_ln"), "Full Ln")
+	t:eq(ChartInfo.formatPattern("dense_chordstream"), "Dense Chordstream")
+	t:eq(ChartInfo.formatPattern("stream"), "Stream")
+	t:eq(ChartInfo.formatPattern("4242chordjack"), "4242chordjack")
+end
+
+---@param t testing.T
+function test.fit_text_cuts_with_an_ellipsis(t)
+	local font = {getWidth = function(_, text) return utf8.len(text) * 10 end} --[[@as love.Font]]
+	t:eq(ChartInfo.fitText(font, "chordjack", 100), "chordjack")
+	t:eq(ChartInfo.fitText(font, "chordjack", 50), "chor…")
+	t:eq(ChartInfo.fitText(font, "chordjack", 5), nil)
 end
 
 return test

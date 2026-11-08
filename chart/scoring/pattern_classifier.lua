@@ -2,6 +2,7 @@
 -- on the skillsets of 10 s sections, MinaCalc's (MSD) on 4K and Prism's on 6K-8K, where the top label scores about 1,
 -- or on hand-made pattern examples, with their labels. The labels come with the model. 10K and 14K have no skillset
 -- teacher, so their models come only from hand-made examples.
+-- Every model labels the skillsets too (SKILLSETS), next to its patterns, so analyze returns them apart.
 -- Separate from Rizu Difficulty: it says what is in a chart, not how hard it is.
 
 local InputMode = require("chart.core.InputMode")
@@ -10,6 +11,14 @@ local pattern_classifier = {}
 
 pattern_classifier.WINDOW = 10 -- seconds a section looks at
 pattern_classifier.HOP = 2.5 -- seconds between section starts
+
+-- Every model labels these, apart from its patterns: they say how hard the section is, not what is in it.
+pattern_classifier.SKILLSETS = {"speed", "stamina", "jacks", "technical"}
+
+local IS_SKILLSET = {} ---@type {[string]: true}
+for _, name in ipairs(pattern_classifier.SKILLSETS) do
+	IS_SKILLSET[name] = true
+end
 
 -- shortcut: 10K and 14K have models only after `calc.tune_patterns mine` writes them; 5K could learn from MinaCalc
 -- 0.74 when needed
@@ -317,7 +326,7 @@ end
 
 ---@class chart.scoring.pattern_classifier.Model
 ---@field source "skillsets"|"examples"? what it was trained on: MSD/Prism skillsets or hand-made examples
----@field labels string[]
+---@field labels string[] its patterns and every skillset, see pattern_classifier.SKILLSETS
 ---@field mean number[]
 ---@field std number[]
 ---@field layers {w: number[][], b: number[]}[]
@@ -350,7 +359,8 @@ end
 ---@field time number section start, seconds
 ---@field nps number
 ---@field bpm number? 1/4 rows at this BPM have the section's median row gap, the BPM players give a pattern; nil without rows
----@field labels {[string]: number} the model's label scores, 0-1
+---@field patterns {[string]: number} the model's pattern scores, 0-1
+---@field skillsets {[string]: number} its skillset scores, 0-1
 
 ---The notes without scratch columns, the rest renumbered: 7K+1 reads as 7K and 14K2S as 14K, scratches don't change
 ---the patterns.
@@ -381,6 +391,25 @@ function pattern_classifier.without_scratch(notes, inputmode)
 	return keys, columns
 end
 
+---Whether analyze reads the keymode: it has a model, and the model's file is there.
+---@param inputmode string
+---@return boolean
+function pattern_classifier.canAnalyze(inputmode)
+	local _, columns = pattern_classifier.without_scratch({}, inputmode)
+	local name = MODELS[columns]
+	if not name then
+		return false
+	end
+	local ok, err = pcall(require, name)
+	if ok then
+		return true
+	end
+	if tostring(err):find("not found", 1, true) then
+		return false
+	end
+	error(err)
+end
+
 ---Sections of a chart with their pattern scores, or nil for keymodes without a model. Scratches are left out.
 ---@param notes {time: number, column: integer, end_time: number?}[] sorted by time
 ---@param inputmode string
@@ -401,6 +430,14 @@ function pattern_classifier.analyze(notes, inputmode, step)
 		error(loaded)
 	end
 	local model = loaded --[[@as chart.scoring.pattern_classifier.Model]]
+	local labelled = {} ---@type {[string]: true}
+	for _, label in ipairs(model.labels) do
+		labelled[label] = true
+	end
+	for _, skillset in ipairs(pattern_classifier.SKILLSETS) do
+		assert(labelled[skillset], ("%s does not label the skillset %s"):format(name, skillset))
+	end
+
 	local dt_p50, rows = feature_index.dt_p50, feature_index.rows
 	local sections = {}
 	local first = 1
@@ -410,12 +447,17 @@ function pattern_classifier.analyze(notes, inputmode, step)
 		end
 		local x = pattern_classifier.features(notes, columns, start, first)
 		local y = forward(model, x)
-		local labels = {} ---@type {[string]: number}
+		---@type {[string]: number}, {[string]: number}
+		local patterns, skillsets = {}, {}
 		for i, label in ipairs(model.labels) do
-			labels[label] = y[i]
+			if IS_SKILLSET[label] then
+				skillsets[label] = y[i]
+			else
+				patterns[label] = y[i]
+			end
 		end
 		local bpm = x[rows] >= 2 and 15000 / 2 ^ x[dt_p50] or nil -- dt_p50 is log2 of the gap in ms
-		table.insert(sections, {time = start, nps = x[2], bpm = bpm, labels = labels})
+		table.insert(sections, {time = start, nps = x[2], bpm = bpm, patterns = patterns, skillsets = skillsets})
 		if step then
 			step()
 		end

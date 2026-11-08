@@ -7,6 +7,7 @@ local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
+local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
 local FakeFilesystem = require("fs.FakeFilesystem")
 local digest = require("digest")
@@ -56,7 +57,7 @@ input 4key
 	local cdg = ChartdiffGenerator(chartsRepo, difficultyModel)
 
 	local context = FakeTaskContext()
-	local task = HashingTask(fs, cmg, cdg, context)
+	local task = HashingTask(fs, cmg, cdg, ChartPatternsRepo(db.models), context)
 
 	local ok, err = task:processChartfile(chartfile, nil)
 	t:assert(ok, err)
@@ -82,7 +83,7 @@ function test.read_error(t)
 
 	local context = FakeTaskContext()
 	-- Generators don't matter for read error
-	local task = HashingTask(fs, {}, {}, context)
+	local task = HashingTask(fs, {}, {}, {}, context)
 	-- Use a table that matches located_chartfiles structure
 	local chartfile = {path = "non-existent"}
 	local ok, err = task:processChartfile(chartfile, nil)
@@ -120,7 +121,7 @@ function test.malformed_chart(t)
 	local cdg = ChartdiffGenerator(chartsRepo, difficultyModel)
 
 	local context = FakeTaskContext()
-	local task = HashingTask(fs, cmg, cdg, context)
+	local task = HashingTask(fs, cmg, cdg, ChartPatternsRepo(db.models), context)
 
 	local ok, err = task:processChartfile(chartfile, nil)
 
@@ -148,7 +149,7 @@ function test.aim_import_does_not_create_mania_difficulty(t)
 	}, {
 		chartsRepo = {selectDefaultChartdiff = function() return nil end},
 		compute = function() error("Aim must not compute a mania chartdiff") end,
-	}, context)
+	}, {}, context)
 	t:eq(task:processChartfile({path = "charts/circles.osu"}, nil), true)
 	t:eq(#context.actions, 0)
 end

@@ -1,6 +1,6 @@
 local class = require("class")
 
----@alias rizu.library.TaskStage "idle"|"scanning"|"hashing"|"difficulty"|"scores"|"hits"
+---@alias rizu.library.TaskStage "idle"|"scanning"|"hashing"|"difficulty"|"patterns"|"scores"|"hits"
 
 ---@class rizu.library.TaskStatus
 ---@field stage rizu.library.TaskStage

@@ -227,6 +227,17 @@ function Charts:moveChart(offset) self.selector:scrollLevel(2, offset) end
 ---@return rizu.api.Chart? chart The chart that Play would start.
 function Charts:getSelectedChart() return self.selector.chartview --[[@as rizu.api.Chart?]] end
 
+---The selected chart's patterns, the most significant first: what the chart is made of. Empty until the
+---difficulty task has analyzed the chart.
+---@return rizu.library.ChartPattern[]
+function Charts:getSelectedPatterns()
+	local chartview = self.selector.chartview
+	if not chartview or not chartview.chartdiff_id or chartview.chartdiff_id == 0 then
+		return {}
+	end
+	return self.selector.library:getChartPatterns(chartview.chartdiff_id)
+end
+
 ---False while the selected chart's file is missing or still being checked.
 ---@return boolean
 function Charts:canPlaySelectedChart() return self.selector:chartExists() end

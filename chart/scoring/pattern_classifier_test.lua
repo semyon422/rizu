@@ -23,7 +23,7 @@ end
 ---@return string
 local function top(sections)
 	local best, value = "", -1
-	for label, v in pairs(sections[1].labels) do
+	for label, v in pairs(sections[1].patterns) do
 		if v > value then
 			best, value = label, v
 		end
@@ -72,6 +72,13 @@ function test.labels_7k(t)
 	expect(t, "7key", "chordjack", chart(140, {{1, 2, 5}, {2, 5, 6}, {1, 5, 7}, {2, 3, 5}}))
 end
 
+function test.reads_only_keymodes_with_a_model(t)
+	t:eq(pattern_classifier.canAnalyze("4key"), true)
+	t:eq(pattern_classifier.canAnalyze("7key1scratch"), true)
+	t:eq(pattern_classifier.canAnalyze("1osu"), false)
+	t:eq(pattern_classifier.canAnalyze("5key"), false)
+end
+
 function test.without_scratch_counts_keys(t)
 	local notes = {{time = 0, column = 1}, {time = 0, column = 10}}
 	local keys, columns = pattern_classifier.without_scratch(notes, "10key")
@@ -97,7 +104,18 @@ function test.scratch_is_ignored(t)
 	local a = assert(pattern_classifier.analyze(keys, "7key"))
 	local b = assert(pattern_classifier.analyze(with_scratch, "7key1scratch"))
 	t:eq(#b, #a)
-	t:tdeq(b[1].labels, a[1].labels)
+	t:tdeq(b[1].patterns, a[1].patterns)
+	t:tdeq(b[1].skillsets, a[1].skillsets)
+end
+
+function test.models_label_every_skillset(t)
+	for _, inputmode in ipairs({"4key", "7key"}) do
+		local sections = assert(pattern_classifier.analyze(chart(180, {{1}, {3}, {2}, {4}}), inputmode))
+		for _, name in ipairs(pattern_classifier.SKILLSETS) do
+			t:ne(sections[1].skillsets[name], nil, inputmode .. " " .. name)
+			t:eq(sections[1].patterns[name], nil, inputmode .. " " .. name .. " is not a pattern")
+		end
+	end
 end
 
 return test

@@ -501,6 +501,7 @@ return {
 	["notifications.type.library_scanning"] = "Сканирование карт",
 	["notifications.type.library_hashing"] = "Хеширование карт",
 	["notifications.type.library_difficulty"] = "Расчёт сложности",
+	["notifications.type.library_patterns"] = "Расчёт паттернов",
 	["notifications.type.library_scores"] = "Обновление результатов",
 	["notifications.type.library_hits"] = "Подготовка результатов к пересчёту",
 	["notifications.type.location_scanned"] = "Папка просканирована",

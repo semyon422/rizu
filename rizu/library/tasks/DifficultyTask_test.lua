@@ -52,13 +52,17 @@ function test.computeMissing(t)
 			return d
 		end,
 	}
+	local patternsRepo = {
+		save = function() end,
+	}
 
 	local context = FakeTaskContext()
 	context.charts[hash] = {res.chart}
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
-		return context:getChartsByHash(hash)
-	end)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, patternsRepo, context, timer,
+		function(hash)
+			return context:getChartsByHash(hash)
+		end)
 
 	task:computeMissing()
 
@@ -89,8 +93,8 @@ function test.computeIncompleteFromPreview(t)
 		getIncompleteChartdiffs = function()
 			return {res.chartdiff}
 		end,
-		updateChartdiff = function(_, diff)
-			updated = diff
+		updateChartdiff = function(_, chartdiff)
+			updated = chartdiff
 		end,
 	}
 
@@ -103,7 +107,11 @@ function test.computeIncompleteFromPreview(t)
 		end,
 	}
 
-	local task = DifficultyTask(difficultyModel, nil, chartsRepo, FakeTaskContext(), timer, function()
+	local patternsRepo = {
+		save = function() end,
+	}
+
+	local task = DifficultyTask(difficultyModel, {}, chartsRepo, patternsRepo, FakeTaskContext(), timer, function()
 		error("chart files must not be read")
 	end)
 	task:computeIncomplete(true)
@@ -135,6 +143,9 @@ function test.cancellation(t)
 			return res.chartdiff
 		end,
 	}
+	local patternsRepo = {
+		save = function() end,
+	}
 
 	local context = FakeTaskContext()
 	-- Return true for shouldStop after 2 items
@@ -148,9 +159,10 @@ function test.cancellation(t)
 		return {tcf:create("4key", {{time = 0, column = 1}}).chart}
 	end
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
-		return context:getChartsByHash(hash)
-	end)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, patternsRepo, context, timer,
+		function(hash)
+			return context:getChartsByHash(hash)
+		end)
 	task:computeMissing()
 
 	-- Should have processed only 2 charts because check happens at start of loop

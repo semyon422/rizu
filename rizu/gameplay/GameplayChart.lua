@@ -33,6 +33,7 @@ local Settings = require("rizu.config.Settings")
 ---@field snapshot refchart.ChartSnapshot
 ---@field chartmeta sea.Chartmeta
 ---@field chartdiff sea.Chartdiff
+---@field chart_patterns rizu.library.ChartPattern[]?
 ---@field state sea.ModifiersMetaState
 ---@field replay_base rizu.GameplayChartReplayBaseData
 
@@ -106,6 +107,7 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local ComputeContext = require("sea.compute.ComputeContext")
 	local ChartSnapshotAsync = require("chart.refchart.ChartSnapshot")
 	local GamemodesAsync = require("rizu.gameplay.Gamemodes")
+	local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
 
 	local compute_context = ComputeContext()
 	local ok, decoded, decode_error = pcall(compute_context.fromFileData, compute_context,
@@ -131,10 +133,18 @@ function GameplayChart.compute(chartview_data, data, context, replay_base_data, 
 	local prepared, prepare_error = pcall(gamemode.prepare, gamemode, compute_context, replay_base, gameplay_config)
 	if not prepared then return {error = tostring(prepare_error)} end
 
+	-- With the difficulty, from the same notes preview: the play's chartdiff gets its patterns when the score is saved.
+	-- The cache must not keep a chart from loading; the library task reports classifier errors.
+	local ok, patterns = pcall(ChartPatternsRepo.compute, assert(compute_context.chartdiff))
+	if not ok then
+		patterns = nil
+	end
+
 	return {
 		snapshot = ChartSnapshotAsync(assert(compute_context.chart)),
 		chartmeta = compute_context.chartmeta,
 		chartdiff = compute_context.chartdiff,
+		chart_patterns = patterns,
 		state = compute_context.state,
 		replay_base = {
 			modifiers = replay_base.modifiers,
@@ -214,6 +224,7 @@ local function apply_computed(replayBase, ctx, result, chart)
 	ctx.chart = chart
 	ctx.chartmeta = setmetatable(result.chartmeta, Chartmeta)
 	ctx.chartdiff = setmetatable(result.chartdiff, Chartdiff)
+	ctx.chart_patterns = result.chart_patterns
 	ctx.state = result.state
 	ctx.chartdiff_fast = false
 

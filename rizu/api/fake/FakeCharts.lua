@@ -187,6 +187,14 @@ end
 
 function FakeCharts:moveChart(offset) self:selectChart(self.chart_index + offset) end
 function FakeCharts:getSelectedChart() return self:getChart(self.chart_index) end
+
+---@return rizu.library.ChartPattern[]
+function FakeCharts:getSelectedPatterns()
+	return {
+		{rank = 1, pattern = "stream", share = 0.8, bpm = 180},
+		{rank = 2, pattern = "jumpstream", share = 0.4, bpm = 170},
+	}
+end
 function FakeCharts:canPlaySelectedChart() return self:getSelectedChart() ~= nil end
 
 function FakeCharts:isLoading() return false end

@@ -88,6 +88,10 @@ function Worker:computeIncompleteChartdiffs(prefer_preview)
 	self.processor:computeIncompleteChartdiffs(prefer_preview)
 end
 
+function Worker:computeChartPatterns()
+	self.processor:computeChartPatterns()
+end
+
 function Worker:computeChartplays()
 	self.processor:computeChartplays()
 end

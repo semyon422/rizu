@@ -285,6 +285,8 @@ function GameController:load()
 	self.library:updateHits(self.settings)
 	-- Plugin calculators rate new charts, and all of them after a version change.
 	self.library:computeCalculators()
+	-- Patterns of charts that have none, and all of them after a classifier or difficulty version change.
+	self.library:computeChartPatterns()
 	self.network:setProxy(self.persistence.configModel.configs.network.socks5)
 
 	local ai_config = self.persistence.configModel.configs.ai

@@ -58,7 +58,7 @@ end
 ---@param t testing.T
 function test.enum_storage_and_derived_model_filters(t)
 	local db = create_db()
-	t:eq(db.db:user_version(), 15)
+	t:eq(db.db:user_version(), 16)
 	for id, state in ipairs(ComputeState:list()) do
 		create_play(db, id, state)
 		check_play(t, db, id, state)
@@ -85,7 +85,7 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	end
 	downgrade(db, 9)
 	db:migrate()
-	t:eq(db.db:user_version(), 15)
+	t:eq(db.db:user_version(), 16)
 	for _, name in ipairs({"chart_difficulties_sort_idx", "chartplay_ratings_sort_idx"}) do
 		t:eq(#db.db:query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", {name}), 1, name)
 	end
@@ -120,9 +120,10 @@ function test.version_14_drops_the_difficulty_columns(t)
 	end
 	db.db:user_version(14)
 	db:migrate()
-	t:eq(db.db:user_version(), 15)
+	t:eq(db.db:user_version(), 16)
 	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chartdiffs') WHERE name IN ('enps_diff', 'user_diff')"), 0)
 	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_difficulties') WHERE name = 'chartdiff_id'"), 1)
+	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_patterns')"), 6)
 	db:unload()
 end
 

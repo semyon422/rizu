@@ -14,13 +14,15 @@ local DifficultyTask = class()
 ---@param difficultyModel chart.DifficultyModel
 ---@param chartdiffGenerator rizu.library.ChartdiffGenerator
 ---@param chartsRepo sea.ChartsRepo
+---@param patternsRepo rizu.library.repos.ChartPatternsRepo
 ---@param taskContext rizu.library.ITaskContext
 ---@param timer time.ITimer
 ---@param chartProvider rizu.library.ChartProvider
-function DifficultyTask:new(difficultyModel, chartdiffGenerator, chartsRepo, taskContext, timer, chartProvider)
+function DifficultyTask:new(difficultyModel, chartdiffGenerator, chartsRepo, patternsRepo, taskContext, timer, chartProvider)
 	self.difficultyModel = difficultyModel
 	self.chartdiffGenerator = chartdiffGenerator
 	self.chartsRepo = chartsRepo
+	self.patternsRepo = patternsRepo
 	self.taskContext = taskContext
 	self.chartProvider = chartProvider
 	self.batchProcessor = BatchProcessor(taskContext, timer)
@@ -61,14 +63,14 @@ function DifficultyTask:computeMissing()
 			local chartdiff = self.chartdiffGenerator:compute(chart, 1)
 			chartdiff.hash = data.hash
 			chartdiff.index = data.index
-			self.chartsRepo:createUpdateChartdiff(chartdiff, time)
+			self.patternsRepo:save(self.chartsRepo:createUpdateChartdiff(chartdiff, time))
 		else
 			ModifierModel:apply(data.modifiers, chart)
 			local chartdiff = self.chartdiffGenerator:compute(chart, data.rate)
 			chartdiff.modifiers = data.modifiers
 			chartdiff.hash = data.hash
 			chartdiff.index = data.index
-			self.chartsRepo:createUpdateChartdiff(chartdiff, time)
+			self.patternsRepo:save(self.chartsRepo:createUpdateChartdiff(chartdiff, time))
 		end
 		
 		return data.hash
@@ -107,6 +109,7 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 
 		self.difficultyModel:compute(chartdiff, chart, chartdiff.rate)
 		self.chartsRepo:updateChartdiff(chartdiff)
+		self.patternsRepo:save(chartdiff)
 		
 		return chartdiff.hash
 	end)

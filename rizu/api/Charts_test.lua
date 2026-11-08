@@ -77,6 +77,26 @@ function test.lists_and_selection(t)
 end
 
 ---@param t testing.T
+function test.selected_patterns(t)
+	local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
+	local charts, selector, library = createCharts()
+	selector.collectionSelector:load()
+	selector:load()
+	charts:moveSet(1)
+	t:tdeq(charts:getSelectedPatterns(), {}, "nothing until the chart is analyzed")
+
+	library.database.models.chart_patterns:insert({
+		{chartdiff_id = 2, rank = 1, pattern = "stream", share = 0.8, bpm = 180, version = ChartPatternsRepo.getVersion()},
+		{chartdiff_id = 2, rank = 2, pattern = "jumpstream", share = 0.4, bpm = 170, version = ChartPatternsRepo.getVersion()},
+	})
+	local patterns = charts:getSelectedPatterns()
+	t:eq(#patterns, 2)
+	t:eq(patterns[1].pattern, "stream")
+	t:eq(patterns[2].rank, 2)
+	library:unload()
+end
+
+---@param t testing.T
 function test.random_set_history(t)
 	local charts, selector, library = createCharts()
 	selector.collectionSelector:load()

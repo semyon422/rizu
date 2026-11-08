@@ -11,6 +11,7 @@ local Locations = require("rizu.library.Locations")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 local CalculatorsRepo = require("rizu.library.repos.CalculatorsRepo")
+local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
 local Settings = require("rizu.config.Settings")
 local ComputeDataProvider = require("rizu.library.ComputeDataProvider")
@@ -91,6 +92,7 @@ function Library:new(fs, workingDirectory, timer)
 	self.chartfilesRepo = ChartfilesRepo(self.database.models)
 	self.chartplayHitsRepo = ChartplayHitsRepo(self.database.models)
 	self.calculatorsRepo = CalculatorsRepo(self.database.models)
+	self.chartPatternsRepo = ChartPatternsRepo(self.database.models)
 
 	self.statusUpdate = Status(self.chartfilesRepo, self.chartsRepo)
 	self.collections = Collections(self.chartfilesRepo, self.locationsRepo)
@@ -320,6 +322,13 @@ function Library:computeIncompleteChartdiffs(prefer_preview)
 	end)
 end
 
+---Patterns of charts that have none yet, or patterns of an older version, from their notes preview.
+function Library:computeChartPatterns()
+	self:addTask(function()
+		self.worker:computeChartPatterns()
+	end)
+end
+
 function Library:computeChartplays()
 	self:addTask(function()
 		self.worker:computeChartplays()
@@ -476,6 +485,13 @@ function Library:getChartviewsAsync(params, chartviews)
 		return self.chartviewsRepo:getChartviews(chartviews)
 	end
 	return self.reader:getChartviews(params, chartviews)
+end
+
+---The cached patterns of a chartdiff, see rizu.library.repos.ChartPatternsRepo.
+---@param chartdiff_id integer
+---@return rizu.library.ChartPattern[]
+function Library:getChartPatterns(chartdiff_id)
+	return self.chartPatternsRepo:get(chartdiff_id)
 end
 
 ---@param chartdiff_key sea.ChartdiffKey

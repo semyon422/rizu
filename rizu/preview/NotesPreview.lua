@@ -117,4 +117,26 @@ function NotesPreview:getVisibleRange(column, from, to)
 	return first, lo - 1
 end
 
+---The preview's notes, sorted by time then column, for tools that read the whole chart at once.
+---@param data string
+---@param column_count integer
+---@return {time: number, column: integer, end_time: number?}[]
+function NotesPreview.getNotes(data, column_count)
+	local preview = NotesPreview(data, column_count)
+	---@type {time: number, column: integer, end_time: number?}[]
+	local notes = {}
+	for column, list in ipairs(preview.columns) do
+		for _, note in ipairs(list) do
+			table.insert(notes, {time = note.time, column = column, end_time = note.end_time > note.time and note.end_time or nil})
+		end
+	end
+	table.sort(notes, function(a, b)
+		if a.time == b.time then
+			return a.column < b.column
+		end
+		return a.time < b.time
+	end)
+	return notes
+end
+
 return NotesPreview

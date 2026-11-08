@@ -8,6 +8,7 @@ local ChartmetaGenerator = require("rizu.library.generators.ChartmetaGenerator")
 local ChartdiffGenerator = require("rizu.library.generators.ChartdiffGenerator")
 local ChartfilesRepo = require("rizu.library.repos.ChartfilesRepo")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
+local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
 local ChartFactory = require("chart.format.notechart.ChartFactory")
 local ChartfileReader = require("rizu.library.ChartfileReader")
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
@@ -20,6 +21,7 @@ local ReplayComputer = require("sea.compute.ReplayComputer")
 local ComputeVersion = require("sea.compute.ComputeVersion")
 local HashingTask = require("rizu.library.tasks.HashingTask")
 local DifficultyTask = require("rizu.library.tasks.DifficultyTask")
+local PatternTask = require("rizu.library.tasks.PatternTask")
 local CalculatorTask = require("rizu.library.tasks.CalculatorTask")
 local PlayRatingTask = require("rizu.library.tasks.PlayRatingTask")
 local Calculators = require("rizu.library.Calculators")
@@ -65,13 +67,17 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 
 	self.fileCacheGenerator = FileCacheGenerator(self.chartfilesRepo, self.finder, self.taskContext)
 	self.iidxFileCacheGenerator = IidxFileCacheGenerator(self.chartfilesRepo, self.fs, self.taskContext)
+	self.chartPatternsRepo = ChartPatternsRepo(self.db.models)
 	self.chartdiffGenerator = ChartdiffGenerator(self.chartsRepo, self.difficultyModel)
 	self.chartmetaGenerator = ChartmetaGenerator(self.chartsRepo, self.chartfilesRepo, ChartFactory)
 
-	self.hashingTask = HashingTask(self.fs, self.chartmetaGenerator, self.chartdiffGenerator, self.taskContext)
-	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo, self.taskContext, timer, function(hash)
-		return self:getChartsByHash(hash)
-	end)
+	self.hashingTask = HashingTask(self.fs, self.chartmetaGenerator, self.chartdiffGenerator, self.chartPatternsRepo,
+		self.taskContext)
+	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo,
+		self.chartPatternsRepo, self.taskContext, timer, function(hash)
+			return self:getChartsByHash(hash)
+		end)
+	self.patternTask = PatternTask(self.chartPatternsRepo, self.taskContext, timer)
 	self.calculatorTask = CalculatorTask(Calculators.list, self.db.models, self.chartsRepo, self.taskContext, timer, function(hash)
 		return self:getChartsByHash(hash)
 	end)
@@ -287,6 +293,11 @@ end
 ---@param prefer_preview boolean
 function Processor:computeIncompleteChartdiffs(prefer_preview)
 	self.difficultyTask:computeIncomplete(prefer_preview)
+end
+
+---Patterns of chartdiffs that have none yet, or patterns of an older version, from their notes preview.
+function Processor:computeChartPatterns()
+	self.patternTask:computeMissing()
 end
 
 function Processor:computeChartplays()

@@ -13,11 +13,13 @@ local HashingTask = class()
 ---@param fs fs.IFilesystem
 ---@param chartmetaGenerator rizu.library.ChartmetaGenerator
 ---@param chartdiffGenerator rizu.library.ChartdiffGenerator
+---@param patternsRepo rizu.library.repos.ChartPatternsRepo
 ---@param taskContext rizu.library.ITaskContext
-function HashingTask:new(fs, chartmetaGenerator, chartdiffGenerator, taskContext)
+function HashingTask:new(fs, chartmetaGenerator, chartdiffGenerator, patternsRepo, taskContext)
 	self.fs = fs
 	self.chartmetaGenerator = chartmetaGenerator
 	self.chartdiffGenerator = chartdiffGenerator
+	self.patternsRepo = patternsRepo
 	self.taskContext = taskContext
 end
 
@@ -67,8 +69,9 @@ end
 function HashingTask:applyPrepared(prepared)
 	self.chartmetaGenerator:apply(prepared.chartmetas)
 	local time = os.time()
+	local chartsRepo = self.chartdiffGenerator.chartsRepo
 	for _, chartdiff in ipairs(prepared.chartdiffs) do
-		self.chartdiffGenerator.chartsRepo:createUpdateChartdiff(chartdiff, time)
+		self.patternsRepo:save(chartsRepo:createUpdateChartdiff(chartdiff, time))
 	end
 end
 
