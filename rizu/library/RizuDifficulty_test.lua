@@ -25,10 +25,10 @@ end
 function test.matches_python(t)
 	local expected = {
 		["4key"] = 20.68494197276502,
-		["5key"] = 19.703875715070943,
-		["6key"] = 8.757242097596112,
-		["7key"] = 10.776354898581378,
-		["7key1scratch"] = 10.147363241284891,
+		["5key"] = 26.96830878290761,
+		["6key"] = 15.682691450732062,
+		["7key"] = 13.387284525767953,
+		["7key1scratch"] = 14.404614806082574,
 		["8key"] = 15.465923152275414,
 		["9key"] = 16.814820611106764,
 		["10key"] = 19.796414202091725,
@@ -59,7 +59,7 @@ end
 
 -- expected rating, short-note rating and LN level from `python3 -m calc.ln_difficulty`
 function test.matches_python_ln(t)
-	local expected = {['4key'] = {27.67744991360159, 20.68494197276502, 18.389519006849213}, ['6key'] = {22.583464202839355, 8.757242097596112, 22.135710977322965}, ['7key'] = {18.539820742420964, 10.776354898581378, 17.236759772291723}}
+	local expected = {['4key'] = {27.67744991360159, 20.68494197276502, 18.389519006849213}, ['6key'] = {26.58788783983258, 15.682691450732062, 24.62825400249627}, ['7key'] = {21.143744982921934, 13.387284525767953, 19.177667177119492}}
 	for inputmode, values in pairs(expected) do
 		local total, rice, ln = RizuDifficulty.rate(ln_pattern(keys_of(inputmode)), inputmode)
 		t:aeq(total, values[1], 1e-9)

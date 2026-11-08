@@ -6,11 +6,12 @@
 local rizucalc = require("chart.scoring.rizucalc")
 local rizucalc_ln = require("chart.scoring.rizucalc_ln")
 
----Rizu Difficulty: short-note difficulty of 4K, 5K and 8K-10K charts on the MSD scale, a port of calc/rizu_difficulty.py.
----It runs rizucalc's engine with parameters tuned against MinaCalc (4K, 5K) and Prism (8K) by calc/tune_msd.py,
----and maps the raw rating linearly onto their scale. 9K and 10K are tuned against SRR, bridged onto the 7K scale.
----7K+1 is on the 7K+1 BMS table level scale of calc/tune_7k1s.py: 1..12 are Starlight sr1..sr12, 13..25 Satellite
----sl0..sl12 and 26..38 Stella st0..st12. 7K rates as 7K+1 with an empty scratch, 6K also without the middle key.
+---Rizu Difficulty: short-note difficulty of 4K-10K charts on the MSD scale, a port of calc/rizu_difficulty.py.
+---It runs rizucalc's engine with parameters tuned against MinaCalc (4K) and Prism (8K) by calc/tune_msd.py, and maps
+---the raw rating linearly onto their scale. 5K is ordered against Star-Rating-Rebirth and displayed by a MinaCalc
+---0.74.0 fit. 9K and 10K are tuned against SRR, bridged onto the 7K scale. 7K+1 is ordered against SRR by
+---calc/tune_7k1s.py and displayed on Prism's MSD scale, by the same 7K fit that bridges 9K and 10K. 7K rates as 7K+1
+---with an empty scratch, 6K also without the middle key.
 ---14K+2 is on its own scale, the IIDX DP levels and DP tables of calc/tune_14k.py: 1..12 are IIDX levels, 13..23 are
 ---DP sl0..sl10 and 24..30 are DP st0..st6. 11K-14K rate as 14K+2 without scratches, 15K-18K as 18K+2 and 19K-36K as 36K+2 (14K+2 upscaled by Automap, same scale), 3K as the first three 4K
 ---columns, and 2K as 4K with each key's notes alternating between two fingers.
@@ -20,7 +21,7 @@ local rizucalc_ln = require("chart.scoring.rizucalc_ln")
 ---other keymodes take the older 7K LN level, tuned against mania-tracker on the MSD scale. The headline joins the two as a power sum, and is the short-note
 ---rating for charts without long notes.
 ---@class rizu.library.RizuDifficulty: rizu.library.Calculator
-local RizuDifficulty = {name = "rizu", version = 11, keys = {"rice", "ln"}}
+local RizuDifficulty = {name = "rizu", version = 14, keys = {"rice", "ln"}}
 
 ---@param a number
 ---@param b number
@@ -70,15 +71,15 @@ RizuDifficulty.layouts = {
 	["5key"] = {
 		groups = {1, 1, 3, 2, 2},
 		cross = {0.25, 0.225, 0.225, 0.25},
-		params = {window = 1, min_dt = 0.08, chord = 0.75, jack = 0, tech = 0, bins = 24, max_dt = 0.5, power = 6, tau = 1, stamina = 1, long_tau = 480, long_stamina = 0.1, reference_nps = 20, speed_exp = 0.5, pattern = 0.1, cross = 4, anchor = 0.25, density = 0.5, short_notes = 30, group_power = 4, delay = 0, bracket = 0, roll = 0},
-		map = linear(1.200694, -0.025125),
+		params = {window = 1, min_dt = 0.08, chord = 0, jack = 0.5, tech = 0, bins = 24, max_dt = 0.5, power = 6, tau = 0.5, stamina = 1, long_tau = 1920, long_stamina = 0.1, reference_nps = 20, speed_exp = 0.7, pattern = 0.1, cross = 2, anchor = 0.5, density = 1, short_notes = 60, group_power = 16, delay = 0.03, bracket = 0, roll = 0},
+		map = linear(0.775038, 2.173565),
 	},
 	-- scratch, S D F, thumb, J K L: the scratch is on the left hand
 	["7key1scratch"] = {
 		groups = {1, 1, 1, 1, 3, 2, 2, 2},
 		cross = {0.35, 0.35, 0.25, 0.225, 0.225, 0.25, 0.35},
-		params = {window = 0.5, min_dt = 0.1, chord = 0, jack = 0, tech = 0.05, bins = 24, max_dt = 0.25, power = 6, tau = 1, stamina = 2, long_tau = 60, long_stamina = 0.1, reference_nps = 20, speed_exp = 0.7, pattern = 0, cross = 0, anchor = 0.5, density = 1.5, short_notes = 240, group_power = 1, delay = 0.015, bracket = -0.5, roll = 0.45},
-		map = piecewise({0.424166, 3.302002, 6.716558, 10.2723, 12.893843, 16.638927, 22.821554}, {1.255567, 7.179715, 13.149986, 18.864976, 25.660804, 31.190922, 36.673135}),
+		params = {window = 0.25, min_dt = 0.1, chord = 0, jack = 0.4, tech = 0, bins = 12, max_dt = 0.25, power = 6, tau = 1, stamina = 8, long_tau = 60, long_stamina = 0.1, reference_nps = 20, speed_exp = 0.7, pattern = 0.1, cross = 0.25, anchor = 0, density = 0.5, short_notes = 120, group_power = 64, delay = 0.06, bracket = -0.6, roll = 0.9},
+		map = linear(0.271574, 3.855868),
 	},
 	["8key"] = {
 		groups = {1, 1, 1, 1, 2, 2, 2, 2},
@@ -134,7 +135,7 @@ RizuDifficulty.layouts["36key2scratch"] = dp_layout(36, {window = 8, min_dt = 0.
 ---@type {[string]: chart.scoring.rizucalc_ln.Params}
 RizuDifficulty.ln = {
 	["4key"] = {min_hold = 0.1, held = 0.5, repress = 0.5, repress_window = 0.5, window = 0.25, group_power = 2, power = 1, curve = 0.35, combine = 2, long_release = 0, long_full = 0.7, scale = 10.810477},
-	["7key1scratch"] = {min_hold = 0.08, held = 2, repress = 0, repress_window = 0.2, window = 0.15, group_power = 32, power = 6, curve = 0.7, combine = 3, long_release = 1, long_full = 0.3, scale = 1.397745},
+	["7key1scratch"] = {min_hold = 0.08, held = 2, repress = 0, repress_window = 0.2, window = 0.15, group_power = 32, power = 6, curve = 0.7, combine = 3, long_release = 1, long_full = 0.3, scale = 1.555135},
 	["7key"] = {min_hold = 0.2, held = 4, repress = 0, repress_window = 0.2, window = 0.25, group_power = 16, power = 4, curve = 0.7, combine = 3, long_release = 1, long_full = 0.7, scale = 2.102133},
 }
 
@@ -218,10 +219,11 @@ end
 -- shortcut: under 10 labelled charts per dan below 3rd and above zeta, refit when players send more labels
 RizuDifficulty.dans_4k = {12.85, 14.12, 15.12, 16.88, 18.05, 19.73, 20.75, 23.35, 23.56, 24.48, 24.9, 27.09, 27.89, 29.54, 31.63, 35.51, 38.49, 42.49, 46.04}
 
--- The 7K rating at the four-chart averages of Jinjin's Regular Dan courses, 0th (intro) to Zenith. Found by rating each chart of
--- the courses apart (split at the 3 longest breaks) and taking the mean per course.
+-- The 7K rating on the MSD scale at the four-chart averages of Jinjin's Regular Dan courses, 0th (intro) to Zenith, plus
+-- 0.5. Found by rating each chart of the courses apart (split at the 3 longest breaks) and taking the mean per course,
+-- with the version 13 parameters.
 -- shortcut: one mapper's course set, not player labels; refit on labelled 7K charts when there are some
-RizuDifficulty.dans_7k = {11.01, 13.1, 14.94, 16.62, 17.11, 18.21, 20.87, 22.45, 24.27, 25.6, 27.56, 29.89, 31.94, 33.88}
+RizuDifficulty.dans_7k = {13.36, 15.11, 17.76, 19.58, 20.3, 22.28, 23.59, 25.04, 27.34, 28.93, 31.25, 35.35, 38.49, 43.84}
 
 ---Knots and names of the dans a keymode shows. The first knot is dan 0, below the first name.
 ---@type {[string]: {knots: number[], names: string[]}}
