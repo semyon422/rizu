@@ -14,14 +14,15 @@ local rizucalc_ln = require("chart.scoring.rizucalc_ln")
 ---with an empty scratch, 6K also without the middle key.
 ---14K+2 is on its own scale, the IIDX DP levels and DP tables of calc/tune_14k.py: 1..12 are IIDX levels, 13..23 are
 ---DP sl0..sl10 and 24..30 are DP st0..st6. 11K-14K rate as 14K+2 without scratches, 15K-18K as 18K+2 and 19K-36K as 36K+2 (14K+2 upscaled by Automap, same scale), 3K as the first three 4K
----columns, and 2K as 4K with each key's notes alternating between two fingers.
+---columns, 2K as 4K with each key's notes alternating between two fingers, and 1K as 4K with its notes alternating
+---between the four keys.
 ---That short-note rating reads long notes as taps and is the "rice" value. The LN level ("ln", calc/ln_difficulty.py,
 ---through chart.scoring.rizucalc_ln) is the work long notes add, tuned against mania-tracker's headline on 4K charts
 ---and the same charts under FullLongNote 3, and against the BMS LN table (◆) on 7K+1, which 6K and 7K share. The
 ---other keymodes take the older 7K LN level, tuned against mania-tracker on the MSD scale. The headline joins the two as a power sum, and is the short-note
 ---rating for charts without long notes.
 ---@class rizu.library.RizuDifficulty: rizu.library.Calculator
-local RizuDifficulty = {name = "rizu", version = 14, keys = {"rice", "ln"}}
+local RizuDifficulty = {name = "rizu", version = 15, keys = {"rice", "ln"}}
 
 ---@param a number
 ---@param b number
@@ -139,8 +140,8 @@ RizuDifficulty.ln = {
 	["7key"] = {min_hold = 0.2, held = 4, repress = 0, repress_window = 0.2, window = 0.25, group_power = 16, power = 4, curve = 0.7, combine = 3, long_release = 1, long_full = 0.7, scale = 2.102133},
 }
 
--- shortcut: only 4K, 7K+1 (with 6K and 7K) and the MSD-scale 7K LN are tuned, 3K and 2K take 4K's below and every
--- other keymode the MSD-scale 7K's; tune one if people play LN in it
+-- shortcut: only 4K, 7K+1 (with 6K and 7K) and the MSD-scale 7K LN are tuned, 3K, 2K and 1K take 4K's below and
+-- every other keymode the MSD-scale 7K's; tune one if people play LN in it
 for inputmode, layout in pairs(RizuDifficulty.layouts) do
 	layout.ln = RizuDifficulty.ln[inputmode] or RizuDifficulty.ln["7key"]
 end
@@ -164,6 +165,8 @@ RizuDifficulty.layouts["6key"] = mapped(layout_7k1s, {{2}, {3}, {4}, {6}, {7}, {
 RizuDifficulty.layouts["3key"] = mapped(RizuDifficulty.layouts["4key"], {{1}, {2}, {3}})
 -- 2K is played as 4K with two fingers per key in turn
 RizuDifficulty.layouts["2key"] = mapped(RizuDifficulty.layouts["4key"], {{1, 2}, {3, 4}})
+-- 1K is played as 4K with one key's notes going through the four fingers in turn
+RizuDifficulty.layouts["1key"] = mapped(RizuDifficulty.layouts["4key"], {{1, 2, 3, 4}})
 -- 11K-14K on the 14K+2 keys without scratches, 15K-18K on 18K+2 and 19K-36K on 36K+2: the left half, the larger one,
 -- from the first key, the right half from the layout's middle
 for keys = 11, 36 do

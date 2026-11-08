@@ -134,6 +134,14 @@ function test.alternated_columns(t)
 	t:ne(RizuDifficulty.rate(notes, "2key"), RizuDifficulty.rate(notes, "4key"))
 end
 
+-- 1K is 4K with its notes alternating between the four columns
+function test.one_key(t)
+	local notes = pattern(1)
+	local as_4k = remap(notes, function(_, i) return (i - 1) % 4 + 1 end)
+	t:aeq(RizuDifficulty.rate(notes, "1key"), RizuDifficulty.rate(as_4k, "4key"), 1e-9)
+	t:ne(RizuDifficulty.rate(notes, "1key"), RizuDifficulty.rate(notes, "4key"))
+end
+
 function test.unrated(t)
 	t:eq(RizuDifficulty.rate(pattern(4), "37key"), nil)
 	t:eq(RizuDifficulty.rate({}, "4key"), 0)
