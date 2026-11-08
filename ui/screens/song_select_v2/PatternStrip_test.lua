@@ -11,7 +11,7 @@ local function stream(beats)
 	local lines = {{offset = 0, notes = {true}}}
 	for beat = 1, beats do
 		for k = 1, 3 do
-			local notes = {}
+			local notes = {} ---@type {[integer]: boolean}
 			notes[k + 1] = true
 			table.insert(lines, {time = Fraction(k, 4), notes = notes})
 		end
@@ -71,6 +71,62 @@ function test.unsupported_and_broken_charts(t)
 	finish(strip)
 	t:eq(strip.sections, nil)
 	t:assert(strip.summary:find("^patterns: "))
+end
+
+function test.difficulty_weights_patterns(t)
+	local strip = PatternStrip()
+	-- the same stream in two easy sections, one much harder handstream section
+	strip:setSections({
+		{time = 0, bpm = 200, nps = 10, labels = {stream = 0.9}},
+		{time = 10, bpm = 200, nps = 10, labels = {stream = 0.9}},
+		{time = 20, bpm = 200, nps = 10, labels = {handstream = 0.9}},
+	}, {
+		{time = 0, end_time = 10, difficulty = 10},
+		{time = 10, end_time = 20, difficulty = 10},
+		{time = 20, end_time = 30, difficulty = 30},
+	})
+	local patterns = {}
+	for i = #({"speed", "stamina", "jacks", "technical"}) + 1, #strip.parts do
+		table.insert(patterns, strip.parts[i])
+	end
+	t:eq(patterns[1].label, "handstream")
+	t:eq(patterns[1].difficulty, 30)
+	t:eq(patterns[2].label, "stream")
+	t:eq(patterns[2].difficulty, 10)
+
+	-- without a curve the old frequency order stays
+	strip:setSections({
+		{time = 0, bpm = 200, nps = 10, labels = {stream = 0.9}},
+		{time = 10, bpm = 200, nps = 10, labels = {stream = 0.9}},
+		{time = 20, bpm = 200, nps = 10, labels = {handstream = 0.9}},
+	})
+	t:eq(strip.parts[5].label, "stream")
+	t:eq(strip.parts[6].label, "handstream")
+end
+
+function test.bar_height_tracks_difficulty(t)
+	t:eq(PatternStrip.barHeight(40, 40, 100), 100)
+	-- cubic: half the difficulty is an eighth of the height
+	t:eq(PatternStrip.barHeight(20, 40, 100), 12.5)
+	-- no difficulty or no curve: the bar keeps the full row height
+	t:eq(PatternStrip.barHeight(nil, 0, 100), 100)
+	t:eq(PatternStrip.barHeight(1, 1, 100), 100)
+end
+
+function test.occurrences_merge_overlapping_sections(t)
+	local sections = {
+		{time = 0, bpm = 200, nps = 10, labels = {stream = 0.4}},
+		{time = 2.5, bpm = 200, nps = 10, labels = {stream = 0.9}},
+		{time = 5, bpm = 200, nps = 10, labels = {stream = 0.7}},
+		{time = 20, bpm = 200, nps = 10, labels = {stream = 0.8}},
+	}
+	local ranges = PatternStrip.occurrences(sections, "stream", 0.5)
+	t:eq(#ranges, 2)
+	t:eq(ranges[1].start, 2.5)
+	t:eq(ranges[1].stop, 15)
+	t:eq(ranges[1].score, 0.9)
+	t:eq(ranges[2].start, 20)
+	t:eq(ranges[2].stop, 30)
 end
 
 return test

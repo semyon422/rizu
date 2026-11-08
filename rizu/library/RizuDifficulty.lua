@@ -177,6 +177,31 @@ for keys = 11, 36 do
 	RizuDifficulty.layouts[keys .. "key"] = mapped(RizuDifficulty.layouts[target .. "key2scratch"], columns)
 end
 
+---The note times, layout columns and hold ends, as chart.scoring.rizucalc takes them.
+---@param notes {time: number, column: integer, input: chart.Column?, end_time: number?}[]
+---@param layout chart.scoring.rizucalc.Layout
+---@return number[]
+---@return integer[]
+---@return {[integer]: number}
+local function to_columns(notes, layout)
+	---@type number[], integer[], {[integer]: number}
+	local times, cols, ends = {}, {}, {}
+	---@type {[integer]: integer}
+	local turn = {}
+	for _, note in ipairs(notes) do
+		local col = note.column
+		local targets = layout.columns and layout.columns[col]
+		if targets then
+			turn[col] = (turn[col] or 0) % #targets + 1
+			col = targets[turn[col]] or col
+		end
+		table.insert(times, note.time)
+		table.insert(cols, col)
+		ends[#times] = note.end_time
+	end
+	return times, cols, ends
+end
+
 ---Rizu Difficulty of notes sorted by time then column, its short-note rating and its LN level, or nil for keymodes it
 ---doesn't rate.
 ---@param notes {time: number, column: integer, input: chart.Column?, end_time: number?}[]
@@ -189,21 +214,7 @@ function RizuDifficulty.rate(notes, inputmode)
 	if not layout then
 		return
 	end
-	---@type number[], integer[], {[integer]: number}
-	local times, cols, ends = {}, {}, {}
-	---@type {[integer]: integer}
-	local turn = {}
-	for _, note in ipairs(notes) do
-		local col = note.column
-		local targets = layout.columns and layout.columns[col]
-		if targets then
-			turn[col] = (turn[col] or 0) % #targets + 1
-			col = targets[turn[col]]
-		end
-		table.insert(times, note.time)
-		table.insert(cols, col)
-		ends[#times] = note.end_time
-	end
+	local times, cols, ends = to_columns(notes, layout)
 	local rice = layout.map(rizucalc.rate(times, cols, layout))
 	local p = assert(layout.ln, "layout without LN parameters")
 	local raw = rizucalc_ln.raw(times, cols, ends, layout.groups, p)
@@ -212,6 +223,68 @@ function RizuDifficulty.rate(notes, inputmode)
 	end
 	local ln = p.scale * raw ^ p.curve
 	return (rice ^ p.combine + ln ^ p.combine) ^ (1 / p.combine), rice, ln
+end
+
+---The raw strain of the LN window containing t, 0 if there is none; curve is sorted by time.
+---@param curve {time: number, value: number}[]
+---@param t number
+---@param window number
+---@return number
+local function strain_at(curve, t, window)
+	local lo, hi = 1, #curve
+	while lo <= hi do
+		local mid = math.floor((lo + hi) / 2)
+		if curve[mid].time <= t then
+			lo = mid + 1
+		else
+			hi = mid - 1
+		end
+	end
+	local point = curve[hi]
+	if point and t < point.time + window then
+		return point.value
+	end
+	return 0
+end
+
+---The chart's difficulty over time, combined from the short-note and LN engines like rate().
+---Each point is one short-note window. Its difficulty is comparable between the points of one chart, not to the
+---chart's headline rating, since the short-note multiplier is the chart's, not the window's.
+---@param notes {time: number, column: integer, input: chart.Column?, end_time: number?}[]
+---@param inputmode string
+---@return {time: number, end_time: number, difficulty: number, rice: number, ln: number}[]?
+function RizuDifficulty.rateCurve(notes, inputmode)
+	local layout = RizuDifficulty.layouts[inputmode]
+	if not layout then
+		return
+	end
+	local times, cols, ends = to_columns(notes, layout)
+	local n = #times
+	if n == 0 then
+		return {}
+	end
+	---@type {time: number, value: number}[], {time: number, value: number}[]
+	local rice_curve, ln_curve = {}, {}
+	rizucalc.rate(times, cols, layout, rice_curve)
+	local p = assert(layout.ln, "layout without LN parameters")
+	rizucalc_ln.raw(times, cols, ends, layout.groups, p, ln_curve)
+	local short = n / (n + layout.params.short_notes)
+	local rice_window = layout.params.window
+	---@type {time: number, end_time: number, difficulty: number, rice: number, ln: number}[]
+	local curve = {}
+	for i, point in ipairs(rice_curve) do
+		local rice = layout.map(point.value * short)
+		local ln_raw = strain_at(ln_curve, point.time + rice_window / 2, p.window)
+		local ln = ln_raw > 0 and p.scale * ln_raw ^ p.curve or 0
+		curve[i] = {
+			time = point.time,
+			end_time = point.time + rice_window,
+			rice = rice,
+			ln = ln,
+			difficulty = (rice ^ p.combine + ln ^ p.combine) ^ (1 / p.combine),
+		}
+	end
+	return curve
 end
 
 -- Printed by `python3 -m calc.tune_dan dans`: the 4K rating at REFORM dans 0 (intro 3rd) to 18 (theta), fitted on

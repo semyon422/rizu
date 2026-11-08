@@ -210,8 +210,9 @@ end
 ---@param times number[] seconds
 ---@param cols integer[] 1-based
 ---@param layout chart.scoring.rizucalc.Layout
+---@param curve {time: number, value: number}[]? receives the raw difficulty of every window
 ---@return number
-function rizucalc.rate(times, cols, layout)
+function rizucalc.rate(times, cols, layout, curve)
 	local n = #times
 	if n == 0 then
 		return 0
@@ -395,6 +396,9 @@ function rizucalc.rate(times, cols, layout)
 			diff = diff * math.max(1 + p.anchor * anchor(col_counts[k]), 0)
 		end
 		diff = diff * (1 + p.stamina * short[k] / p.reference_nps) * (1 + p.long_stamina * long[k] / p.reference_nps)
+		if curve then
+			curve[k] = {time = t0 + (k - 1) * window, value = diff}
+		end
 		if diff > 0 then
 			local weight = count[k] ^ p.density
 			num = num + weight * diff ^ p.power

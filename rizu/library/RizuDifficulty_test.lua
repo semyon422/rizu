@@ -75,6 +75,27 @@ function test.no_ln(t)
 	t:eq(ln, 0)
 end
 
+-- every window has a difficulty, and the LN curve adds to the short-note one
+function test.curve(t)
+	local curve = assert(RizuDifficulty.rateCurve(pattern(4), "4key"))
+	t:assert(#curve > 0)
+	for i, point in ipairs(curve) do
+		t:assert(point.end_time > point.time)
+		t:assert(point.difficulty >= 0)
+		if i > 1 then t:assert(point.time > curve[i - 1].time) end
+	end
+	t:assert(curve[1].difficulty > 0)
+	t:eq(RizuDifficulty.rateCurve(pattern(4), "37key"), nil)
+	t:eq(#assert(RizuDifficulty.rateCurve({}, "4key")), 0)
+
+	local ln_curve = assert(RizuDifficulty.rateCurve(ln_pattern(4), "4key"))
+	local has_ln = false
+	for _, point in ipairs(ln_curve) do
+		if point.ln > 0 then has_ln = true end
+	end
+	t:assert(has_ln)
+end
+
 ---@param notes {time: number, column: integer}[]
 ---@param f fun(column: integer, i: integer): integer column and the note's index in it to the new column
 ---@return {time: number, column: integer}[]

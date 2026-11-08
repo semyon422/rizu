@@ -175,6 +175,13 @@ function SelectedSongPanel:update(dt)
 	self.details_container:setOffset(0, self.details_hidden_offset * (1 - self.details_reveal:get()))
 end
 
+---@param e gui.MouseClickEvent
+function SelectedSongPanel:onMouseClick(e)
+	if e.button == 1 and self.pattern_strip:selectAt(e.x, e.y) then
+		return true
+	end
+end
+
 ---@param cvf ui.formatters.ChartviewFormatter
 function SelectedSongPanel:bind(cvf)
 	self.details_opacity:snap(0):set(1)

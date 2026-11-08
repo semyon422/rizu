@@ -53,8 +53,9 @@ end
 ---@param ends {[integer]: number} hold ends by note index, nil for taps
 ---@param groups integer[] hand group of each column, from 1
 ---@param p chart.scoring.rizucalc_ln.Params
+---@param curve {time: number, value: number}[]? receives the raw strain of every window
 ---@return number
-function rizucalc_ln.raw(times, cols, ends, groups, p)
+function rizucalc_ln.raw(times, cols, ends, groups, p, curve)
 	local n = #times
 	---@type {[integer]: number[]}, {[integer]: number[]}
 	local starts, hold_ends = {}, {}
@@ -128,6 +129,11 @@ function rizucalc_ln.raw(times, cols, ends, groups, p)
 			local strain = (s / n_groups) ^ (1 / p.group_power) ---@type number
 			total = total + c * strain ^ p.power
 			weight = weight + c
+			if curve then
+				curve[w + 1] = {time = t0 + w * p.window, value = strain}
+			end
+		elseif curve then
+			curve[w + 1] = {time = t0 + w * p.window, value = 0}
 		end
 	end
 	return (total / weight) ^ (1 / p.power)
