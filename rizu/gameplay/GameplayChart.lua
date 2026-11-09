@@ -33,7 +33,7 @@ local Settings = require("rizu.config.Settings")
 ---@field snapshot refchart.ChartSnapshot
 ---@field chartmeta sea.Chartmeta
 ---@field chartdiff sea.Chartdiff
----@field chart_patterns rizu.library.ChartPattern[]?
+---@field chart_patterns rizu.library.ChartPatterns?
 ---@field state sea.ModifiersMetaState
 ---@field replay_base rizu.GameplayChartReplayBaseData
 

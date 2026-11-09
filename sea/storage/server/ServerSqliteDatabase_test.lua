@@ -59,7 +59,7 @@ end
 ---@param t testing.T
 function test.enum_round_trip_and_conditions(t)
 	local server = create_db()
-	t:eq(server.db:user_version(), 14)
+	t:eq(server.db:user_version(), 13)
 	for id, state in ipairs(ComputeState:list()) do
 		create_rows(server, id, state)
 		check_rows(t, server, id, state)
@@ -85,7 +85,7 @@ function test.version_11_mixed_states_migrate_without_changing_scores(t)
 	end
 	downgrade_to_11(server)
 	server:migrate()
-	t:eq(server.db:user_version(), 14)
+	t:eq(server.db:user_version(), 13)
 	for id, state in ipairs(states) do
 		check_rows(t, server, id, state)
 		local play = assert(server.models.chartplays:find({id = id}))

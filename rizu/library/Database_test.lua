@@ -13,7 +13,7 @@ local function create_db()
 	return db
 end
 
--- Puts the database back to a version below 14, which still had the MinaCalc columns.
+-- Puts the database back to a version below 13, which still had the MinaCalc columns.
 ---@param db rizu.library.Database
 ---@param version integer
 local function downgrade(db, version)
@@ -58,7 +58,7 @@ end
 ---@param t testing.T
 function test.enum_storage_and_derived_model_filters(t)
 	local db = create_db()
-	t:eq(db.db:user_version(), 16)
+	t:eq(db.db:user_version(), 13)
 	for id, state in ipairs(ComputeState:list()) do
 		create_play(db, id, state)
 		check_play(t, db, id, state)
@@ -85,7 +85,7 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 	end
 	downgrade(db, 9)
 	db:migrate()
-	t:eq(db.db:user_version(), 16)
+	t:eq(db.db:user_version(), 13)
 	for _, name in ipairs({"chart_difficulties_sort_idx", "chartplay_ratings_sort_idx"}) do
 		t:eq(#db.db:query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?", {name}), 1, name)
 	end
@@ -105,25 +105,17 @@ function test.version_9_mixed_states_migrate_without_losing_plays(t)
 end
 
 ---@param t testing.T
-function test.version_14_drops_the_difficulty_columns(t)
+function test.version_12_drops_the_difficulty_columns(t)
 	local db = create_db()
-	for _, sql in ipairs({
-		"DROP TABLE chart_difficulties",
-		[[CREATE TABLE chart_difficulties (chart_id INTEGER NOT NULL, calc_id INTEGER NOT NULL, `key` INTEGER NOT NULL,
-			rate INTEGER NOT NULL, value INTEGER, PRIMARY KEY (chart_id, calc_id, `key`, rate)) WITHOUT ROWID]],
-		"ALTER TABLE chartdiffs ADD COLUMN enps_diff REAL",
-		"ALTER TABLE chartdiffs ADD COLUMN osu_diff REAL",
-		"ALTER TABLE chartdiffs ADD COLUMN user_diff REAL",
-		"ALTER TABLE chartdiffs ADD COLUMN user_diff_data BLOB",
-	}) do
-		db.db:exec(sql)
-	end
-	db.db:user_version(14)
+	downgrade(db, 12)
 	db:migrate()
-	t:eq(db.db:user_version(), 16)
-	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chartdiffs') WHERE name IN ('enps_diff', 'user_diff')"), 0)
+	t:eq(db.db:user_version(), 13)
+	for _, name in ipairs({"enps_diff", "osu_diff", "msd_diff", "user_diff"}) do
+		t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chartdiffs') WHERE name = ?", {name}), 0, name)
+	end
+	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chartplays') WHERE name = 'rating_msd'"), 0)
 	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_difficulties') WHERE name = 'chartdiff_id'"), 1)
-	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_patterns')"), 6)
+	t:eq(#db.db:query("SELECT 1 FROM pragma_table_info('chart_patterns')"), 9)
 	db:unload()
 end
 

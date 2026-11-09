@@ -489,7 +489,7 @@ end
 
 ---The cached patterns of a chartdiff, see rizu.library.repos.ChartPatternsRepo.
 ---@param chartdiff_id integer
----@return rizu.library.ChartPattern[]
+---@return rizu.library.ChartPatterns?
 function Library:getChartPatterns(chartdiff_id)
 	return self.chartPatternsRepo:get(chartdiff_id)
 end

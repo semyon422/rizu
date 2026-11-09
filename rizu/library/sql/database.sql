@@ -94,14 +94,17 @@ CREATE TABLE IF NOT EXISTS `chartplay_ratings` (
 
 CREATE INDEX IF NOT EXISTS chartplay_ratings_sort_idx ON chartplay_ratings (`calc_id`, `key`, `value`);
 
--- The few most significant patterns of a chartdiff, see rizu.library.repos.ChartPatternsRepo.
+-- The top skillset and two most significant patterns of a chartdiff, see rizu.library.repos.ChartPatternsRepo.
 CREATE TABLE IF NOT EXISTS `chart_patterns` (
 	`chartdiff_id` INTEGER NOT NULL,
-	`rank` INTEGER NOT NULL,
-	`pattern` TEXT NOT NULL,
-	`share` REAL NOT NULL,
-	`bpm` REAL,
 	`version` INTEGER NOT NULL,
-	PRIMARY KEY (`chartdiff_id`, `pattern`),
+	`skillset` INTEGER NOT NULL,
+	`pattern_1` INTEGER NOT NULL,
+	`pattern_2` INTEGER,
+	`share_1` REAL NOT NULL,
+	`share_2` REAL,
+	`bpm_1` REAL,
+	`bpm_2` REAL,
+	PRIMARY KEY (`chartdiff_id`),
 	FOREIGN KEY (`chartdiff_id`) REFERENCES chartdiffs(id) ON DELETE CASCADE
 ) WITHOUT ROWID;

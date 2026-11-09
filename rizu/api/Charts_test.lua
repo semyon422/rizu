@@ -83,16 +83,19 @@ function test.selected_patterns(t)
 	selector.collectionSelector:load()
 	selector:load()
 	charts:moveSet(1)
-	t:tdeq(charts:getSelectedPatterns(), {}, "nothing until the chart is analyzed")
+	t:eq(charts:getSelectedPatterns(), nil, "nothing until the chart is analyzed")
 
 	library.database.models.chart_patterns:insert({
-		{chartdiff_id = 2, rank = 1, pattern = "stream", share = 0.8, bpm = 180, version = ChartPatternsRepo.getVersion()},
-		{chartdiff_id = 2, rank = 2, pattern = "jumpstream", share = 0.4, bpm = 170, version = ChartPatternsRepo.getVersion()},
+		{
+			chartdiff_id = 2, version = ChartPatternsRepo.getVersion(), skillset = "jacks",
+			pattern_1 = "stream", pattern_2 = "jumpstream", share_1 = 0.8, share_2 = 0.4, bpm_1 = 180, bpm_2 = 170,
+		},
 	})
-	local patterns = charts:getSelectedPatterns()
-	t:eq(#patterns, 2)
-	t:eq(patterns[1].pattern, "stream")
-	t:eq(patterns[2].rank, 2)
+	local patterns = assert(charts:getSelectedPatterns())
+	t:eq(patterns.skillset, "jacks")
+	t:eq(#patterns.patterns, 2)
+	t:eq(patterns.patterns[1].pattern, "stream")
+	t:eq(patterns.patterns[2].rank, 2)
 	library:unload()
 end
 

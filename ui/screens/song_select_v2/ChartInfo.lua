@@ -64,6 +64,7 @@ end
 ---@field cells {value: string, label: string}[]
 ---@field shown_cells {[string]: number} By label: the number drawn for a fact that is one, on its way to its value
 ---@field patterns rizu.library.ChartPattern[] Most significant first
+---@field chart_patterns rizu.library.ChartPatterns?
 local ChartInfo = View + {}
 
 ChartInfo.HEIGHT = HEIGHT
@@ -124,17 +125,18 @@ function ChartInfo:new()
 end
 
 ---@param cvf ui.formatters.ChartviewFormatter
----@param patterns rizu.library.ChartPattern[]?
+---@param patterns rizu.library.ChartPatterns?
 function ChartInfo:bind(cvf, patterns)
 	if not self.cvf then
 		-- The difficulty column decides the number, its name and its colour.
 		cvf.settings:subscribeChoice(Settings.keys.select.diff_column, function()
-			self:bind(cvf, self.patterns)
+			self:bind(cvf, self.chart_patterns)
 		end)
 	end
 	self.cvf = cvf
 	self.difficulty, self.cells = ChartInfo.collect(cvf)
-	self.patterns = patterns or {}
+	self.chart_patterns = patterns
+	self.patterns = patterns and patterns.patterns or {}
 
 	-- A number flows to the new one; anything else, like "—", is shown at once.
 	if not (tonumber(self.difficulty.value) and self.shown_value) then

@@ -2,6 +2,8 @@ local LinuxFilesystem = require("fs.LinuxFilesystem")
 local Database = require("rizu.library.Database")
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local ChartPatternsRepo = require("rizu.library.repos.ChartPatternsRepo")
+local pattern_classifier = require("chart.scoring.pattern_classifier")
+local Pattern = require("chart.scoring.Pattern")
 local TestChartFactory = require("sea.chart.TestChartFactory")
 local PreviewDiffcalc = require("chart.difficulty.PreviewDiffcalc")
 
@@ -26,9 +28,9 @@ end
 
 ---@param repo rizu.library.repos.ChartPatternsRepo
 ---@param chartdiff sea.Chartdiff
----@return table[]
-local function patterns(repo, chartdiff)
-	return repo.models.chart_patterns:select({chartdiff_id = chartdiff.id}, {order = {"rank ASC"}})
+---@return table?
+local function row(repo, chartdiff)
+	return repo.models.chart_patterns:find({chartdiff_id = chartdiff.id})
 end
 
 ---@param repo rizu.library.repos.ChartPatternsRepo
@@ -53,26 +55,24 @@ function test.saves_the_most_significant_patterns(t)
 	local chartdiff = chartsRepo:createChartdiff(source.chartdiff)
 
 	repo:save(chartdiff)
-	local rows = patterns(repo, chartdiff)
-	t:assert(#rows >= 1 and #rows <= ChartPatternsRepo.max_patterns, #rows)
-	for i, row in ipairs(rows) do
-		t:eq(row.rank, i)
-		t:eq(row.version, ChartPatternsRepo.getVersion())
-		t:assert(row.share > 0 and row.share <= 1, row.pattern)
-		t:assert(row.pattern ~= "speed" and row.pattern ~= "stamina" and row.pattern ~= "jacks" and row.pattern ~= "technical")
-	end
-	t:assert(math.abs(rows[1].bpm - 180) < 0.01, rows[1].bpm)
+	local saved = assert(row(repo, chartdiff))
+	t:eq(saved.version, ChartPatternsRepo.getVersion())
+	t:assert(saved.skillset == "speed" or saved.skillset == "stamina" or saved.skillset == "jacks" or saved.skillset == "technical", saved.skillset)
+	t:assert(saved.share_1 > 0 and saved.share_1 <= 1, saved.pattern_1)
+	t:assert(saved.pattern_1 ~= "speed" and saved.pattern_1 ~= "stamina" and saved.pattern_1 ~= "jacks" and saved.pattern_1 ~= "technical")
+	t:assert(math.abs(saved.bpm_1 - 180) < 0.01, saved.bpm_1)
 
-	local cached = repo:get(chartdiff.id)
-	t:eq(#cached, #rows)
-	t:eq(cached[1].pattern, rows[1].pattern)
+	local cached = assert(repo:get(chartdiff.id))
+	t:eq(cached.skillset, saved.skillset)
+	t:eq(cached.patterns[1].pattern, saved.pattern_1)
+	t:eq(cached.patterns[1].share, saved.share_1)
 
 	-- A save of the same patterns replaces them, it does not add to them.
 	repo:save(chartdiff)
-	t:eq(#patterns(repo, chartdiff), #rows)
+	t:eq(db.models.chart_patterns:count({chartdiff_id = chartdiff.id}), 1)
 
 	db.models.chartdiffs:delete({id = chartdiff.id})
-	t:eq(#patterns(repo, chartdiff), 0, "patterns follow the chartdiff")
+	t:eq(row(repo, chartdiff), nil, "patterns follow the chartdiff")
 	db:unload()
 end
 
@@ -88,16 +88,23 @@ function test.saves_patterns_classified_earlier(t)
 	local chartdiff = chartsRepo:createChartdiff(source.chartdiff)
 
 	repo:saveComputed(chartdiff, nil)
-	t:eq(#patterns(repo, chartdiff), 0, "nothing to store")
+	t:eq(row(repo, chartdiff), nil, "nothing to store")
 
-	repo:saveComputed(chartdiff, {{rank = 1, pattern = "stream", share = 0.5, bpm = 180}})
-	local rows = patterns(repo, chartdiff)
-	t:eq(#rows, 1)
-	t:eq(rows[1].pattern, "stream")
+	repo:saveComputed(chartdiff, {
+		skillset = "jacks",
+		patterns = {{rank = 1, pattern = "stream", share = 0.5, bpm = 180}},
+	})
+	local saved = assert(row(repo, chartdiff))
+	t:eq(saved.skillset, "jacks")
+	t:eq(saved.pattern_1, "stream")
+	t:eq(saved.pattern_2, nil)
 
 	-- Current patterns are not replaced.
-	repo:saveComputed(chartdiff, {{rank = 1, pattern = "jacks", share = 1, bpm = 120}})
-	t:eq(patterns(repo, chartdiff)[1].pattern, "stream")
+	repo:saveComputed(chartdiff, {
+		skillset = "technical",
+		patterns = {{rank = 1, pattern = "jacks", share = 1, bpm = 120}},
+	})
+	t:eq(assert(row(repo, chartdiff)).pattern_1, "stream")
 	db:unload()
 end
 
@@ -117,12 +124,10 @@ function test.remakes_patterns_of_an_older_version(t)
 	t:tdeq(missing_ids(repo), {})
 
 	db.models.chart_patterns:update({version = ChartPatternsRepo.getVersion() - 1}, {chartdiff_id = chartdiff.id})
-	t:eq(#repo:get(chartdiff.id), 0, "patterns of an older version are not shown")
+	t:eq(repo:get(chartdiff.id), nil, "patterns of an older version are not shown")
 	t:tdeq(missing_ids(repo), {chartdiff.id}, "and they are made again")
 	repo:save(chartdiff)
-	for _, row in ipairs(patterns(repo, chartdiff)) do
-		t:eq(row.version, ChartPatternsRepo.getVersion())
-	end
+	t:eq(assert(row(repo, chartdiff)).version, ChartPatternsRepo.getVersion())
 	db:unload()
 end
 
@@ -138,8 +143,24 @@ function test.no_patterns_for_keymodes_without_a_model(t)
 	local chartdiff = chartsRepo:createChartdiff(source.chartdiff)
 
 	repo:save(chartdiff)
-	t:eq(#patterns(repo, chartdiff), 0)
+	t:eq(row(repo, chartdiff), nil)
 	db:unload()
+end
+
+---@param t testing.T
+function test.every_model_label_has_a_pattern_id(t)
+	local is_skillset = {} ---@type {[string]: true}
+	for _, label in ipairs(pattern_classifier.SKILLSETS) do
+		is_skillset[label] = true
+	end
+	for _, name in ipairs({"chart.scoring.pattern_classifier_4k", "chart.scoring.pattern_classifier_7k"}) do
+		local model = require(name) --[[@as chart.scoring.pattern_classifier.Model]]
+		for _, label in ipairs(model.labels) do
+			if not is_skillset[label] then
+				t:ne(Pattern:encode_safe(label), nil, name .. " labels " .. label)
+			end
+		end
+	end
 end
 
 return test

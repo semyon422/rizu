@@ -11,16 +11,24 @@ local RizuDifficulty = require("rizu.library.RizuDifficulty")
 ---@field share number fraction of the chart's sections it fits
 ---@field bpm number? median BPM of those sections
 
----The few most significant patterns of a chartdiff, classified from its notes preview and cached in chart_patterns.
+---The top skillset and the two most significant patterns of a chartdiff.
+---@class rizu.library.ChartPatterns
+---@field skillset string
+---@field patterns rizu.library.ChartPattern[] most significant first, at most two
+
+---The few most significant patterns of a chartdiff and its top skillset, classified from its notes preview and
+---cached in chart_patterns.
 ---@class rizu.library.repos.ChartPatternsRepo
 ---@operator call: rizu.library.repos.ChartPatternsRepo
 local ChartPatternsRepo = class()
 
 -- Raise it when the classifier or the aggregation changes, so the patterns are made again.
-ChartPatternsRepo.revision = 1
-ChartPatternsRepo.max_patterns = 3
+ChartPatternsRepo.revision = 2
+ChartPatternsRepo.max_patterns = 2
 -- A section fits a pattern at this label score or above.
 ChartPatternsRepo.threshold = 0.5
+-- A label's hardness is its difficulty times share / (share + this), so a short pattern is not made to look hard.
+ChartPatternsRepo.share_offset = 0.05
 -- A section's difficulty is this percentile of the Rizu curve inside it, to keep spikes.
 local SECTION_QUANTILE = 0.9
 
@@ -62,19 +70,71 @@ local function section_difficulty(curve, start, stop)
 	return values[lo] + (values[hi] - values[lo]) * (pos - lo)
 end
 
----The patterns that fit the most sections, the hardest sections first, up to max_patterns.
+---@param values number[]?
+---@return number?
+local function median(values)
+	if not values or #values == 0 then
+		return
+	end
+	table.sort(values)
+	return values[math.ceil(#values / 2)]
+end
+
+---@param count {[string]: integer}
+---@param difficulty_sum {[string]: number}
+---@param bpms {[string]: number[]}
+---@param total integer
+---@return {[string]: {share: number, difficulty: number, hardness: number, bpm: number?}}
+local function finalize(count, difficulty_sum, bpms, total)
+	---@type {[string]: {share: number, difficulty: number, hardness: number, bpm: number?}}
+	local stats = {}
+	for label, c in pairs(count) do
+		local share = c / total
+		local difficulty = difficulty_sum[label] / c
+		stats[label] = {
+			share = share,
+			difficulty = difficulty,
+			hardness = difficulty * share / (share + ChartPatternsRepo.share_offset),
+			bpm = median(bpms[label]),
+		}
+	end
+	return stats
+end
+
+---Sections vote for their highest-scoring skillset.
 ---@param sections chart.scoring.pattern_classifier.Section[]
----@param curve {time: number, end_time: number, difficulty: number}[]?
----@return rizu.library.ChartPattern[]
-local function aggregate(sections, curve)
+---@param difficulties number[]
+---@return {[string]: {share: number, difficulty: number, hardness: number, bpm: number?}}
+local function skillset_stats(sections, difficulties)
+	---@type {[string]: integer}, {[string]: number}
+	local count, difficulty_sum = {}, {}
+	for i, sec in ipairs(sections) do
+		local best, value = nil, -math.huge
+		for _, label in ipairs(pattern_classifier.SKILLSETS) do
+			local score = sec.skillsets[label]
+			if score and score > value then
+				best, value = label, score
+			end
+		end
+		if best then
+			count[best] = (count[best] or 0) + 1
+			difficulty_sum[best] = (difficulty_sum[best] or 0) + difficulties[i]
+		end
+	end
+	return finalize(count, difficulty_sum, {}, #sections)
+end
+
+---@param sections chart.scoring.pattern_classifier.Section[]
+---@param difficulties number[]
+---@return {[string]: {share: number, difficulty: number, hardness: number, bpm: number?}}
+local function pattern_stats(sections, difficulties)
 	---@type {[string]: integer}, {[string]: number}, {[string]: number[]}
-	local count, weight, bpms = {}, {}, {}
-	for _, sec in ipairs(sections) do
-		local difficulty = section_difficulty(curve, sec.time, sec.time + pattern_classifier.WINDOW)
+	local count, difficulty_sum, bpms = {}, {}, {}
+	for i, sec in ipairs(sections) do
 		for label, score in pairs(sec.patterns) do
 			if score >= ChartPatternsRepo.threshold then
 				count[label] = (count[label] or 0) + 1
-				weight[label] = (weight[label] or 0) + difficulty
+				difficulty_sum[label] = (difficulty_sum[label] or 0) + difficulties[i]
 				if sec.bpm then
 					bpms[label] = bpms[label] or {}
 					table.insert(bpms[label], sec.bpm)
@@ -82,39 +142,62 @@ local function aggregate(sections, curve)
 			end
 		end
 	end
+	return finalize(count, difficulty_sum, bpms, #sections)
+end
 
-	local patterns = {} ---@type string[]
-	for label in pairs(count) do
-		table.insert(patterns, label)
+---@param stats {[string]: {share: number, difficulty: number, hardness: number, bpm: number?}}
+---@return string[]
+local function ranked(stats)
+	local labels = {} ---@type string[]
+	for label in pairs(stats) do
+		table.insert(labels, label)
 	end
-	table.sort(patterns, function(a, b)
-		if weight[a] ~= weight[b] then
-			return weight[a] > weight[b]
+	table.sort(labels, function(a, b)
+		if stats[a].hardness ~= stats[b].hardness then
+			return stats[a].hardness > stats[b].hardness
 		end
-		if count[a] ~= count[b] then
-			return count[a] > count[b]
+		if stats[a].share ~= stats[b].share then
+			return stats[a].share > stats[b].share
 		end
 		return a < b
 	end)
+	return labels
+end
+
+---The hardest skillset and the patterns with the highest hardness, up to max_patterns.
+---@param sections chart.scoring.pattern_classifier.Section[]
+---@param curve {time: number, end_time: number, difficulty: number}[]?
+---@return rizu.library.ChartPatterns?
+local function aggregate(sections, curve)
+	if #sections == 0 then
+		return
+	end
+	local difficulties = {} ---@type number[]
+	for i, sec in ipairs(sections) do
+		difficulties[i] = section_difficulty(curve, sec.time, sec.time + pattern_classifier.WINDOW)
+	end
+
+	local skillsets = skillset_stats(sections, difficulties)
+	local skillset = ranked(skillsets)[1]
+	local patterns = pattern_stats(sections, difficulties)
+	local labels = ranked(patterns)
 
 	---@type rizu.library.ChartPattern[]
 	local rows = {}
-	for rank = 1, math.min(#patterns, ChartPatternsRepo.max_patterns) do
-		local pattern = patterns[rank]
-		local b = bpms[pattern]
-		local bpm ---@type number?
-		if b then
-			table.sort(b)
-			bpm = b[math.ceil(#b / 2)]
-		end
-		rows[rank] = {rank = rank, pattern = pattern, share = count[pattern] / #sections, bpm = bpm}
+	for rank = 1, math.min(#labels, ChartPatternsRepo.max_patterns) do
+		local label = labels[rank]
+		local stat = patterns[label]
+		rows[rank] = {rank = rank, pattern = label, share = stat.share, bpm = stat.bpm}
 	end
-	return rows
+	if not skillset or not rows[1] then
+		return
+	end
+	return {skillset = skillset, patterns = rows}
 end
 
 ---The chartdiff's patterns, or nil for charts the classifier does not read.
 ---@param chartdiff sea.Chartdiff
----@return rizu.library.ChartPattern[]?
+---@return rizu.library.ChartPatterns?
 function ChartPatternsRepo.compute(chartdiff)
 	if chartdiff.mode ~= "mania" or not chartdiff.notes_preview or chartdiff.notes_preview == "" then
 		return
@@ -131,14 +214,24 @@ function ChartPatternsRepo.compute(chartdiff)
 	return aggregate(sections, RizuDifficulty.rateCurve(notes, inputmode))
 end
 
----The cached patterns of a chartdiff, the most significant first.
+---The cached patterns of a chartdiff, or nil when they are missing or of an older version.
 ---@param chartdiff_id integer
----@return rizu.library.ChartPattern[]
+---@return rizu.library.ChartPatterns?
 function ChartPatternsRepo:get(chartdiff_id)
-	return self.models.chart_patterns:select(
-		{chartdiff_id = assert(chartdiff_id), version = ChartPatternsRepo.getVersion()},
-		{order = {"rank ASC"}}
-	) --[[@as rizu.library.ChartPattern[] ]]
+	local row = self.models.chart_patterns:find(
+		{chartdiff_id = assert(chartdiff_id), version = ChartPatternsRepo.getVersion()}
+	)
+	if not row then
+		return
+	end
+	---@type rizu.library.ChartPattern[]
+	local patterns = {
+		{rank = 1, pattern = row.pattern_1, share = row.share_1, bpm = row.bpm_1},
+	}
+	if row.pattern_2 then
+		patterns[2] = {rank = 2, pattern = row.pattern_2, share = row.share_2, bpm = row.bpm_2}
+	end
+	return {skillset = row.skillset, patterns = patterns}
 end
 
 ---Chartdiffs whose patterns are missing or of an older version.
@@ -168,9 +261,9 @@ end
 
 ---Caches patterns classified earlier, e.g. when the chart was loaded to play it.
 ---@param chartdiff sea.Chartdiff
----@param patterns rizu.library.ChartPattern[]?
+---@param patterns rizu.library.ChartPatterns?
 function ChartPatternsRepo:saveComputed(chartdiff, patterns)
-	if not patterns or not patterns[1] then
+	if not patterns or not patterns.patterns[1] then
 		return
 	end
 	local chartdiff_id = assert(chartdiff.id, "chartdiff without an id")
@@ -180,19 +273,19 @@ function ChartPatternsRepo:saveComputed(chartdiff, patterns)
 
 	self.models.chart_patterns:delete({chartdiff_id = chartdiff_id})
 
-	---@type {chartdiff_id: integer, rank: integer, pattern: string, share: number, bpm: number?, version: integer}[]
-	local rows = {}
-	for _, p in ipairs(patterns) do
-		table.insert(rows, {
-			chartdiff_id = chartdiff_id,
-			rank = p.rank,
-			pattern = p.pattern,
-			share = p.share,
-			bpm = p.bpm,
-			version = ChartPatternsRepo.getVersion(),
-		})
-	end
-	self.models.chart_patterns:insert(rows)
+	local first = patterns.patterns[1]
+	local second = patterns.patterns[2]
+	self.models.chart_patterns:create({
+		chartdiff_id = chartdiff_id,
+		version = ChartPatternsRepo.getVersion(),
+		skillset = patterns.skillset,
+		pattern_1 = first.pattern,
+		pattern_2 = second and second.pattern or nil,
+		share_1 = first.share,
+		share_2 = second and second.share or nil,
+		bpm_1 = first.bpm,
+		bpm_2 = second and second.bpm or nil,
+	})
 end
 
 return ChartPatternsRepo
