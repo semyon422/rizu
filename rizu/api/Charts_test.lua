@@ -77,6 +77,26 @@ function test.lists_and_selection(t)
 end
 
 ---@param t testing.T
+function test.selected_patterns(t)
+	local charts, selector, library = createCharts()
+	selector.collectionSelector:load()
+	selector:load()
+	charts:moveSet(1)
+	t:eq(charts:getSelectedPatterns(), nil, "nothing until the chart is analyzed")
+
+	library.database.models.chartdiffs:update({
+		skillset = "jacks", pattern_1 = "stream", pattern_2 = "jumpstream",
+		pattern_share_1 = 0.8, pattern_share_2 = 0.4, pattern_bpm_1 = 180, pattern_bpm_2 = 170,
+	}, {id = 2})
+	local patterns = assert(charts:getSelectedPatterns())
+	t:eq(patterns.skillset, "jacks")
+	t:eq(#patterns.patterns, 2)
+	t:eq(patterns.patterns[1].pattern, "stream")
+	t:eq(patterns.patterns[2].rank, 2)
+	library:unload()
+end
+
+---@param t testing.T
 function test.random_set_history(t)
 	local charts, selector, library = createCharts()
 	selector.collectionSelector:load()

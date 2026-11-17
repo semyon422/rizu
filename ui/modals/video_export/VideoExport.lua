@@ -175,7 +175,7 @@ function VideoExport:startExport()
 		artist = formatter:getArtist(),
 		chart_name = formatter:getName() or "",
 	}
-	details.difficulty, details.patterns, details.cells = ChartInfo.collect(formatter)
+	details.difficulty, details.cells = ChartInfo.collect(formatter)
 	local name = ("%s - %s [%s]"):format(chart.artist or "", chart.title or "", chart.name or "")
 	local ok, err = export:start({
 		width = size[1],
@@ -200,7 +200,6 @@ end
 ---@field artist string
 ---@field chart_name string
 ---@field difficulty {value: string, postfix: string, color: gui.Color}
----@field patterns string
 ---@field cells {value: string, label: string}[]
 
 ---One frame of the video. The canvas is cleared to black, everything else is drawn here.
@@ -227,7 +226,7 @@ local function boldFont(size, scale, name)
 	return Resources.getFont(name or "cjk_bold", math.floor(size * scale + 0.5))
 end
 
----The difficulty, patterns and facts the song select shows, in a column from the top left.
+---The difficulty and facts the song select shows, in a column from the top left.
 ---@private
 ---@param details ui.modals.video_export.VideoExport.Details
 ---@param height integer
@@ -256,10 +255,7 @@ function VideoExport:drawChartInfo(details, height)
 	lg.print(details.difficulty.value, x - 3 * scale, y)
 	y = y + big_font:getHeight()
 
-	lg.setFont(postfix_font)
-	Painter.setColorTable(Colors.muted)
-	lg.print(details.patterns, x, y)
-	y = y + postfix_font:getHeight() + 14 * scale
+	y = y + 14 * scale
 
 	-- The cells: value, then its caption on the same baseline.
 	local value_width = 0

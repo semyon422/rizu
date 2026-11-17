@@ -7,6 +7,7 @@ local stage_titles = {
 	scanning = "Scanning charts",
 	hashing = "Hashing charts",
 	difficulty = "Computing difficulty",
+	patterns = "Computing patterns",
 	scores = "Updating scores",
 	hits = "Preparing scores for rescoring",
 }

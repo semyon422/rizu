@@ -129,7 +129,7 @@ function Color.convertDiffToHue(x)
 	end
 end
 
----@param diff_type "enps_diff" | "osu_diff" | "msd_diff" | "user_diff"
+---@param diff_type "enps_diff" | "osu_diff" | "rizu_diff"
 ---@param value number
 ---@return gui.Color
 function Color.diffToColor(diff_type, value, out)
@@ -137,8 +137,8 @@ function Color.diffToColor(diff_type, value, out)
 		return Color.enpsToColor(value, out)
 	elseif diff_type == "osu_diff" then
 		return Color.osuToColor(value, out)
-	elseif diff_type == "msd_diff" then
-		return Color.msdToColor(value, out)
+	elseif diff_type == "rizu_diff" then
+		return Color.rizuToColor(value, out)
 	else
 		return out
 	end
@@ -152,10 +152,11 @@ function Color.enpsToColor(diff, out)
 	return Color.HSV(hue, 1, 1, out)
 end
 
+---Rizu Difficulty is on the MSD scale.
 ---@param diff number
 ---@param out gui.Color
 ---@return gui.Color
-function Color.msdToColor(diff, out)
+function Color.rizuToColor(diff, out)
 	local hue = Color.convertDiffToHue((math.min(diff, 40) / 40) / 1.3)
 	return Color.HSV(hue, 1, 1, out)
 end

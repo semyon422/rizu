@@ -13,11 +13,9 @@ local UserInterface = Section + {}
 ---@return string formatted
 local function formatDifficulty(value)
 	return ({
-		enps_diff = "ENPS",
-		osu_diff = "osu!",
-		msd_diff = "MSD",
-		user_diff = "User",
-	})[value]
+		["enps_diff"] = "ENPS",
+		["osu_diff"] = "osu!",
+	})[value] or value:match("^(.+)_diff$")
 end
 
 ---@param value string

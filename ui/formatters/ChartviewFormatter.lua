@@ -1,8 +1,8 @@
 local class = require("class")
 local Color = require("ui.Color")
-local MsdFormatter = require("ui.formatters.MsdFormatter")
 local Settings = require("rizu.config.Settings")
 local dan_list = require("sea.dan.dan_list")
+local RizuDifficulty = require("rizu.library.RizuDifficulty")
 
 --- Formats info from chartview
 --- You can get it from `ui.api.charts:getSelectedChart()`
@@ -52,68 +52,37 @@ function ChartviewFormatter:getTimeRate()
 	}
 end
 
----@return {value: string, postfix: string, color: gui.Color}
+---@return {value: string, postfix: string, color: gui.Color, dan: string?} dan: the estimated REFORM dan, see RizuDifficulty.dan
 function ChartviewFormatter:getDifficulty()
 	local mode = self.chartview.chartmeta_mode
 	if mode and mode ~= "mania" then
 		return {value = "—", postfix = "EXPERIMENTAL", color = {0.6, 0.8, 1, 1}}
 	end
 	local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
-	local num = self.chartview[diff_column] or 0
-
-	if diff_column == "msd_diff" then
-		local rates = self.chartview.msd_diff_rates
-		if rates and #rates > 0 then
-			num = num * MsdFormatter.multiplierAt(rates, self.time_rate)
-		end
-	else
-		num = num * self.time_rate
+	local calc = diff_column:match("^(.+)_diff$") or diff_column
+	local num = self.chartview[diff_column] or self.chartview.difficulty ---@type number?
+	if not num then
+		return {value = "—", postfix = calc:upper(), color = {1, 1, 1, 1}}
 	end
+	num = num or 0
 
-	local postfix = "USER"
+	num = num * self.time_rate
 
-	if diff_column == "osu_diff" then
-		postfix = "★"
-	elseif diff_column == "msd_diff" then
-		postfix = "MSD"
-	elseif diff_column == "enps_diff" then
-		postfix = "ENPS"
+	local postfix = calc == "osu" and "★" or calc:upper()
+
+	-- the dan curves are fitted on 4K and 7K charts under 10% long notes only
+	local cv = self.chartview
+	local dan ---@type string?
+	if diff_column == "rizu_diff" and (cv.long_notes_ratio or 0) < 0.1 then
+		dan = RizuDifficulty.dan(num, cv.chartdiff_inputmode or cv.inputmode)
 	end
 
 	return {
 		value = ("%0.01f"):format(num),
 		postfix = postfix,
+		dan = dan,
 		color = Color.diffToColor(diff_column, num, {1, 1, 1, 1})
 	}
-end
-
----@return {top_full: string?, second_full: string?, top_simple: string?, second_simple: string?}
-function ChartviewFormatter:getPatterns()
-	local msd_diff_data = self.chartview.msd_diff_data
-	local msd_diff_rates = self.chartview.msd_diff_rates
-
-	if not msd_diff_data or not msd_diff_rates then
-		return {}
-	end
-
-	local msd_formatter = MsdFormatter(msd_diff_data, msd_diff_rates)
-	local inputmode = self.chartview.chartdiff_inputmode or self.chartview.inputmode
-	local first, second = msd_formatter:getTopPatterns(self.time_rate, inputmode)
-
-	local t = {
-		top_full = first,
-		second_full = second,
-	}
-
-	if first then
-		t.top_simple = msd_formatter.simplifyName(first)
-	end
-
-	if second then
-		t.second_simple = msd_formatter.simplifyName(second)
-	end
-
-	return t
 end
 
 ---@return string

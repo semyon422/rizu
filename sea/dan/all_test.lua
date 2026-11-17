@@ -65,7 +65,6 @@ local function new_chartplay(hash, index, time)
 		miss_count = 0,
 		not_perfect_count = 0,
 		rating = 0,
-		rating_msd = 0,
 		rating_pp = 0,
 		pass = true,
 	}

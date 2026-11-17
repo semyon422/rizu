@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75042, 2025-12-25)"
+   sodipodi:docname="dans.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.50205276"
+     inkscape:cx="160.34171"
+     inkscape:cy="498.95155"
+     inkscape:window-width="1920"
+     inkscape:window-height="1006"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient95"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d13535;stop-opacity:1;"
+         offset="0"
+         id="stop95" />
+      <stop
+         style="stop-color:#8c2525;stop-opacity:1;"
+         offset="1"
+         id="stop96" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient92"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d13535;stop-opacity:1;"
+         offset="0"
+         id="stop93" />
+      <stop
+         style="stop-color:#8c2525;stop-opacity:1;"
+         offset="1"
+         id="stop94" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient89"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ffb76e;stop-opacity:1;"
+         offset="0"
+         id="stop90" />
+      <stop
+         style="stop-color:#ec4cbc;stop-opacity:1;"
+         offset="0.44130436"
+         id="stop92" />
+      <stop
+         style="stop-color:#46d5eb;stop-opacity:1;"
+         offset="1"
+         id="stop91" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient85"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop85" />
+      <stop
+         style="stop-color:#e71565;stop-opacity:1;"
+         offset="0.23913044"
+         id="stop87" />
+      <stop
+         style="stop-color:#416dee;stop-opacity:1;"
+         offset="0.67391306"
+         id="stop88" />
+      <stop
+         style="stop-color:#eaeaea;stop-opacity:1;"
+         offset="1"
+         id="stop89" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient82"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#e1742a;stop-opacity:1;"
+         offset="0.4195652"
+         id="stop83" />
+      <stop
+         style="stop-color:#5730bc;stop-opacity:1;"
+         offset="1"
+         id="stop84" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient79"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ff3d3d;stop-opacity:1;"
+         offset="0.09782609"
+         id="stop80" />
+      <stop
+         style="stop-color:#3a09ff;stop-opacity:1;"
+         offset="0.34999999"
+         id="stop82" />
+      <stop
+         style="stop-color:#59ff9d;stop-opacity:1;"
+         offset="0.53695649"
+         id="stop81" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient76"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#ecc23a;stop-opacity:1;"
+         offset="0.15000001"
+         id="stop76" />
+      <stop
+         style="stop-color:#f3ff59;stop-opacity:1;"
+         offset="0.38478261"
+         id="stop79" />
+      <stop
+         style="stop-color:#ecc23a;stop-opacity:1;"
+         offset="0.7478261"
+         id="stop78" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient72"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#6664d2;stop-opacity:1;"
+         offset="0.21304348"
+         id="stop71" />
+      <stop
+         style="stop-color:#d22c2c;stop-opacity:1;"
+         offset="0.38260871"
+         id="stop73" />
+      <stop
+         style="stop-color:#f7e41f;stop-opacity:1;"
+         offset="0.63260871"
+         id="stop72" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient1"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#d3b449;stop-opacity:1;"
+         offset="0.01956522"
+         id="stop1" />
+      <stop
+         style="stop-color:#f7d254;stop-opacity:1;"
+         offset="0.98043478"
+         id="stop2" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1"
+       id="linearGradient2"
+       x1="17.018866"
+       y1="8.0353775"
+       x2="32.784496"
+       y2="31.408886"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(6.3240366,3.6890213)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1"
+       id="linearGradient20"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(47.375421,1.6714285)"
+       x1="17.018866"
+       y1="8.0353775"
+       x2="32.784496"
+       y2="31.408886" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient72"
+       id="linearGradient71"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(83.725224,50.135927)"
+       x1="14.591954"
+       y1="10.108154"
+       x2="35.211414"
+       y2="29.336111" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient76"
+       id="linearGradient77"
+       x1="98.900246"
+       y1="96.513512"
+       x2="110.1753"
+       y2="100.61729"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(-2.3469697,-1.9442934)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient79"
+       id="linearGradient81"
+       x1="96.538406"
+       y1="122.26057"
+       x2="107.8836"
+       y2="127.55093"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient82"
+       id="linearGradient84"
+       x1="103.48114"
+       y1="147.82773"
+       x2="103.48114"
+       y2="160.00702"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient85"
+       id="linearGradient86"
+       x1="99.764793"
+       y1="174.98665"
+       x2="107.43491"
+       y2="182.65678"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient89"
+       id="linearGradient91"
+       x1="103.93068"
+       y1="198.73203"
+       x2="103.93068"
+       y2="209.17282"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient92"
+       id="linearGradient94"
+       x1="99.185051"
+       y1="230.09602"
+       x2="107.42718"
+       y2="239.5775"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient95"
+       id="linearGradient96"
+       x1="101.88324"
+       y1="253.84593"
+       x2="105.6573"
+       y2="264.80661"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <text
+       xml:space="preserve"
+       style="font-weight:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers;font-style:normal;font-stretch:normal;font-variant:normal"
+       x="17.588726"
+       y="31.290806"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="31.290806">10</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="59.513058"
+         id="tspan2">9</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="87.735306"
+         id="tspan3">8</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="115.95756"
+         id="tspan4">7</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="144.17981"
+         id="tspan5">6</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="172.40207"
+         id="tspan6">5</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="200.62431"
+         id="tspan7">4</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="228.84657"
+         id="tspan8">3</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="257.06882"
+         id="tspan9">2</tspan><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient2);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1;-inkscape-font-specification:'Noto Serif CJK KR';font-family:'Noto Serif CJK KR';font-weight:normal;font-style:normal;font-stretch:normal;font-variant:normal"
+         x="17.588726"
+         y="285.29108"
+         id="tspan10">1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="58.640125"
+       y="29.273212"
+       id="text20"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="29.273212"
+         id="tspan20">α</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="57.495464"
+         id="tspan29">β</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="85.717712"
+         id="tspan33">γ</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="113.93996"
+         id="tspan38">δ</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="142.16222"
+         id="tspan40">ε</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="170.38448"
+         id="tspan41">ζ</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="198.60672"
+         id="tspan42">η</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="226.82898"
+         id="tspan44">θ</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="255.05122"
+         id="tspan45" /><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="283.27347"
+         id="tspan39" /><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient20);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="58.640125"
+         y="311.4957"
+         id="tspan36" /></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:#87ff59;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="113.86724"
+       y="80.391785"
+       id="text62"
+       inkscape:export-filename="dan_plus.png"
+       inkscape:export-xdpi="100"
+       inkscape:export-ydpi="100"><tspan
+         sodipodi:role="line"
+         id="tspan62"
+         style="fill:#87ff59;fill-opacity:1;stroke-width:1.5"
+         x="113.86724"
+         y="80.391785">+</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:#ff5959;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="136.40797"
+       y="76.236488"
+       id="text63"
+       inkscape:export-filename="dan_minus.png"
+       inkscape:export-xdpi="100"
+       inkscape:export-ydpi="100"><tspan
+         sodipodi:role="line"
+         id="tspan63"
+         style="fill:#ff5959;fill-opacity:1;stroke-width:1.5"
+         x="136.40797"
+         y="76.236488">-</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient71);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="94.989937"
+       y="77.737701"
+       id="text71"
+       inkscape:export-filename="dan_4k_reform_alpha.png"
+       inkscape:export-xdpi="235.12616"
+       inkscape:export-ydpi="235.12616"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient71);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="94.989937"
+         y="77.737701"
+         id="tspan68">α</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient71);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="94.989937"
+         y="105.95995"
+         id="tspan69" /><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient71);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="94.989937"
+         y="134.18221"
+         id="tspan70" /><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';fill:url(#linearGradient71);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-dasharray:none;stroke-opacity:1"
+         x="94.989937"
+         y="162.40446"
+         id="tspan71" /></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient77);stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="94.751419"
+       y="103.38317"
+       id="text76"
+       inkscape:export-filename="dan_4k_reform_beta.png"
+       inkscape:export-xdpi="133.65038"
+       inkscape:export-ydpi="133.65038"><tspan
+         sodipodi:role="line"
+         id="tspan76"
+         style="fill:url(#linearGradient77);stroke-width:1.5"
+         x="94.751419"
+         y="103.38317">β</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient81);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="96.702003"
+       y="128.56335"
+       id="text79"
+       inkscape:export-filename="dan_4k_reform_gamma.png"
+       inkscape:export-xdpi="179.00677"
+       inkscape:export-ydpi="179.00677"><tspan
+         sodipodi:role="line"
+         id="tspan79"
+         style="stroke-width:1.5;fill:url(#linearGradient81)"
+         x="96.702003"
+         y="128.56335">γ</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient84);stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="97.260971"
+       y="162.84691"
+       id="text82"
+       inkscape:export-filename="dan_4k_reform_delta.png"
+       inkscape:export-xdpi="162.63138"
+       inkscape:export-ydpi="162.63138"><tspan
+         sodipodi:role="line"
+         style="fill:url(#linearGradient84);fill-opacity:1;stroke-width:1.5"
+         x="97.260971"
+         y="162.84691"
+         id="tspan84">δ</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient86);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="97.819946"
+       y="184.6468"
+       id="text85"
+       inkscape:export-filename="dan_4k_reform_epsilon.png"
+       inkscape:export-xdpi="235.12595"
+       inkscape:export-ydpi="235.12595"><tspan
+         sodipodi:role="line"
+         id="tspan85"
+         style="stroke-width:1.5;fill:url(#linearGradient86)"
+         x="97.819946"
+         y="184.6468">ε</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient91);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="98.421707"
+       y="210.55644"
+       id="text89"
+       inkscape:export-filename="dan_4k_reform_zeta.png"
+       inkscape:export-xdpi="131.21466"
+       inkscape:export-ydpi="131.21466"><tspan
+         sodipodi:role="line"
+         id="tspan89"
+         style="stroke-width:1.5;fill:url(#linearGradient91)"
+         x="98.421707"
+         y="210.55644">ζ</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient94);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="97.074654"
+       y="238.49435"
+       id="text92"
+       inkscape:export-filename="dan_4k_reform_eta.png"
+       inkscape:export-xdpi="179.00677"
+       inkscape:export-ydpi="179.00677"><tspan
+         sodipodi:role="line"
+         id="tspan92"
+         style="stroke-width:1.5;fill:url(#linearGradient94)"
+         x="97.074654"
+         y="238.49435">η</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:22.5778px;font-family:'Noto Serif CJK KR';-inkscape-font-specification:'Noto Serif CJK KR';writing-mode:lr-tb;direction:ltr;fill:url(#linearGradient96);fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke fill markers"
+       x="97.527512"
+       y="268.24454"
+       id="text94"
+       inkscape:export-filename="dan_4k_reform_theta.png"
+       inkscape:export-xdpi="162.44806"
+       inkscape:export-ydpi="162.44806"><tspan
+         sodipodi:role="line"
+         id="tspan94"
+         style="stroke-width:1.5;fill:url(#linearGradient96);fill-opacity:1"
+         x="97.527512"
+         y="268.24454">θ</tspan></text>
+  </g>
+</svg>

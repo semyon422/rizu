@@ -4,6 +4,7 @@ local Colors = require("ui.Colors")
 local Painter = require("gui.Painter")
 local Resources = require("ui.Resources")
 local Settings = require("rizu.config.Settings")
+local DanBadge = require("ui.screens.song_select_v2.DanBadge")
 
 local lg = love.graphics
 
@@ -12,10 +13,20 @@ local HEIGHT = 112
 local PADDING_X = 6
 local TOP_PADDING = 6
 local CELL_GAP = 44
+local LEADING_ZERO = {Colors.muted[1], Colors.muted[2], Colors.muted[3], (Colors.muted[4] or 1) * 0.3}
+-- Counts are written with this many digits, the leading zeros grayed: the fact keeps its width.
+local CELL_DIGITS = {NOTES = 5, BPM = 3, LN = 3}
 local CELLS_BOTTOM = 6
 local LABEL_SPACING = 0.3
 local CELL_LABEL_SPACING = 0.18
-local PATTERN_SEPARATOR = "  ·  "
+-- The big number is not monospaced: a fixed box keeps the dan badge from shifting with its digits.
+local NUMBER_WIDTH = 200
+local NUMBER_FLOW_SPEED = 12
+-- Patterns sit in a row in the top right, above the facts: at most two, name and BPM.
+local PATTERNS_MIN_LEFT = 320
+local PATTERNS_MAX = 2
+local PATTERNS_GAP = 24
+local PATTERN_BPM_GAP = 6
 
 ---Draws text with extra space after every character, like CSS letter-spacing.
 ---@param font love.Font
@@ -46,51 +57,215 @@ end
 ---@class ui.screens.song_select_v2.ChartInfo : gui.View
 ---@operator call: ui.screens.song_select_v2.ChartInfo
 ---@field cvf ui.formatters.ChartviewFormatter?
----@field difficulty {value: string, postfix: string, color: gui.Color}
----@field patterns string
+---@field difficulty {value: string, postfix: string, color: gui.Color, dan: string?}
+---@field dan_badge ui.screens.song_select_v2.DanBadge
+---@field shown_value number? The number drawn, on its way to the difficulty's. Nil for a value that is not a number.
+---@field shown_color gui.Color
 ---@field cells {value: string, label: string}[]
+---@field shown_cells {[string]: number} By label: the number drawn for a fact that is one, on its way to its value
+---@field patterns rizu.library.ChartPattern[] Most significant first
+---@field chart_patterns rizu.library.ChartPatterns?
 local ChartInfo = View + {}
 
 ChartInfo.HEIGHT = HEIGHT
+
+---A classifier label as words: "full_ln" reads "Full Ln".
+---@param label string
+---@return string
+function ChartInfo.formatPattern(label)
+	local words = {} ---@type string[]
+	for word in label:gmatch("[^_]+") do
+		table.insert(words, word:sub(1, 1):upper() .. word:sub(2))
+	end
+	return table.concat(words, " ")
+end
+
+---The text cut to the width with an ellipsis, or nil when not even that fits.
+---@param font love.Font
+---@param text string
+---@param width number
+---@return string?
+function ChartInfo.fitText(font, text, width)
+	if font:getWidth(text) <= width then
+		return text
+	end
+	local rest = width - font:getWidth("…")
+	if rest < 0 then
+		return
+	end
+	local chars = {} ---@type string[]
+	for _, code in utf8.codes(text) do
+		table.insert(chars, utf8.char(code))
+	end
+	while #chars > 0 and font:getWidth(table.concat(chars)) > rest do
+		table.remove(chars)
+	end
+	return table.concat(chars) .. "…"
+end
 
 function ChartInfo:new()
 	View.new(self)
 	self.label_font = Resources.getFont("bold", 20)
 	self.postfix_font = Resources.getFont("medium", 24)
-	self.patterns_font = Resources.getFont("medium", 24)
 	self.big_font = Resources.getFont("bold", 76)
 	self.value_font = Resources.getFont("medium", 34)
+	self.digit_width = 0
+	for digit = 0, 9 do
+		self.digit_width = math.max(self.digit_width, self.value_font:getWidth(tostring(digit)))
+	end
 	self.cell_label_font = Resources.getFont("medium", 13)
+	self.pattern_font = Resources.getFont("medium", 24)
+	self.pattern_bpm_font = Resources.getFont("medium", 15)
 	self.difficulty = {value = "", postfix = "", color = Colors.text}
-	self.patterns = ""
+	self.shown_color = {Colors.text[1], Colors.text[2], Colors.text[3], Colors.text[4] or 1}
 	self.cells = {}
+	self.shown_cells = {}
+	self.patterns = {}
+	self.dan_badge = self:add(DanBadge())
 end
 
 ---@param cvf ui.formatters.ChartviewFormatter
-function ChartInfo:bind(cvf)
+---@param patterns rizu.library.ChartPatterns?
+function ChartInfo:bind(cvf, patterns)
 	if not self.cvf then
 		-- The difficulty column decides the number, its name and its colour.
 		cvf.settings:subscribeChoice(Settings.keys.select.diff_column, function()
-			self:bind(cvf)
+			self:bind(cvf, self.chart_patterns)
 		end)
 	end
 	self.cvf = cvf
-	self.difficulty, self.patterns, self.cells = ChartInfo.collect(cvf)
+	self.difficulty, self.cells = ChartInfo.collect(cvf)
+	self.chart_patterns = patterns
+	self.patterns = patterns and patterns.patterns or {}
+
+	-- A number flows to the new one; anything else, like "—", is shown at once.
+	if not (tonumber(self.difficulty.value) and self.shown_value) then
+		self.shown_value = tonumber(self.difficulty.value)
+		for i = 1, 4 do self.shown_color[i] = self.difficulty.color[i] or 1 end
+	end
+
+	local shown = {} ---@type {[string]: number}
+	for _, cell in ipairs(self.cells) do
+		local number = ChartInfo.parseCell(cell.value)
+		shown[cell.label] = number and (self.shown_cells[cell.label] or number)
+	end
+	self.shown_cells = shown
+
+	-- After the big number's box, centered on it.
+	local number_height = self.big_font:getHeight()
+	self.dan_badge:setDan(self.difficulty.dan)
+	self.dan_badge:setPosition(PADDING_X - 3 + NUMBER_WIDTH + 18,
+		HEIGHT - number_height + (number_height - DanBadge.HEIGHT) / 2)
+end
+
+---Facts that are a count, a percentage or a duration flow like the difficulty does.
+---@param value string
+---@return number? number
+---@return string? format For string.format, the number rounded
+function ChartInfo.parseCell(value)
+	local minutes, seconds = value:match("^(%d+):(%d%d)$")
+	if minutes then
+		return minutes * 60 + seconds, "%d:%02d"
+	end
+	local count, percent = value:match("^(%d+)(%%?)$")
+	if count then
+		return tonumber(count), percent == "" and "%d" or "%d%%"
+	end
+end
+
+---A fact's number as text, padded with zeros to a fixed width.
+---@param label string
+---@param number number
+---@param format string From parseCell
+---@return string text
+---@return integer gray How many characters at the start are leading zeros
+function ChartInfo.padCell(label, number, format)
+	number = math.floor(number + 0.5)
+	local text
+	if format == "%d:%02d" then
+		text = ("%02d:%02d"):format(math.floor(number / 60), number % 60)
+	else
+		text = format:gsub("%%d", "%%0" .. (CELL_DIGITS[label] or 1) .. "d"):format(number)
+	end
+	-- The last character always stays, so zero reads "0" and not nothing.
+	local gray = #text:sub(1, -2):match("^[0:]*")
+	return text, gray
+end
+
+---Moves a value toward its target, a fraction of the way each second, and lands on it when close.
+---@param value number
+---@param target number
+---@param dt number
+---@param epsilon number
+---@return number
+function ChartInfo.approach(value, target, dt, epsilon)
+	local diff = target - value
+	if math.abs(diff) <= epsilon then
+		return target
+	end
+	return value + diff * math.min(1, dt * NUMBER_FLOW_SPEED)
+end
+
+---@param dt number
+function ChartInfo:update(dt)
+	local target = tonumber(self.difficulty.value)
+	if target and self.shown_value then
+		self.shown_value = ChartInfo.approach(self.shown_value, target, dt, 0.02)
+	end
+	for i = 1, 4 do
+		self.shown_color[i] = ChartInfo.approach(self.shown_color[i], self.difficulty.color[i] or 1, dt, 0.005)
+	end
+	for _, cell in ipairs(self.cells) do
+		local shown = self.shown_cells[cell.label]
+		if shown then
+			self.shown_cells[cell.label] = ChartInfo.approach(shown, (ChartInfo.parseCell(cell.value)), dt, 0.05)
+		end
+	end
+end
+
+---The text of a fact: the number on its way, or the value as it is.
+---@param cell {value: string, label: string}
+---@param final boolean? The value the fact is going to, not the number now drawn
+---@return string
+---@return integer gray
+function ChartInfo:getCellText(cell, final)
+	local number, format = ChartInfo.parseCell(cell.value)
+	if not number then
+		return cell.value, 0
+	end
+	return ChartInfo.padCell(cell.label, final and number or self.shown_cells[cell.label] or number, format)
+end
+
+---Digits all take the width of the widest, so the text does not change its width with the digits.
+---@param text string
+---@param x number?
+---@param y number?
+---@param gray integer? Characters at the start drawn in the muted color
+---@return number width
+function ChartInfo:printTabular(text, x, y, gray)
+	local font = self.value_font
+	local digit = self.digit_width
+	local start = x
+	for i = 1, #text do
+		local char = text:sub(i, i)
+		local width = char:match("%d") and digit or font:getWidth(char)
+		if x then
+			Painter.setColorTable(i <= (gray or 0) and LEADING_ZERO or Colors.text)
+			lg.print(char, x + (width - font:getWidth(char)) / 2, y)
+			x = x + width
+		else
+			start = (start or 0) + width
+		end
+	end
+	return x and x - start or start
 end
 
 ---The texts the panel shows, so other screens (the video export) can draw the same facts.
 ---@param cvf ui.formatters.ChartviewFormatter
----@return {value: string, postfix: string, color: gui.Color} difficulty
----@return string patterns
+---@return {value: string, postfix: string, color: gui.Color, dan: string?} difficulty
 ---@return {value: string, label: string}[] cells
 function ChartInfo.collect(cvf)
-	local patterns = cvf:getPatterns()
-	local names = {}
-	for _, name in ipairs({patterns.top_full, patterns.second_full}) do
-		names[#names + 1] = name:sub(1, 1):upper() .. name:sub(2)
-	end
-
-	return cvf:getDifficulty(), table.concat(names, PATTERN_SEPARATOR), {
+	return cvf:getDifficulty(), {
 		{value = (cvf:getMode():gsub(" %(EXPERIMENTAL%)$", "")), label = "KEYS"},
 		{value = cvf:getDuration(), label = "LENGTH"},
 		{value = cvf:getNoteCount(), label = "NOTES"},
@@ -115,17 +290,56 @@ function ChartInfo:draw()
 	lg.print(self.difficulty.postfix, x + 16 - LABEL_SPACING * self.label_font:getHeight() / 1.2,
 		label_baseline - self.postfix_font:getBaseline())
 
-	-- Patterns, right aligned on the same row.
-	lg.setFont(self.patterns_font)
-	Painter.setColorTable(Colors.muted)
-	lg.print(self.patterns, self.width - PADDING_X - self.patterns_font:getWidth(self.patterns),
-		label_baseline - self.patterns_font:getBaseline())
-
 	-- Big difficulty number.
 	local big_y = self.height - self.big_font:getHeight()
-	Painter.setColorTable(self.difficulty.color)
+	Painter.setColorTable(self.shown_color)
 	lg.setFont(self.big_font)
-	lg.print(self.difficulty.value, PADDING_X - 3, big_y)
+	lg.print(self.shown_value and ("%0.01f"):format(self.shown_value) or self.difficulty.value, PADDING_X - 3, big_y)
+
+	-- Patterns, up to two, right aligned in a row above the facts: the name, then its BPM.
+	local right = self.width - PADDING_X
+	local available = right - PATTERNS_MIN_LEFT
+	---@type {name: string, bpm: string?, width: number}[]
+	local items = {}
+	local total = 0
+	for i = 1, math.min(#self.patterns, PATTERNS_MAX) do
+		local pattern = self.patterns[i]
+		local bpm = pattern.bpm and ("%d BPM"):format(pattern.bpm + 0.5) or nil
+		local bpm_width = bpm and (PATTERN_BPM_GAP + self.pattern_bpm_font:getWidth(bpm)) or 0
+		local name = ChartInfo.formatPattern(pattern.pattern)
+		local width = self.pattern_font:getWidth(name) + bpm_width
+		local gap = items[1] and PATTERNS_GAP or 0
+		if total + gap + width > available then
+			-- The first one is cut to fit; a later one makes way for it.
+			if items[1] then
+				break
+			end
+			local cut = ChartInfo.fitText(self.pattern_font, name, available - bpm_width)
+			if not cut then
+				break
+			end
+			name = cut
+			width = self.pattern_font:getWidth(name) + bpm_width
+		end
+		table.insert(items, {name = name, bpm = bpm, width = width})
+		total = total + gap + width
+	end
+
+	-- On the baseline of the DIFFICULTY label.
+	local y = TOP_PADDING + self.label_font:getBaseline() - self.pattern_font:getBaseline()
+	local x = right - total
+	for _, item in ipairs(items) do
+		lg.setFont(self.pattern_font)
+		Painter.setColorTable(Colors.text)
+		lg.print(item.name, x, y)
+		if item.bpm then
+			lg.setFont(self.pattern_bpm_font)
+			Painter.setColorTable(Colors.muted)
+			lg.print(item.bpm, x + self.pattern_font:getWidth(item.name) + PATTERN_BPM_GAP,
+				y + self.pattern_font:getBaseline() - self.pattern_bpm_font:getBaseline())
+		end
+		x = x + item.width + PATTERNS_GAP
+	end
 
 	-- Facts, right aligned: value over caption.
 	local cells_right = self.width - PADDING_X
@@ -135,14 +349,15 @@ function ChartInfo:draw()
 	for i = #self.cells, 1, -1 do
 		local cell = self.cells[i]
 		local label_width = spacedWidth(self.cell_label_font, cell.label, CELL_LABEL_SPACING)
-		local width = math.max(self.value_font:getWidth(cell.value), label_width)
+		local value_width = self:printTabular((self:getCellText(cell, true)))
+		local width = math.max(value_width, label_width)
 		local left = cells_right - width
 		lg.setFont(self.value_font)
-		Painter.setColorTable(Colors.text)
-		lg.print(cell.value, left, value_y)
+		local text, gray = self:getCellText(cell)
+		self:printTabular(text, cells_right - value_width, value_y, gray)
 		lg.setFont(self.cell_label_font)
 		Painter.setColorTable(Colors.muted)
-		printSpaced(self.cell_label_font, cell.label, left, label_y, CELL_LABEL_SPACING)
+		printSpaced(self.cell_label_font, cell.label, cells_right - label_width, label_y, CELL_LABEL_SPACING)
 		cells_right = left - CELL_GAP
 	end
 	Painter.setColorRgb(1, 1, 1)

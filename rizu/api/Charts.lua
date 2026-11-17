@@ -52,13 +52,10 @@ Rows near the ones you ask for are loaded ahead, so in practice only a jump far 
 ---@field mode string The gamemode after the mutators, with the rate applied.
 ---@field chartdiff_inputmode string The input mode after the mutators.
 ---@field long_notes_ratio number
----@field msd_diff_data table? Etterna's skill ratings by pattern.
----@field msd_diff_rates number[]? Etterna's overall rating at each music speed.
 ---@field difftable_chartmetas table[]? The difficulty tables the chart is in.
 ---@field enps_diff number
 ---@field osu_diff number
----@field msd_diff number
----@field user_diff number
+---@field rizu_diff number?
 ---@field difficulty number? The column chosen in the settings.
 ---@field accuracy number? Best local accuracy of the chart. Seconds, normalscore: lower is better.
 ---@field miss_count integer? Misses of that score.
@@ -230,6 +227,17 @@ function Charts:moveChart(offset) self.selector:scrollLevel(2, offset) end
 
 ---@return rizu.api.Chart? chart The chart that Play would start.
 function Charts:getSelectedChart() return self.selector.chartview --[[@as rizu.api.Chart?]] end
+
+---The selected chart's top skillset and patterns: what the chart is made of. Nil until the difficulty task
+---has analyzed the chart.
+---@return rizu.library.ChartPatterns?
+function Charts:getSelectedPatterns()
+	local chartview = self.selector.chartview
+	if not chartview or not chartview.chartdiff_id or chartview.chartdiff_id == 0 then
+		return
+	end
+	return self.selector.library:getChartPatterns(chartview.chartdiff_id)
+end
 
 ---False while the selected chart's file is missing or still being checked.
 ---@return boolean

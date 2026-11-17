@@ -67,21 +67,52 @@ function test.formats_difficulty_postfix(t)
 	}
 	local formatter = ChartviewFormatter({
 		osu_diff = 1,
-		msd_diff = 2,
 		enps_diff = 3,
-		user_diff = 4,
+		difficulty = 4,
 	}, settings)
 
 	local postfixes = {
 		osu_diff = "★",
-		msd_diff = "MSD",
 		enps_diff = "ENPS",
-		user_diff = "USER",
+		rizu_diff = "RIZU",
 	}
 	for column, postfix in pairs(postfixes) do
 		diff_column = column
 		t:eq(formatter:getDifficulty().postfix, postfix)
 	end
+end
+
+---@param t testing.T
+function test.difficulty_value_comes_from_the_chosen_column(t)
+	local column = "enps_diff"
+	local settings = {getChoice = function() return column end}
+	local formatter = ChartviewFormatter({enps_diff = 3, osu_diff = 5, difficulty = 99}, settings)
+	t:eq(formatter:getDifficulty().value, "3.0")
+	column = "osu_diff"
+	t:eq(formatter:getDifficulty().value, "5.0")
+end
+
+---@param t testing.T
+function test.rizu_shows_4k_dan(t)
+	local settings = {getChoice = function() return "rizu_diff" end}
+	local formatter = ChartviewFormatter({difficulty = 28, chartdiff_inputmode = "4key"}, settings)
+	t:eq(formatter:getDifficulty().postfix, "RIZU")
+	t:eq(formatter:getDifficulty().dan, "Beta")
+	formatter:setChartview({difficulty = 28, chartdiff_inputmode = "4key", long_notes_ratio = 0.5})
+	t:eq(formatter:getDifficulty().dan, nil)
+	formatter:setChartview({difficulty = 28, chartdiff_inputmode = "7key"})
+	t:eq(formatter:getDifficulty().dan, "8th+")
+	formatter:setChartview({difficulty = 28, chartdiff_inputmode = "8key"})
+	t:eq(formatter:getDifficulty().dan, nil)
+end
+
+---@param t testing.T
+function test.rizu_difficulty_is_colored_on_the_msd_scale(t)
+	local settings = {getChoice = function() return "rizu_diff" end}
+	local low = ChartviewFormatter({difficulty = 10, chartdiff_inputmode = "7key"}, settings):getDifficulty().color
+	local high = ChartviewFormatter({difficulty = 35, chartdiff_inputmode = "7key"}, settings):getDifficulty().color
+	t:assert(low[1] ~= 1 or low[2] ~= 1 or low[3] ~= 1, "not white")
+	t:assert(low[1] ~= high[1] or low[2] ~= high[2] or low[3] ~= high[3], "harder is another color")
 end
 
 ---@param t testing.T

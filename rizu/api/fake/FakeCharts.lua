@@ -39,7 +39,7 @@ function FakeCharts:new(sets_count)
 				level = j * 3, duration = 90 + i % 120, notes_count = 400 * j + i,
 				tempo = 120 + i % 80, tempo_avg = 120 + i % 80, tempo_min = 120, tempo_max = 200,
 				long_notes_ratio = (i % 10) / 10,
-				enps_diff = difficulty, osu_diff = difficulty / 4, msd_diff = difficulty, user_diff = difficulty,
+				enps_diff = difficulty, osu_diff = difficulty / 4, rizu_diff = difficulty,
 				difficulty = difficulty,
 				accuracy = i % 3 == 0 and 0.02 or nil,
 				lamp = false,
@@ -187,6 +187,17 @@ end
 
 function FakeCharts:moveChart(offset) self:selectChart(self.chart_index + offset) end
 function FakeCharts:getSelectedChart() return self:getChart(self.chart_index) end
+
+---@return rizu.library.ChartPatterns
+function FakeCharts:getSelectedPatterns()
+	return {
+		skillset = "jacks",
+		patterns = {
+			{rank = 1, pattern = "stream", share = 0.8, bpm = 180},
+			{rank = 2, pattern = "jumpstream", share = 0.4, bpm = 170},
+		},
+	}
+end
 function FakeCharts:canPlaySelectedChart() return self:getSelectedChart() ~= nil end
 
 function FakeCharts:isLoading() return false end
