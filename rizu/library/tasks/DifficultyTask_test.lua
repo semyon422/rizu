@@ -52,13 +52,13 @@ function test.computeMissing(t)
 			return d
 		end,
 	}
-
 	local context = FakeTaskContext()
 	context.charts[hash] = {res.chart}
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
-		return context:getChartsByHash(hash)
-	end)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer,
+		function(hash)
+			return context:getChartsByHash(hash)
+		end)
 
 	task:computeMissing()
 
@@ -89,8 +89,8 @@ function test.computeIncompleteFromPreview(t)
 		getIncompleteChartdiffs = function()
 			return {res.chartdiff}
 		end,
-		updateChartdiff = function(_, diff)
-			updated = diff
+		updateChartdiff = function(_, chartdiff)
+			updated = chartdiff
 		end,
 	}
 
@@ -103,13 +103,48 @@ function test.computeIncompleteFromPreview(t)
 		end,
 	}
 
-	local task = DifficultyTask(difficultyModel, nil, chartsRepo, FakeTaskContext(), timer, function()
+	local task = DifficultyTask(difficultyModel, {}, chartsRepo, FakeTaskContext(), timer, function()
 		error("chart files must not be read")
 	end)
 	task:computeIncomplete(true)
 
 	t:eq(notes_count, 2)
 	t:eq(updated.enps_diff, 10.0)
+end
+
+function test.computeAllForcesCompleteChartdiffs(t)
+	local tcf = TestChartFactory()
+	local res = tcf:create("4key", {{time = 0, column = 1}, {time = 1, column = 2}})
+	res.chartdiff.enps_diff = 1
+
+	---@type sea.Chartdiff?
+	local updated
+	---@type boolean?
+	local forced
+	local chartsRepo = {
+		getIncompleteChartdiffs = function()
+			return {}
+		end,
+		getChartdiffs = function()
+			return {res.chartdiff}
+		end,
+		updateChartdiff = function(_, chartdiff)
+			updated = chartdiff
+		end,
+	}
+	local difficultyModel = {
+		compute = function(_, diff, _, _, force)
+			forced = force
+			diff.enps_diff = 20
+		end,
+	}
+	local task = DifficultyTask(difficultyModel, {}, chartsRepo, FakeTaskContext(), timer, function()
+		return {res.chart}
+	end)
+
+	t:eq(task:computeAll(), true)
+	t:eq(forced, true)
+	t:eq(assert(updated).enps_diff, 20)
 end
 
 function test.cancellation(t)
@@ -135,7 +170,6 @@ function test.cancellation(t)
 			return res.chartdiff
 		end,
 	}
-
 	local context = FakeTaskContext()
 	-- Return true for shouldStop after 2 items
 	local calls = 0
@@ -148,9 +182,10 @@ function test.cancellation(t)
 		return {tcf:create("4key", {{time = 0, column = 1}}).chart}
 	end
 
-	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer, function(hash)
-		return context:getChartsByHash(hash)
-	end)
+	local task = DifficultyTask(difficultyModel, chartdiffGenerator, chartsRepo, context, timer,
+		function(hash)
+			return context:getChartsByHash(hash)
+		end)
 	task:computeMissing()
 
 	-- Should have processed only 2 charts because check happens at start of loop

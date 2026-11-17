@@ -66,9 +66,10 @@ function Processor:new(onChartsChanged, db, fs, workingDirectory, timer)
 	self.chartmetaGenerator = ChartmetaGenerator(self.chartsRepo, self.chartfilesRepo, ChartFactory)
 
 	self.hashingTask = HashingTask(self.fs, self.chartmetaGenerator, self.chartdiffGenerator, self.taskContext)
-	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo, self.taskContext, timer, function(hash)
-		return self:getChartsByHash(hash)
-	end)
+	self.difficultyTask = DifficultyTask(self.difficultyModel, self.chartdiffGenerator, self.chartsRepo,
+		self.taskContext, timer, function(hash)
+			return self:getChartsByHash(hash)
+		end)
 
 	self.locations = Locations(
 		self.locationsRepo,
@@ -268,8 +269,14 @@ function Processor:computeChartdiffs()
 end
 
 ---@param prefer_preview boolean
+---@return boolean completed
 function Processor:computeIncompleteChartdiffs(prefer_preview)
-	self.difficultyTask:computeIncomplete(prefer_preview)
+	return self.difficultyTask:computeIncomplete(prefer_preview)
+end
+
+---@return boolean completed
+function Processor:computeAllDifficulties()
+	return self.difficultyTask:computeAll()
 end
 
 function Processor:computeChartplays()

@@ -80,8 +80,14 @@ function Worker:computeChartdiffs()
 end
 
 ---@param prefer_preview boolean
+---@return boolean completed
 function Worker:computeIncompleteChartdiffs(prefer_preview)
-	self.processor:computeIncompleteChartdiffs(prefer_preview)
+	return self.processor:computeIncompleteChartdiffs(prefer_preview)
+end
+
+---@return boolean completed
+function Worker:computeAllDifficulties()
+	return self.processor:computeAllDifficulties()
 end
 
 function Worker:computeChartplays()

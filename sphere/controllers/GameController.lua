@@ -279,6 +279,8 @@ function GameController:load()
 	self.packageManager:load()
 
 	self.persistence:load()
+	-- After a calculator change every difficulty and pattern is computed again in the background.
+	self.library:updateDifficulties(self.settings)
 	-- After an update every score is computed again in the background, and it stores the hits too.
 	self.library:updateScores(self.settings)
 	-- Scores saved before their hits were stored get them in the background.

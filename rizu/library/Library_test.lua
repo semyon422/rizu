@@ -3,6 +3,7 @@ local FakeFilesystem = require("fs.FakeFilesystem")
 local Settings = require("rizu.config.Settings")
 local ChartplayHitsRepo = require("rizu.library.repos.ChartplayHitsRepo")
 local ScoreTask = require("rizu.library.tasks.ScoreTask")
+local DifficultyModel = require("chart.difficulty.DifficultyModel")
 
 local test = {}
 
@@ -203,6 +204,35 @@ function test.scores_recompute_once_per_version_and_resume(t)
 	ctx.lib:updateScores(settings)
 	ctx:process()
 	t:eq(#sinces, 2)
+	ctx:cleanup()
+end
+
+---@param t testing.T
+function test.difficulties_recompute_once_per_version(t)
+	local ctx = LibraryTestContext()
+	local settings = Settings.createConfig(FakeFilesystem())
+	local key = Settings.keys.scores.difficulty_version
+	local calls = 0
+	local completed = false
+	ctx.lib.worker.computeAllDifficulties = function()
+		calls = calls + 1
+		return completed
+	end
+
+	ctx.lib:updateDifficulties(settings)
+	ctx:process()
+	t:eq(calls, 1)
+	t:eq(settings:getNumber(key), 0, "a stopped run leaves the version alone")
+
+	completed = true
+	ctx.lib:updateDifficulties(settings)
+	ctx:process()
+	t:eq(calls, 2)
+	t:eq(settings:getNumber(key), DifficultyModel.version)
+
+	ctx.lib:updateDifficulties(settings)
+	ctx:process()
+	t:eq(calls, 2, "done for this version")
 	ctx:cleanup()
 end
 

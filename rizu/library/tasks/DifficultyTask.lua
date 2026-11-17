@@ -4,6 +4,8 @@ local SphPreview = require("chart.format.sph.SphPreview")
 local Sph = require("chart.format.sph.Sph")
 local ChartDecoder = require("chart.format.sph.ChartDecoder")
 local BatchProcessor = require("rizu.library.tasks.BatchProcessor")
+local RizuDifficulty = require("rizu.library.RizuDifficulty")
+local pattern_classifier = require("chart.scoring.pattern_classifier")
 
 ---@alias rizu.library.ChartProvider fun(hash: string): chart.Chart[]?, string?
 
@@ -76,12 +78,19 @@ function DifficultyTask:computeMissing()
 end
 
 ---@param prefer_preview boolean
-function DifficultyTask:computeIncomplete(prefer_preview)
-	local chartdiffs = self.chartsRepo:getIncompleteChartdiffs()
-	
-	self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
-		if chartdiff.inputmode == "4bt2fx2laserleft2laserright" or chartdiff.inputmode == "1osu" or chartdiff.inputmode == "1fruits" or chartdiff.inputmode == "1taiko" then
-			return chartdiff.hash
+---@param force boolean? recompute every chartdiff, not only the incomplete ones
+---@return boolean completed false when the task was stopped before the last chartdiff
+function DifficultyTask:computeIncomplete(prefer_preview, force)
+	local chartdiffs = force and self.chartsRepo:getChartdiffs() or self.chartsRepo:getIncompleteChartdiffs()
+
+	local result = self.batchProcessor:process(chartdiffs, "difficulty", #chartdiffs, function(chartdiff)
+		if not force then
+			-- Rizu Difficulty and the pattern classifier do not rate every keymode.
+			local rizu_done = chartdiff.rizu_diff or not RizuDifficulty.layouts[chartdiff.inputmode]
+			local patterns_done = chartdiff.skillset or not pattern_classifier.canAnalyze(chartdiff.inputmode)
+			if rizu_done and patterns_done and chartdiff.enps_diff and chartdiff.osu_diff then
+				return chartdiff.hash
+			end
 		end
 		---@type chart.Chart
 		local chart
@@ -105,11 +114,17 @@ function DifficultyTask:computeIncomplete(prefer_preview)
 			ModifierModel:apply(chartdiff.modifiers, chart)
 		end
 
-		self.difficultyModel:compute(chartdiff, chart, chartdiff.rate)
+		self.difficultyModel:compute(chartdiff, chart, chartdiff.rate, force)
 		self.chartsRepo:updateChartdiff(chartdiff)
-		
+
 		return chartdiff.hash
 	end)
+	return result.processed + result.errors == #chartdiffs
+end
+
+---@return boolean completed
+function DifficultyTask:computeAll()
+	return self:computeIncomplete(false, true)
 end
 
 return DifficultyTask

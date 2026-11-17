@@ -15,6 +15,9 @@ local RizuDiffcalc = require("chart.difficulty.RizuDiffcalc")
 ---@operator call: chart.DifficultyModel
 local DifficultyModel = class()
 
+-- Bump when any diffcalc changes, so the library recomputes every chartdiff at startup.
+DifficultyModel.version = 1
+
 function DifficultyModel:new()
 	self.registry = DiffcalcRegistry()
 	self.context = DiffcalcContext()
@@ -29,13 +32,14 @@ end
 ---@param chartdiff sea.Chartdiff
 ---@param chart chart.Chart
 ---@param rate number
+---@param force boolean? recompute every field, even the ones already set
 ---@return chart.DiffcalcContext
-function DifficultyModel:compute(chartdiff, chart, rate)
+function DifficultyModel:compute(chartdiff, chart, rate, force)
 	assert(AbsoluteLayer * chart.layers.main)
 	local context = self.context
 	table_util.clear(context)
 	context:new(chartdiff, chart, rate)
-	self.registry:compute(context, false)
+	self.registry:compute(context, not not force)
 	assert(AbsoluteLayer * chart.layers.main)
 	return context
 end

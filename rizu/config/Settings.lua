@@ -126,6 +126,8 @@ local keys = {
 		mirror_right = "replay_base.mirror_right",
 	},
 	scores = {
+		-- Internal: DifficultyModel.version of the last finished recompute, see Library:updateDifficulties().
+		difficulty_version = "scores.difficulty_version",
 		-- Internal: ChartplayHitsRepo.hits_version of the last finished update, see Library:updateHits().
 		hits_version = "scores.hits_version",
 		-- Internal: ScoreTask.version of the last finished recompute, see Library:updateScores().
@@ -330,6 +332,7 @@ function Settings.createConfig(filesystem)
 	config:setDefaultBoolean(keys.replay_base.mirror_all, false)
 	config:setDefaultBoolean(keys.replay_base.mirror_left, false)
 	config:setDefaultBoolean(keys.replay_base.mirror_right, false)
+	config:setDefaultNumber(keys.scores.difficulty_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.hits_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.compute_version, 0, 0, math.huge, 1)
 	config:setDefaultNumber(keys.scores.recompute_since, 0, 0, math.huge, 1)

@@ -18,6 +18,19 @@ require("rizu.library.views")
 
 local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local DifftablesRepo = require("sea.difftables.repos.DifftablesRepo")
+local DifficultyModel = require("chart.difficulty.DifficultyModel")
+
+---One pattern of a chartdiff.
+---@class rizu.library.ChartPattern
+---@field rank integer most significant is 1
+---@field pattern string
+---@field share number fraction of the chart's sections it fits
+---@field bpm number? median BPM of those sections
+
+---The top skillset and the two most significant patterns of a chartdiff.
+---@class rizu.library.ChartPatterns
+---@field skillset string
+---@field patterns rizu.library.ChartPattern[] most significant first, at most two
 
 ---@class rizu.library.LibraryTask
 ---@field f fun()
@@ -323,6 +336,20 @@ function Library:recomputeChartplays()
 	end)
 end
 
+---Computes every chartdiff again once per DifficultyModel.version, in the background, including patterns.
+---@param settings rizu.config.Config
+function Library:updateDifficulties(settings)
+	local key = Settings.keys.scores.difficulty_version
+	if settings:getNumber(key) == DifficultyModel.version then
+		return
+	end
+	self:addTask(function()
+		if self.worker:computeAllDifficulties() then
+			settings:setNumber(key, DifficultyModel.version)
+		end
+	end)
+end
+
 ---Computes every local chartplay again once per ScoreTask.version, in the background. A stopped run
 ---goes on at the next start with the chartplays computed before the first run began.
 ---@param settings rizu.config.Config
@@ -468,6 +495,24 @@ function Library:getChartviewsAsync(params, chartviews)
 	return self.reader:getChartviews(params, chartviews)
 end
 
+---The patterns of a chartdiff, made together with its difficulties by chart.PatternDiffcalc.
+---@param chartdiff_id integer
+---@return rizu.library.ChartPatterns?
+function Library:getChartPatterns(chartdiff_id)
+	local chartdiff = self.chartsRepo:getChartdiff(assert(chartdiff_id))
+	if not chartdiff or not chartdiff.skillset or not chartdiff.pattern_1 then
+		return
+	end
+	---@type rizu.library.ChartPattern[]
+	local patterns = {
+		{rank = 1, pattern = chartdiff.pattern_1, share = chartdiff.pattern_share_1, bpm = chartdiff.pattern_bpm_1},
+	}
+	if chartdiff.pattern_2 then
+		patterns[2] = {rank = 2, pattern = chartdiff.pattern_2, share = chartdiff.pattern_share_2, bpm = chartdiff.pattern_bpm_2}
+	end
+	return {skillset = chartdiff.skillset, patterns = patterns}
+end
+
 ---@param chartdiff_key sea.ChartdiffKey
 ---@return sea.Chartplay[]
 function Library:getChartplaysForChartdiffAsync(chartdiff_key)
@@ -487,7 +532,7 @@ function Library:getChartplaysForChartmetaAsync(chartmeta_key)
 end
 
 ---See rizu.library.Worker:getTotalRatings(). Nil before the library is loaded.
----@return {pp: number, msd: number}?
+---@return {pp: number}?
 function Library:getTotalRatingsAsync()
 	return self.reader and self.reader:getTotalRatings()
 end
