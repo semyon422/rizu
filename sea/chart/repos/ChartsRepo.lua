@@ -349,7 +349,7 @@ end
 
 ---The best passed chartplay of each chart by a rating, highest first, for sea.TotalRating.
 ---@param user_id integer
----@param rating_column "rating"|"rating_pp"|"rating_msd"
+---@param rating_column "rating"|"rating_pp"
 ---@param limit integer
 ---@return sea.Chartplay[]
 function ChartsRepo:getBestChartplaysByRating(user_id, rating_column, limit)

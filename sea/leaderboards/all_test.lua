@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local table_util = require("table_util")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
@@ -84,7 +85,6 @@ local function create_chartplay(ctx, values)
 	chartplay.max_combo = chartplay.max_combo or 0
 	chartplay.miss_count = chartplay.miss_count or 0
 	chartplay.rating_pp = chartplay.rating_pp or 0
-	chartplay.rating_msd = chartplay.rating_msd or 0
 	if values.pass ~= nil then
 		chartplay.pass = values.pass
 	else
@@ -115,13 +115,8 @@ local function create_chartdiff(ctx, values)
 	chartdiff.sv_data = chartdiff.sv_data or {}
 	chartdiff.enps_diff = chartdiff.enps_diff or 0
 	chartdiff.osu_diff = chartdiff.osu_diff or 0
-	chartdiff.msd_diff = chartdiff.msd_diff or 0
-	chartdiff.msd_diff_data = chartdiff.msd_diff_data or {}
-	chartdiff.msd_diff_rates = chartdiff.msd_diff_rates or {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	chartdiff.user_diff = chartdiff.user_diff or 0
-	chartdiff.user_diff_data = chartdiff.user_diff_data or ""
 	chartdiff.notes_preview = chartdiff.notes_preview or ""
-	return ctx.db.models.chartdiffs:create(chartdiff)
+	return ChartsRepo(ctx.db.models):createChartdiff(chartdiff)
 end
 
 ---@param t testing.T

@@ -98,17 +98,4 @@ function chart_types.timing_values(v)
 	return TimingValues.validate(v)
 end
 
-chart_types.msd_diff_data = valid.struct({
-	overall = types.number,
-	stream = types.number,
-	jumpstream = types.number,
-	handstream = types.number,
-	stamina = types.number,
-	jackspeed = types.number,
-	chordjack = types.number,
-	technical = types.number,
-})
-
-chart_types.msd_diff_rates = valid.array(types.number, 14)
-
 return chart_types

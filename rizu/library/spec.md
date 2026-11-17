@@ -26,7 +26,7 @@ The library is structured around a 5-level hierarchy, where each level represent
   - **Single File**: Used for "Unrelated" self-contained charts (e.g., `.ojn`, `.mid`).
 - **Chartfile** (`chartfiles`): A single physical file containing chart data (e.g., `.osu`, `.sm`, `.bms`). It is identified by a content `hash` and linked to a set via `set_id`.
 - **Chartmeta** (`chartmetas`): The logical identity of a song. It is identified by a `ChartmetaKey` (content `hash` + `index` within the file). It contains high-level metadata like `title`, `artist`, `audio_path`, and `preview_time`.
-- **Chartdiff** (`chartdiffs`): A specific playable variation. It is identified by a `ChartdiffKey` (MetaKey + `mode` + `rate` + `modifiers`). It stores difficulty metrics (`msd`, `osu`, `enps`) and `notes_count`.
+- **Chartdiff** (`chartdiffs`): A specific playable variation. It is identified by a `ChartdiffKey` (MetaKey + `mode` + `rate` + `modifiers`). It stores difficulty metrics (`osu`, `enps`) and `notes_count`.
 - **Chartplay** (`chartplays`): A record of a performance attempt. It tracks `accuracy`, `grade`, `judges` (hit counts), and a `replay_hash`.
 
 ## Architecture Decisions (ADR)
@@ -241,7 +241,6 @@ Ordinary KSH decoding now preserves native BT/FX and laser geometry for experime
 - **Export filesystem boundary**: Move `ChartExporter:exportToOsu` behind an `IFilesystem` abstraction so export code does not depend directly on concrete filesystem APIs.
 - **Database path ownership**: Make the database path required at `Database:load(path)` and move fallback resolution to a higher level. Add a command-line option for selecting a database path so developers can open a different database without renaming files.
 - **Logging**: Add a logging class or interface in `aqua` and use it instead of direct `print` calls. This is a repository-wide concern, not just a library change.
-- **DifficultyModel extensibility**: `DifficultyModel` can accept custom difficulty calculators, but that capability is not exposed well. Design a player- or developer-facing way to configure and use custom calculators.
 
 ### Types and Coroutines
 - **Model typing**: Add stronger annotations for library models where LuaLS currently sees broad or unknown shapes.

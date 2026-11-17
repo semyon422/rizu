@@ -5,7 +5,6 @@ The game offers several ways to filter your chart collection.
 Each of the calculators calculates difficulty differently, so you can choose from the following calculators:
 - **ENPS** - extended notes per second  
 - **osu!** star rate  
-- **MSD** calculator from Etterna, most suitable for 4K, also shows chart patterns.    
 
 1. Open the game settings by clicking on the gear icon in the lower left corner of the screen in the song selection menu.  
 2. Go to the `select` tab  

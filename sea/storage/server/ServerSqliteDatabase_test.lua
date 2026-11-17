@@ -12,6 +12,32 @@ local function create_db()
 	return server
 end
 
+-- Puts the database back to what version 11 looked like, MinaCalc columns included.
+---@param server sea.ServerSqliteDatabase
+local function downgrade_to_11(server)
+	for _, sql in ipairs({
+		"DROP INDEX IF EXISTS chartdiffs_rizu_idx",
+		"ALTER TABLE chartdiffs DROP COLUMN rizu_diff",
+		"ALTER TABLE chartdiffs DROP COLUMN skillset",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_1",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_2",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_share_1",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_share_2",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_bpm_1",
+		"ALTER TABLE chartdiffs DROP COLUMN pattern_bpm_2",
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_data BLOB NOT NULL DEFAULT ''",
+		"ALTER TABLE chartdiffs ADD COLUMN msd_diff_rates BLOB NOT NULL DEFAULT ''",
+		"ALTER TABLE chartplays ADD COLUMN rating_msd REAL NOT NULL DEFAULT 0",
+		"CREATE INDEX IF NOT EXISTS chartdiffs_msd_idx ON chartdiffs (msd_diff)",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE chartdiffs ADD COLUMN user_diff_data BLOB NOT NULL DEFAULT ''",
+	}) do
+		server.db:exec(sql)
+	end
+	server.db:user_version(11)
+end
+
 ---@param server sea.ServerSqliteDatabase
 ---@param id integer
 ---@param state sea.ComputeState
@@ -40,7 +66,7 @@ end
 ---@param t testing.T
 function test.enum_round_trip_and_conditions(t)
 	local server = create_db()
-	t:eq(server.db:user_version(), 12)
+	t:eq(server.db:user_version(), 13)
 	for id, state in ipairs(ComputeState:list()) do
 		create_rows(server, id, state)
 		check_rows(t, server, id, state)
@@ -64,9 +90,9 @@ function test.version_11_mixed_states_migrate_without_changing_scores(t)
 		server.db:query("UPDATE chartplays SET compute_state = ? WHERE id = ?", {raw_state, id})
 		server.db:query("UPDATE chartfiles SET compute_state = ? WHERE id = ?", {raw_state, id})
 	end
-	server.db:user_version(11)
+	downgrade_to_11(server)
 	server:migrate()
-	t:eq(server.db:user_version(), 12)
+	t:eq(server.db:user_version(), 13)
 	for id, state in ipairs(states) do
 		check_rows(t, server, id, state)
 		local play = assert(server.models.chartplays:find({id = id}))
@@ -83,7 +109,7 @@ function test.version_11_mixed_states_migrate_without_changing_scores(t)
 	server:migrate()
 	t:eq(server.models.chartplays:count(), 6)
 	t:eq(server.models.chartfiles:count(), 6)
-	server.db:user_version(11)
+	downgrade_to_11(server)
 	server:migrate()
 	for id, state in ipairs(states) do check_rows(t, server, id, state) end
 	server:close()
@@ -98,7 +124,7 @@ function test.unknown_states_roll_back_the_whole_migration(t)
 			server.db:query("UPDATE chartfiles SET compute_state = 'valid'")
 			server.db:query("UPDATE chartplays SET compute_state = 'valid'")
 			server.db:query("UPDATE " .. name .. " SET compute_state = ?", {bad_state})
-			server.db:user_version(11)
+			downgrade_to_11(server)
 			t:has_error(server.migrate, server)
 			t:eq(server.db:user_version(), 11)
 			for _, table_name in ipairs({"chartfiles", "chartplays"}) do

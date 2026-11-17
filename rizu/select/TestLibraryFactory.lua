@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local class = require("class")
 local Library = require("rizu.library.Library")
 local TestChartFactory = require("sea.chart.TestChartFactory")
@@ -20,6 +21,7 @@ local TestLibraryFactory = class()
 ---@field hash string?
 ---@field index integer?
 ---@field inputmode string?
+---@field rate number?
 ---@field title string?
 ---@field artist string?
 ---@field level number?
@@ -102,10 +104,11 @@ function TestLibraryFactory:populate(lib, data)
 			lib.database.models.chartmetas:create(chartmeta)
 		end
 
-		-- Insert chartdiff
+		-- Insert chartdiff: the list shows the default one, at rate 1
 		local chartdiff = self.tcf:createChartdiff(entry)
+		chartdiff.rate = entry.rate or 1
 		if not chartdiff.id or not lib.database.models.chartdiffs:find({id = chartdiff.id}) then
-			lib.database.models.chartdiffs:create(chartdiff)
+			ChartsRepo(lib.database.models):createChartdiff(chartdiff)
 		end
 	end
 end

@@ -88,10 +88,6 @@ local Manifest = {
 		linux = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-linux.zip", archive = "discord-rpc-linux.zip"},
 		macos = {url = "https://github.com/discord/discord-rpc/releases/download/v3.4.0/discord-rpc-osx.zip", archive = "discord-rpc-macos.zip"},
 	},
-	minacalc = {
-		url = "https://github.com/semyon422/minacalc-standalone",
-		type = "git",
-	},
 	luamidi = {
 		url = "https://github.com/jdeeny/lovemidi",
 		type = "git",

@@ -16,7 +16,7 @@ local function compute(chart_timings)
 	se:createByTimings(Timings("etternaj", 4), nil, true)
 	se:receive({index = 1, column = 1, type = "tap", time = 1, delta_time = 0, old_state = "clear", new_state = "passed"})
 	se:receive({index = 2, column = 1, type = "tap", time = 2, delta_time = 0.045, old_state = "clear", new_state = "passed"})
-	return ChartplayComputedFactory(chartdiff, nil, se, chart_timings):getChartplayComputed(true), se
+	return ChartplayComputedFactory(chartdiff, se, chart_timings):getChartplayComputed(), se
 end
 
 ---@param t testing.T

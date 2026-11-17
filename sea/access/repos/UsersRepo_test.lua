@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local LjsqliteDatabase = require("rdb.db.LjsqliteDatabase")
 local ServerSqliteDatabase = require("sea.storage.server.ServerSqliteDatabase")
 local UsersRepo = require("sea.access.repos.UsersRepo")
@@ -42,7 +43,7 @@ function test.submission_aggregates_count_only_valid_plays(t)
 		{hash = hash_a, rate = 2, duration = 120},
 		{hash = hash_b, rate = 1, duration = 30},
 	}) do
-		ctx.db.models.chartdiffs:create(ctx.factory:createChartdiff(diff))
+		ChartsRepo(ctx.db.models):createChartdiff(ctx.factory:createChartdiff(diff))
 	end
 	for i, values in ipairs({
 		{hash = hash_a, rate = 1, compute_state = "valid", submitted_at = 10},
@@ -87,7 +88,7 @@ function test.play_time_accounts_for_playback_rate(t)
 	local ctx = create_ctx()
 	local hash = string.rep("a", 32)
 	for i, rate in ipairs({1, 2}) do
-		ctx.db.models.chartdiffs:create(ctx.factory:createChartdiff({hash = hash, rate = rate, duration = 120}))
+		ChartsRepo(ctx.db.models):createChartdiff(ctx.factory:createChartdiff({hash = hash, rate = rate, duration = 120}))
 		ctx.db.models.chartplays:create(ctx.factory:createChartplay({
 			user_id = ctx.user.id, hash = hash, rate = rate, compute_state = "valid",
 			replay_hash = string.format("%032d", i),

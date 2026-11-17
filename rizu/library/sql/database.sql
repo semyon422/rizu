@@ -80,3 +80,16 @@ CREATE TABLE IF NOT EXISTS `chartplay_hits` (
 	`events` BLOB NOT NULL,
 	FOREIGN KEY (chartplay_id) REFERENCES chartplays(id) ON DELETE CASCADE
 );
+
+-- What the difficulty calculators rate a play, by calculator and value name: any values, any number of them.
+CREATE TABLE IF NOT EXISTS `chartplay_ratings` (
+	`chartplay_id` INTEGER NOT NULL,
+	`calculator` TEXT NOT NULL,
+	`key` TEXT NOT NULL,
+	`value` REAL,
+	PRIMARY KEY (`chartplay_id`, `calculator`, `key`),
+	FOREIGN KEY (chartplay_id) REFERENCES chartplays(id) ON DELETE CASCADE
+) WITHOUT ROWID;
+
+CREATE INDEX IF NOT EXISTS chartplay_ratings_sort_idx ON chartplay_ratings (`calculator`, `key`, `value`);
+

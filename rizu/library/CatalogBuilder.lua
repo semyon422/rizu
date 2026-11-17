@@ -39,7 +39,7 @@ local FunctionTimer = require("time.FunctionTimer")
 local CatalogBuilder = class()
 
 -- Checked by the client against `catalog.schema_version`.
-CatalogBuilder.schema_version = 12
+CatalogBuilder.schema_version = 13
 CatalogBuilder.audio_profile = "opus-96k-stereo-v1"
 CatalogBuilder.background_profile = "v2"
 CatalogBuilder.chart_directory = "chart-files/v1"
@@ -328,7 +328,7 @@ function CatalogBuilder:export(entries, generated_at)
 	local summary = {}
 	for _, row in ipairs(query(conn, [[
 		SELECT remote_assets.`hash`, remote_assets.`index`, remote_assets.audio_path, remote_assets.audio_preview_path,
-			remote_assets.background_path, chartdiffs.msd_diff, chartdiffs.enps_diff, chartdiffs.osu_diff
+			remote_assets.background_path, chartdiffs.enps_diff, chartdiffs.osu_diff, chartdiffs.rizu_diff
 		FROM remote_assets
 		JOIN chartdiffs ON chartdiffs.`hash` = remote_assets.`hash` AND chartdiffs.`index` = remote_assets.`index`
 		ORDER BY remote_assets.`hash`, remote_assets.`index`

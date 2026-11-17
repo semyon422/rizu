@@ -242,7 +242,7 @@ function ChartviewsRepo:_buildViewSubquery(params, mode, use_preview)
 	end
 
 	if params.difficulty then
-		table.insert(columns, params.difficulty .. " AS difficulty")
+		table.insert(columns, QueryFragments.getDifficultyField(params.difficulty) .. " AS difficulty")
 	end
 
 	local sql = "SELECT " .. table.concat(columns, ", ")
@@ -289,8 +289,7 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 		"chartmeta_local_offset", "chartmeta_rating", "chartmeta_comment",
 		"modifiers", "rate", "rate_type", "mode", "chartdiff_inputmode", "duration", "start_time",
 		"notes_count", "judges_count", "long_notes_ratio", "note_types_count",
-		"density_data", "sv_data", "enps_diff", "osu_diff", "msd_diff",
-		"msd_diff_data", "msd_diff_rates", "user_diff", "user_diff_data",
+		"density_data", "sv_data", "enps_diff", "osu_diff", "rizu_diff",
 	}
 
 	if use_preview then
@@ -321,8 +320,7 @@ function ChartviewsRepo:_getColumns(mode, params, use_preview)
 			"start_time",
 			level >= LEVELS.chartdiffs and "notes_count" or "MAX(notes_count) AS notes_count",
 			"judges_count", "long_notes_ratio", "note_types_count",
-			"density_data", "sv_data", "enps_diff", "osu_diff", "msd_diff",
-			"msd_diff_data", "msd_diff_rates", "user_diff", "user_diff_data",
+			"density_data", "sv_data", "enps_diff", "osu_diff", "rizu_diff",
 			"MIN(accuracy) AS accuracy",
 			"MIN(miss_count) AS miss_count",
 			"MAX(chartplay_created_at) AS chartplay_created_at",

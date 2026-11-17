@@ -28,8 +28,8 @@ local function createCatalog(schema_version, charts)
 				VALUES (0, 0, '%s', 1, '4key', 1, 'Catalog title');
 			INSERT INTO chartdiffs (created_at, computed_at, hash, `index`, modifiers, rate, mode, inputmode, duration,
 				start_time, notes_count, judges_count, note_types_count, density_data, sv_data, enps_diff, osu_diff,
-				msd_diff, msd_diff_data, msd_diff_rates, user_diff, user_diff_data, notes_preview)
-				VALUES (0, 0, '%s', 1, '', 1000, 0, '4key', 90, 0, 100, 100, '', '', '', 5, 2, 10, '', '', 0, '', '');
+				rizu_diff, notes_preview)
+				VALUES (0, 0, '%s', 1, '', 1000, 0, '4key', 90, 0, 100, 100, '', '', '', 5, 2.5, 6, '');
 			INSERT INTO remote_assets VALUES ('%s', 1, 'chart-files/v1/%s.osu', 'audio/v1/a.webm', 'audio-previews/v1/p.webm', NULL);
 		]]):format(40 + i, hash, hash, hash, hash, hash, hash))
 	end
@@ -82,6 +82,8 @@ function test.imports_the_catalog_as_a_remote_location(t)
 	t:eq(one(db, "SELECT hash FROM chartfiles"), "a")
 	t:eq(one(db, "SELECT title FROM chartmetas"), "Local title")
 	t:eq(tonumber(one(db, "SELECT COUNT(*) FROM chartdiffs")), 1)
+	t:eq(tonumber(one(db, "SELECT enps_diff FROM chartdiffs")), 5)
+	t:eq(tonumber(one(db, "SELECT rizu_diff FROM chartdiffs")), 6)
 	t:eq(one(db, "SELECT chart_path FROM remote_assets"), "chart-files/v1/a.osu")
 	local chartfile_id = tonumber(one(db, "SELECT id FROM chartfiles"))
 
@@ -94,6 +96,7 @@ function test.imports_the_catalog_as_a_remote_location(t)
 	t:eq(tonumber(one(db, "SELECT id FROM chartfiles WHERE hash = 'a'")), chartfile_id)
 	t:eq(tonumber(one(db, "SELECT COUNT(*) FROM chartmetas")), 2)
 	t:eq(tonumber(one(db, "SELECT COUNT(*) FROM chartdiffs")), 2)
+	t:eq(tonumber(one(db, "SELECT COUNT(*) FROM chartdiffs WHERE enps_diff = 5 AND rizu_diff = 6")), 2)
 	t:eq(tonumber(one(db, "SELECT COUNT(*) FROM remote_assets")), 2)
 
 	db:unload()

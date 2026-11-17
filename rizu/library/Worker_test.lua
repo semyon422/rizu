@@ -17,7 +17,7 @@ function test.session_stats_count_plays_local_firsts_and_best_ratings(t)
 	---@param pass boolean?
 	local function play(id, hash, rating, created_at, pass)
 		local chartplay = factory:createChartplay({
-			id = id, hash = hash, rating = rating, rating_pp = rating * 10, rating_msd = 40 - rating, created_at = created_at,
+			id = id, hash = hash, rating = rating, rating_pp = rating * 10, created_at = created_at,
 		})
 		chartplay.pass = pass ~= false -- the factory turns pass = false into true
 		plays:create(chartplay)
@@ -29,7 +29,7 @@ function test.session_stats_count_plays_local_firsts_and_best_ratings(t)
 	play(5, "b", 14, 1001) -- same chart, counted once
 	play(6, "c", 30, 1002, false) -- a fail: #1 on "c", but not the best rating
 
-	t:tdeq(worker:getSessionStats(1000), {plays = 4, firsts = 2, best_rating = 18, best_pp = 180, best_msd = 26})
+	t:tdeq(worker:getSessionStats(1000), {plays = 4, firsts = 2, best_rating = 18, best_pp = 180})
 	t:tdeq(worker:getSessionStats(5000), {plays = 0, firsts = 0})
 end
 

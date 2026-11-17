@@ -39,6 +39,29 @@ function test.repair_notes_preview_preserves_other_fields_and_checks_source(t)
 end
 
 ---@param t testing.T
+function test.chartdiff_difficulties_are_stored_as_reals(t)
+	local db = Database(LinuxFilesystem())
+	db:load(":memory:")
+	local repo = ChartsRepo(db.models, {"enps_diff", "osu_diff"})
+	local chartdiff = TestChartFactory():createChartdiff({id = 1, hash = "hash", enps_diff = 12.3456, osu_diff = 5})
+	local created = repo:createUpdateChartdiff(chartdiff, 10)
+	t:eq(created.enps_diff, 12.3456)
+	t:eq(repo:getChartdiff(1).enps_diff, 12.3456)
+	t:eq(repo:getChartdiff(1).osu_diff, 5)
+	t:eq(#repo:getIncompleteChartdiffs(), 0)
+
+	local same = TestChartFactory():createChartdiff({id = 1, hash = "hash", enps_diff = 12.3456, osu_diff = 5})
+	t:eq(repo:createUpdateChartdiff(same, 20).computed_at, 10, "an unchanged chartdiff is not updated")
+
+	repo:resetDiffcalcField("enps_diff")
+	local incomplete = repo:getIncompleteChartdiffs()
+	t:eq(#incomplete, 1)
+	t:eq(incomplete[1].enps_diff, nil)
+	t:eq(incomplete[1].osu_diff, 5)
+	db:unload()
+end
+
+---@param t testing.T
 function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	local db = Database(LinuxFilesystem())
 	db:load(":memory:")
@@ -46,10 +69,10 @@ function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	local factory = TestChartFactory()
 	---@param hash string
 	---@param pp number
-	---@param msd number
+	---@param rating number
 	---@param pass boolean
-	local function add(hash, pp, msd, pass)
-		local chartplay = factory:createChartplay({hash = hash, rating_pp = pp, rating_msd = msd})
+	local function add(hash, pp, rating, pass)
+		local chartplay = factory:createChartplay({hash = hash, rating_pp = pp, rating = rating})
 		chartplay.pass = pass
 		repo:createChartplay(chartplay)
 	end
@@ -63,9 +86,9 @@ function test.best_chartplays_by_rating_take_one_passed_play_per_chart(t)
 	t:eq(by_pp[1].rating_pp, 300, "a failed play does not count")
 	t:eq(by_pp[2].rating_pp, 200)
 
-	local by_msd = repo:getBestChartplaysByRating(1, "rating_msd", 100)
-	t:eq(by_msd[1].rating_msd, 30)
-	t:eq(by_msd[2].rating_msd, 20, "each rating takes its own best play of a chart")
+	local by_rating = repo:getBestChartplaysByRating(1, "rating", 100)
+	t:eq(by_rating[1].rating, 30)
+	t:eq(by_rating[2].rating, 20, "each rating takes its own best play of a chart")
 	t:eq(#repo:getBestChartplaysByRating(1, "rating_pp", 1), 1)
 	t:eq(#repo:getBestChartplaysByRating(2, "rating_pp", 100), 0)
 end

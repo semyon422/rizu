@@ -17,7 +17,7 @@ local function createSettings()
 	local keys = Settings.keys
 	settings:setChoice(keys.select.primary_mode, "chartfile_sets")
 	settings:setChoice(keys.select.secondary_mode, "chartmetas")
-	settings:setChoice(keys.select.diff_column, "msd_diff")
+	settings:setChoice(keys.select.diff_column, "osu_diff")
 	settings:setNumber(keys.gameplay.rating_hit_timing_window, 0.05)
 	return settings
 end
@@ -30,7 +30,7 @@ local function createMockConfigModel()
 					locations_in_collections = false,
 					primary_mode = "chartfile_sets",
 					secondary_mode = "chartmetas",
-					diff_column = "msd_diff"
+					diff_column = "osu_diff"
 				},
 				gameplay = {
 					ratingHitTimingWindow = 0.05
@@ -138,10 +138,10 @@ end
 ---@param t testing.T
 function test.difficulty_sort_lists_charts_ungrouped(t)
 	local charts = {
-		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h_ug_1", index = 1, msd_diff = 1, rate = 1},
-		{chartfile_set_id = 1, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "h_ug_2", index = 1, msd_diff = 3, rate = 1},
-		{chartfile_set_id = 2, chartfile_id = 3, chartmeta_id = 3, chartdiff_id = 3, hash = "h_ug_3", index = 1, msd_diff = 2, rate = 1},
-		{chartfile_set_id = 2, chartfile_id = 4, chartmeta_id = 4, chartdiff_id = 4, hash = "h_ug_4", index = 1, msd_diff = 4, rate = 1},
+		{chartfile_set_id = 1, chartfile_id = 1, chartmeta_id = 1, chartdiff_id = 1, hash = "h_ug_1", index = 1, osu_diff = 1, rate = 1},
+		{chartfile_set_id = 1, chartfile_id = 2, chartmeta_id = 2, chartdiff_id = 2, hash = "h_ug_2", index = 1, osu_diff = 3, rate = 1},
+		{chartfile_set_id = 2, chartfile_id = 3, chartmeta_id = 3, chartdiff_id = 3, hash = "h_ug_3", index = 1, osu_diff = 2, rate = 1},
+		{chartfile_set_id = 2, chartfile_id = 4, chartmeta_id = 4, chartdiff_id = 4, hash = "h_ug_4", index = 1, osu_diff = 4, rate = 1},
 	}
 	local library = tlf:create()
 	tlf:populate(library, charts)

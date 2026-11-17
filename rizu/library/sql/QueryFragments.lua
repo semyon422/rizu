@@ -1,4 +1,5 @@
 local sql_util = require("rdb.sql_util")
+local Chartdiff = require("sea.chart.Chartdiff")
 local table_util = require("table_util")
 
 local QueryFragments = {}
@@ -80,11 +81,7 @@ chartdiffs.density_data,
 chartdiffs.sv_data,
 chartdiffs.enps_diff,
 chartdiffs.osu_diff,
-chartdiffs.msd_diff,
-chartdiffs.msd_diff_data,
-chartdiffs.msd_diff_rates,
-chartdiffs.user_diff,
-chartdiffs.user_diff_data
+chartdiffs.rizu_diff
 ]]
 
 QueryFragments.FIELDS_CHARTDIFF_PREVIEW = [[
@@ -150,6 +147,14 @@ chartdiffs.rate = chartplays.rate
 QueryFragments.COND_CHARTPLAY_BY_MODE = QueryFragments.COND_CHARTPLAY_BY_MODS .. [[
 AND chartdiffs.mode = chartplays.mode
 ]]
+
+---The SQL of a select.diff_column choice, a chartdiff column such as "rizu_diff".
+---@param diff_column string
+---@return string
+function QueryFragments.getDifficultyField(diff_column)
+	assert(Chartdiff.struct[diff_column], diff_column)
+	return "chartdiffs." .. diff_column
+end
 
 ---@param conditions rdb.Conditions
 ---@param aggregate boolean?

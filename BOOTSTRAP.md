@@ -134,8 +134,8 @@ Application state remains in the checkout's existing ignored runtime paths:
 
 Docker does not compile or download application dependencies. The checkout must
 already contain the compatible Linux runtime produced by the normal artifact
-pipeline, including `bin/linux64/libsqlite3.so`,
-`bin/linux64/libminacalc.so`, and the server Lua modules under `tree/`.
+pipeline, including `bin/linux64/libsqlite3.so` and the server Lua modules
+under `tree/`.
 `make preflight` verifies that these artifacts are present, and the container
 entrypoint verifies the pinned SQLite version before starting OpenResty. The
 host-side `make nginx-conf` command renders the ignored `server-state/nginx.conf`; the

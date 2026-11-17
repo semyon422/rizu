@@ -14,7 +14,6 @@ local types = require("sea.shared.types")
 ---@field pass boolean
 ---@field rating number enps normalscore 32
 ---@field rating_pp number
----@field rating_msd number
 local ChartplayComputed = class()
 
 function ChartplayComputed:new()
@@ -26,7 +25,6 @@ function ChartplayComputed:new()
 	self.not_perfect_count = 0
 	self.rating = 0
 	self.rating_pp = 0
-	self.rating_msd = 0
 end
 
 ChartplayComputed.struct = {
@@ -38,13 +36,9 @@ ChartplayComputed.struct = {
 	pass = types.boolean,
 	rating = types.number,
 	rating_pp = types.number,
-	rating_msd = types.number,
 }
 
 local computed_keys = table_util.keys(ChartplayComputed.struct)
-
-local computed_keys_no_msd = table_util.copy(computed_keys)
-table.remove(computed_keys_no_msd, table_util.indexof(computed_keys_no_msd, "rating_msd"))
 
 local validate_chartplay_computed = valid.struct(ChartplayComputed.struct)
 
@@ -55,15 +49,10 @@ function ChartplayComputed:validate()
 end
 
 ---@param values sea.ChartplayComputed
----@param no_msd boolean?
 ---@return boolean?
 ---@return string?
-function ChartplayComputed:equalsComputed(values, no_msd)
-	local keys = computed_keys
-	if no_msd then
-		keys = computed_keys_no_msd
-	end
-	return valid.equals(table_util.sub(self, keys), table_util.sub(values, keys))
+function ChartplayComputed:equalsComputed(values)
+	return valid.equals(table_util.sub(self, computed_keys), table_util.sub(values, computed_keys))
 end
 
 ---@param base sea.ChartplayComputed

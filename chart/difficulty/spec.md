@@ -5,13 +5,12 @@ The `chart/difficulty/` module owns chart difficulty and preview metadata calcul
 ## User Experience
 
 - Chart difficulty values should be calculated consistently across client and server code.
-- Difficulty-related binary blobs and rate tables should remain stable for persisted chartdiff records.
+- Difficulty-related binary blobs should remain stable for persisted chartdiff records.
 
 ## Architecture Decisions
 
 - Difficulty calculation lives under `chart/` because it operates on chart data and scoring algorithms rather than client UI or runtime state.
 - `DifficultyModel` coordinates a registry of focused diffcalcs. Each diffcalc writes one or more fields onto `sea.Chartdiff`.
-- `MsdDiffData` and `MsdDiffRates` preserve their binary encoding contracts for database storage.
 
 ## Invariants
 

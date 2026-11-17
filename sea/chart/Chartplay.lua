@@ -35,7 +35,7 @@ table_util.copy(ChartmetaKey.struct, Chartplay.struct)
 table_util.copy(ChartplayBase.struct, Chartplay.struct)
 table_util.copy(ChartplayComputed.struct, Chartplay.struct)
 
-assert(#table_util.keys(Chartplay.struct) == 26)
+assert(#table_util.keys(Chartplay.struct) == 25)
 
 local validate_chartplay = valid.compose(valid.struct(Chartplay.struct), chart_types.subtimings_pair)
 

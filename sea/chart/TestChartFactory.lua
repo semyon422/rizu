@@ -53,12 +53,7 @@ function TestChartFactory:createChartdiff(data)
 	chartdiff.note_types_count = data and data.note_types_count or {tap = 0}
 	chartdiff.enps_diff = data and data.enps_diff or 1
 	chartdiff.osu_diff = data and data.osu_diff or 1
-	chartdiff.msd_diff = data and data.msd_diff or 1
-	chartdiff.msd_diff_data = data and data.msd_diff_data or {
-		overall = 1, stream = 0, jumpstream = 0, handstream = 0,
-		stamina = 0, jackspeed = 0, chordjack = 0, technical = 0
-	}
-	chartdiff.msd_diff_rates = data and data.msd_diff_rates or {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	chartdiff.rizu_diff = data and data.rizu_diff or 1
 	chartdiff.mode = data and data.mode or "mania"
 	chartdiff.modifiers = data and data.modifiers or {}
 	chartdiff.rate = data and data.rate or 1000
@@ -66,8 +61,6 @@ function TestChartFactory:createChartdiff(data)
 	chartdiff.computed_at = data and data.computed_at or 0
 	chartdiff.density_data = data and data.density_data or {}
 	chartdiff.sv_data = data and data.sv_data or {}
-	chartdiff.user_diff = data and data.user_diff or 0
-	chartdiff.user_diff_data = data and data.user_diff_data or ""
 	chartdiff.notes_preview = data and data.notes_preview or ""
 	return chartdiff
 end
@@ -102,7 +95,6 @@ function TestChartFactory:createChartplay(data)
 	chartplay.pass = data and data.pass ~= nil and data.pass or true
 	chartplay.rating = data and data.rating or 0
 	chartplay.rating_pp = data and data.rating_pp or 0
-	chartplay.rating_msd = data and data.rating_msd or 0
 	return chartplay
 end
 

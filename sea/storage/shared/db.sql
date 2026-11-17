@@ -62,13 +62,16 @@ CREATE TABLE IF NOT EXISTS `chartdiffs` (
 	`note_types_count` TEXT NOT NULL,
 	`density_data` TEXT NOT NULL,
 	`sv_data` TEXT NOT NULL,
-	`enps_diff` REAL NOT NULL,
-	`osu_diff` REAL NOT NULL,
-	`msd_diff` REAL NOT NULL,
-	`msd_diff_data` BLOB NOT NULL,
-	`msd_diff_rates` BLOB NOT NULL,
-	`user_diff` REAL NOT NULL,
-	`user_diff_data` BLOB NOT NULL,
+	`enps_diff` REAL,
+	`osu_diff` REAL,
+	`rizu_diff` REAL,
+	`skillset` INTEGER,
+	`pattern_1` INTEGER,
+	`pattern_2` INTEGER,
+	`pattern_share_1` REAL,
+	`pattern_share_2` REAL,
+	`pattern_bpm_1` REAL,
+	`pattern_bpm_2` REAL,
 	`notes_preview` BLOB NOT NULL
 );
 
@@ -78,8 +81,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS chartdiffs_himrmc_idx ON chartdiffs (`hash`, `
 CREATE INDEX IF NOT EXISTS chartdiffs_inputmode_idx ON chartdiffs (`inputmode`);
 CREATE INDEX IF NOT EXISTS chartdiffs_enps_idx ON chartdiffs (`enps_diff`);
 CREATE INDEX IF NOT EXISTS chartdiffs_osu_idx ON chartdiffs (`osu_diff`);
-CREATE INDEX IF NOT EXISTS chartdiffs_msd_idx ON chartdiffs (`msd_diff`);
-CREATE INDEX IF NOT EXISTS chartdiffs_user_idx ON chartdiffs (`user_diff`);
+CREATE INDEX IF NOT EXISTS chartdiffs_rizu_idx ON chartdiffs (`rizu_diff`);
 CREATE INDEX IF NOT EXISTS chartdiffs_notes_count_idx ON chartdiffs (`notes_count`);
 CREATE INDEX IF NOT EXISTS chartdiffs_duration_idx ON chartdiffs (`duration`);
 
@@ -119,8 +121,7 @@ CREATE TABLE IF NOT EXISTS `chartplays` (
 	`not_perfect_count` INTEGER NOT NULL,
 	`pass` INTEGER NOT NULL,
 	`rating` REAL NOT NULL,
-	`rating_pp` REAL NOT NULL,
-	`rating_msd` REAL NOT NULL
+	`rating_pp` REAL NOT NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS chartplays_replay_hash_idx ON chartplays (`replay_hash`);

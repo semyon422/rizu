@@ -221,6 +221,10 @@ Settings.cheat_keys = {
 	keys.gameplay.offset_input,
 }
 
+---Choices of select.diff_column: the chartview difficulty columns.
+---@type string[]
+Settings.diff_columns = {"rizu_diff", "enps_diff", "osu_diff"}
+
 ---@param filesystem fs.IFilesystem
 ---@return rizu.config.Config
 function Settings.createConfig(filesystem)
@@ -290,7 +294,7 @@ function Settings.createConfig(filesystem)
 	local chartview_modes = {"chartfile_sets", "chartfiles", "chartmetas", "chartdiffs", "chartplays"}
 	config:setDefaultChoice(s.primary_mode, "chartfile_sets", chartview_modes)
 	config:setDefaultChoice(s.secondary_mode, "chartmetas", chartview_modes)
-	config:setDefaultChoice(s.diff_column, "enps_diff", {"enps_diff", "osu_diff", "msd_diff", "user_diff"})
+	config:setDefaultChoice(s.diff_column, "rizu_diff", Settings.diff_columns)
 	config:setDefaultBoolean(s.locations_in_collections, false)
 	config:setDefaultBoolean(s.collapse, true) -- Deprecated?
 	config:setDefaultBoolean(s.chart_preview, true)

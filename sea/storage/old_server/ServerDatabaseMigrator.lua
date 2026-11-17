@@ -198,7 +198,6 @@ function ServerDatabaseMigrator:migrateChartplays()
 		chartplay.pass = true
 		chartplay.rating = score.rating
 		chartplay.rating_pp = 0
-		chartplay.rating_msd = 0
 
 		charts_repo:createChartplay(chartplay)
 	end

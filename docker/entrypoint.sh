@@ -17,7 +17,6 @@ for path in \
 	"$state_dir/nginx_config.lua" \
 	bin/linux64/lib7z.so \
 	bin/linux64/libiconv.so \
-	bin/linux64/libminacalc.so \
 	bin/linux64/libsqlite3.so \
 	tree/lib/lua/5.1/bcrypt.so \
 	tree/share/lua/5.1/resty/nats/client.lua
@@ -39,7 +38,7 @@ fi
 
 runtime_lib_dir="/tmp/rizu-libs"
 mkdir -p "$runtime_lib_dir"
-for name in lib7z.so libiconv.so libminacalc.so libsqlite3.so
+for name in lib7z.so libiconv.so libsqlite3.so
 do
 	ln -sfn "/app/bin/linux64/$name" "$runtime_lib_dir/$name"
 done
@@ -56,6 +55,5 @@ mkdir -p \
 	"$state_dir/temp/scgi"
 
 ./luajit -e 'local db = require("ljsqlite3").open(":memory:"); assert(db:rowexec("SELECT sqlite_version()") == "3.53.4"); db:close()'
-./luajit -e 'assert(require("chart.scoring.minacalc"))'
 
 exec openresty -p /app -c "$state_dir/nginx.conf" -g "daemon off;"

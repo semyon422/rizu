@@ -39,7 +39,6 @@ The list follows the selected chart by itself.
 ---@field firsts integer Charts where one of the plays is #1 of the local leaderboard.
 ---@field best_rating number? ENPS-based, `rizu.api.Score.rating`.
 ---@field best_pp number? osu! PP.
----@field best_msd number? Etterna MSD.
 
 ---@alias rizu.api.Scores.Source
 ---| "local" # Scores set on this computer.
@@ -140,10 +139,9 @@ function Scores:getGrade(score)
 	return accuracy and scoring:getGrade(accuracy), scoring
 end
 
----The player's totals over their local scores: osu! PP, the weighted sum of the best play of each chart,
----and Etterna MSD, the mean of the best 20. Worked out anew at each call, in the background: f gets nil
----before the library is loaded.
----@param f fun(totals: {pp: number, msd: number}?)
+---The player's totals over their local scores: osu! PP, the weighted sum of the best play of each chart.
+---Worked out anew at each call, in the background: f gets nil before the library is loaded.
+---@param f fun(totals: {pp: number}?)
 function Scores:getTotalRatings(f)
 	thread.coro(function()
 		local ok, totals = pcall(self.selector.library.getTotalRatingsAsync, self.selector.library)

@@ -6,7 +6,6 @@ local RatingCalc = require("sea.leaderboards.RatingCalc")
 ---@operator call: sea.TotalRating
 ---@field accuracy number
 ---@field rating number
----@field rating_msd number
 ---@field rating_pp number
 ---@field chartmeta_level number
 ---@field difftable_level number
@@ -20,7 +19,6 @@ TotalRating.start_accuracy = 0.032 / (erfunc.erfinv(0.5) * math.sqrt(2))
 function TotalRating:new()
 	self.accuracy = 0
 	self.rating = 0
-	self.rating_msd = 0
 	self.rating_pp = 0
 	self.chartmeta_level = 0
 	self.difftable_level = 0
@@ -32,7 +30,6 @@ function TotalRating:calc(cpvs)
 
 	local accuracy = self.accuracy
 	local rating = self.rating
-	local rating_msd = self.rating_msd
 	local rating_pp = self.rating_pp
 	local chartmeta_level = self.chartmeta_level
 	local difftable_level = self.difftable_level
@@ -45,7 +42,6 @@ function TotalRating:calc(cpvs)
 			_avg_count = _avg_count + 1
 			accuracy = accuracy + cp.accuracy
 			rating = rating + cp.rating
-			rating_msd = rating_msd + cp.rating_msd
 			chartmeta_level = chartmeta_level + (cp.chartmeta_level or 0)
 			difftable_level = difftable_level + (cp.difftable_level or 0)
 		end
@@ -59,7 +55,6 @@ function TotalRating:calc(cpvs)
 
 	self.accuracy = accuracy / avg_count
 	self.rating = rating / avg_count
-	self.rating_msd = rating_msd / avg_count
 	self.rating_pp = rating_pp
 	self.chartmeta_level = chartmeta_level / avg_count
 	self.difftable_level = difftable_level / avg_count

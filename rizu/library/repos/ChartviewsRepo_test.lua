@@ -1,3 +1,4 @@
+local ChartsRepo = require("sea.chart.repos.ChartsRepo")
 local Database = require("rizu.library.Database")
 local LinuxFilesystem = require("fs.LinuxFilesystem")
 local ChartviewsRepo = require("rizu.library.repos.ChartviewsRepo")
@@ -32,8 +33,8 @@ local function setup()
 	db.models.chartmetas:create(factory:createChartmeta({ id = 4, hash = "h3", index = 1, inputmode = "4key" }))
 	
 	-- Meta 4: Two diffs
-	db.models.chartdiffs:create(factory:createChartdiff({ id = 1, hash = "h3", index = 1, rate = 1.0, enps_diff = 10 }))
-	db.models.chartdiffs:create(factory:createChartdiff({ id = 2, hash = "h3", index = 1, rate = 1.2, enps_diff = 12 }))
+	ChartsRepo(db.models):createChartdiff(factory:createChartdiff({ id = 1, hash = "h3", index = 1, rate = 1.0, enps_diff = 10 }))
+	ChartsRepo(db.models):createChartdiff(factory:createChartdiff({ id = 2, hash = "h3", index = 1, rate = 1.2, enps_diff = 12 }))
 	
 	-- Diff 1: Two plays
 	db.models.chartplays:create(factory:createChartplay({ id = 1, hash = "h3", index = 1, rate = 1.0, accuracy = 0.90, created_at = 100 }))
@@ -223,6 +224,28 @@ function test.aggregation_in_modes(t)
 	end
 	t:assert(found_lamp, "Should have found meta 4")
 
+	db:unload()
+end
+
+---@param t testing.T
+function test.lamp_filters_by_the_chosen_difficulty(t)
+	local db, repo = setup()
+	local SearchModel = require("rizu.select.SearchModel")
+	local Settings = require("rizu.config.Settings")
+	local FakeFilesystem = require("fs.FakeFilesystem")
+	local settings = Settings.createConfig(FakeFilesystem())
+	settings:setChoice(Settings.keys.select.diff_column, "enps_diff")
+	local search = SearchModel({configs = {select = {}, filters = {notechart = {}}}}, settings)
+	repo.params.primary_mode = "chartplays"
+	repo.params.secondary_mode = "chartplays"
+	repo.params.lamp = search:transformSearchString("d>11", nil, true)
+	local lamps = {}
+	local items, count = repo:unpackResult(repo:query())
+	for i = 0, count - 1 do
+		lamps[items[i].chartplay_id] = items[i].lamp
+	end
+	t:eq(lamps[1], false)
+	t:eq(lamps[3], true)
 	db:unload()
 end
 

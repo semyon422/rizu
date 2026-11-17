@@ -67,8 +67,9 @@ end
 function HashingTask:applyPrepared(prepared)
 	self.chartmetaGenerator:apply(prepared.chartmetas)
 	local time = os.time()
+	local chartsRepo = self.chartdiffGenerator.chartsRepo
 	for _, chartdiff in ipairs(prepared.chartdiffs) do
-		self.chartdiffGenerator.chartsRepo:createUpdateChartdiff(chartdiff, time)
+		chartsRepo:createUpdateChartdiff(chartdiff, time)
 	end
 end
 

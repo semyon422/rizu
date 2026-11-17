@@ -341,7 +341,6 @@ function test.scores(t)
 		pass = true,
 		rating = 19,
 		rating_pp = 0,
-		rating_msd = 0,
 	})
 end
 

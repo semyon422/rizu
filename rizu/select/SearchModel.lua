@@ -3,6 +3,7 @@ local Observable = require("Observable")
 local string_util = require("string_util")
 local erfunc = require("chart.scoring.erfunc")
 local Settings = require("rizu.config.Settings")
+local QueryFragments = require("rizu.library.sql.QueryFragments")
 
 ---@alias rizu.select.SearchOperator "eq"|"ne"|"gt"|"lt"|"gte"|"lte"
 
@@ -179,6 +180,9 @@ local operators = {
 	["<="] = "lte",
 }
 
+---@type {[rizu.select.SearchOperator]: string}
+local sql_operators = {eq = "=", ne = "!=", gt = ">", lt = "<", gte = ">=", lte = "<="}
+
 ---@type {[rizu.select.SearchOperator]: rizu.select.SearchOperator}
 local inverse_operators = {
 	eq = "ne",
@@ -216,9 +220,6 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 			end
 			if config then
 				local field = config.field
-				if numbers_only and field == "difficulty" then
-					field = self.settings:getChoice(Settings.keys.select.diff_column)
-				end
 				if config.inverse then
 					operator = inverse_operators[operator] or operator
 				end
@@ -230,7 +231,11 @@ function SearchModel:transformSearchString(s, cond, numbers_only)
 				else
 					value = tonumber(value)
 				end
-				if value then
+				if value and numbers_only and field == "difficulty" then
+					-- The lamp query joins the tables themselves, where the chosen difficulty is a chartdiffs column.
+					local diff_column = self.settings:getChoice(Settings.keys.select.diff_column)
+					cond[{("%s %s ?"):format(QueryFragments.getDifficultyField(diff_column), sql_operators[operator])}] = value
+				elseif value then
 					cond[field .. "__" .. operator] = value
 				end
 			end

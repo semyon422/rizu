@@ -12,7 +12,7 @@ local zlib = require("zlib")
 local RemoteCatalogLoader = class()
 
 -- `catalog.schema_version`, written by `rizu.library.CatalogBuilder`.
-RemoteCatalogLoader.schema_version = 12
+RemoteCatalogLoader.schema_version = 13
 -- The charts of the catalog are downloaded here.
 RemoteCatalogLoader.location_path = "userdata/online/charts"
 RemoteCatalogLoader.location_name = "online"

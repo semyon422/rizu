@@ -23,7 +23,7 @@ local function create_ctx()
 		modifiers = {}, rate = 1, mode = "mania", nearest = false, tap_only = false,
 		custom = false, const = false, rate_type = "linear", judges = {}, accuracy = 0,
 		max_combo = 0, miss_count = 0, not_perfect_count = 0, pass = false,
-		rating = 0, rating_pp = 0, rating_msd = 0,
+		rating = 0, rating_pp = 0,
 	})
 	local repo = ChartplayEffectsRepo(db.models)
 	for _, effect_type in ipairs(ChartplayEffectType:list()) do

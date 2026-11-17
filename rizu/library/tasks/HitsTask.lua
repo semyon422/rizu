@@ -20,19 +20,26 @@ function HitsTask:new(chartsRepo, hitsRepo, computeDataLoader, taskContext, time
 	self.batchProcessor = BatchProcessor(taskContext, timer)
 end
 
+---Plays a chartplay's replay again with its own windows: the played chart is in ctx.diffcalc_context.
+---@param computeDataLoader sea.ComputeDataLoader
 ---@param chartplay sea.Chartplay
----@return string label
-function HitsTask:computeChartplay(chartplay)
-	local chart = assert(self.computeDataLoader:requireChart(chartplay.hash))
-	local replay = assert(self.computeDataLoader:requireReplay(chartplay.replay_hash)).replay
+---@return sea.ComputeContext
+function HitsTask.playAgain(computeDataLoader, chartplay)
+	local chart = assert(computeDataLoader:requireChart(chartplay.hash))
+	local replay = assert(computeDataLoader:requireReplay(chartplay.replay_hash)).replay
 
 	local ctx = ComputeContext()
 	assert(ctx:fromFileData(chart.name, chart.data, chartplay.index))
 	ctx:applyModifierReorder(replay)
 	ctx:computeBase(replay)
 	assert(ctx:computeReplay(replay))
+	return ctx
+end
 
-	local score_engine = assert(ctx.score_engine)
+---@param chartplay sea.Chartplay
+---@return string label
+function HitsTask:computeChartplay(chartplay)
+	local score_engine = assert(HitsTask.playAgain(self.computeDataLoader, chartplay).score_engine)
 	self.hitsRepo:setHits(chartplay.id, score_engine.chart_info, score_engine.events)
 
 	return chartplay.replay_hash
