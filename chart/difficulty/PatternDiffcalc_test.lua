@@ -1,4 +1,6 @@
 local DifficultyModel = require("chart.difficulty.DifficultyModel")
+local DiffcalcContext = require("chart.difficulty.DiffcalcContext")
+local PatternDiffcalc = require("chart.difficulty.PatternDiffcalc")
 local pattern_classifier = require("chart.scoring.pattern_classifier")
 local Pattern = require("chart.scoring.Pattern")
 local TestChartFactory = require("sea.chart.TestChartFactory")
@@ -43,6 +45,20 @@ function test.no_patterns_for_keymodes_without_a_model(t)
 	local chartdiff = source.chartdiff
 	DifficultyModel():compute(chartdiff, source.chart, 1)
 	t:eq(chartdiff.skillset, nil)
+end
+
+---@param t testing.T
+function test.no_patterns_for_a_bogus_span(t)
+	local source = TestChartFactory():create("4key", {
+		{time = -2147483.648, column = 1},
+		{time = 23, column = 2},
+	})
+	local chartdiff = source.chartdiff
+	PatternDiffcalc:compute(DiffcalcContext(chartdiff, source.chart, 1))
+
+	t:eq(chartdiff.skillset, nil)
+	t:eq(chartdiff.pattern_1, nil)
+	t:eq(chartdiff.pattern_bpm_1, nil)
 end
 
 ---@param t testing.T

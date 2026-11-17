@@ -52,6 +52,10 @@ function test.sections(t)
 	t:eq(pattern_classifier.analyze(notes, "5key"), nil)
 end
 
+function test.no_sections_for_a_bogus_span(t)
+	t:eq(#pattern_classifier.starts({{time = -2147483.648}, {time = 23}}), 0)
+end
+
 function test.bpm(t)
 	local sections = assert(pattern_classifier.analyze(chart(180, {{1}, {3}, {2}, {4}}), "4key"))
 	t:assert(math.abs(sections[1].bpm - 180) < 0.01)

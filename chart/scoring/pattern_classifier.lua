@@ -12,6 +12,10 @@ local pattern_classifier = {}
 pattern_classifier.WINDOW = 10 -- seconds a section looks at
 pattern_classifier.HOP = 2.5 -- seconds between section starts
 
+-- A bogus timestamp (INT32_MIN ms in a broken .qua) makes the span ~25 days, which would produce
+-- millions of sections and keep the calculators busy for hours. Leave such charts unanalyzed.
+pattern_classifier.MAX_SPAN = 3600
+
 -- Every model labels these, apart from its patterns: they say how hard the section is, not what is in it.
 pattern_classifier.SKILLSETS = {"speed", "stamina", "jacks", "technical"}
 
@@ -81,6 +85,9 @@ function pattern_classifier.starts(notes)
 		return starts
 	end
 	local first, last = notes[1].time, notes[#notes].time
+	if last - first > pattern_classifier.MAX_SPAN then
+		return starts
+	end
 	local t = first
 	repeat
 		table.insert(starts, t)
